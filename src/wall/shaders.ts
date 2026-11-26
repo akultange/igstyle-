@@ -2,8 +2,9 @@
 //
 // 1. TRAIL: where the cursor (or a finger, or the idle hand) has been. A texture a quarter of the screen's size that
 //    every frame forgets a little (red: the cracks, gone in about half a second; green: the embers the cracks leave,
-//    gone in about a second and a half) and takes in the new strokes, soft round brushes along each segment the
-//    pointer travelled since the last frame. Kept in screen space, in CSS pixels.
+//    gone in about a second and a half; blue: the dwell, how long a hand has rested on a place, which opens the wall
+//    wider, so the longer one looks the more of the show one sees) and takes in the new strokes, soft round brushes
+//    along each segment the pointer travelled since the last frame. Kept in screen space, in CSS pixels.
 // 2. WALL: the stone, lit, and wherever the trail says so, broken: shards that shift and tilt, light between them
 //    (the site's light of the hour: red, amber after four), the rebar's shadow across the light, and on the home page
 //    the show itself (the hero film) seen through the gaps. The menu burns in from its button: a front of light that
@@ -28,7 +29,8 @@ uniform vec2 uSize;          // the screen in CSS px
 uniform vec4 uSeg[4];        // strokes this frame: xy from, zw to (CSS px from the top left)
 uniform vec2 uSegK[4];       // x radius (CSS px), y strength
 uniform int uSegN;
-uniform vec2 uDecay;         // what is kept of the cracks (x) and of the embers (y) this frame
+uniform vec3 uDecay;         // what is kept this frame of the cracks (x), the embers (y) and the dwell (z)
+uniform float uDt;           // this frame's length, s
 uniform vec4 uBurst;         // a ring of breaking: xy centre, z radius, w strength (the entrance)
 in vec2 vUv;
 out vec4 o;
@@ -53,7 +55,11 @@ void main() {
     float ring = 1.0 - smoothstep(0.0, 0.22 * uBurst.z + 40.0, abs(d - uBurst.z));
     b = max(b, ring * uBurst.w);
   }
-  o = vec4(max(prev.r * uDecay.x, b), max(prev.g * uDecay.y, b), 0.0, 1.0);
+  // the dwell: how long a hand has stayed here; it opens the wall wider the longer it stays (about two seconds to
+  // the full), and lets it close again after
+  // (a small step down besides the fading, so that where the browser keeps this in 8 bits a value still reaches 0)
+  float dwell = clamp(prev.b * uDecay.z - 0.003 + b * b * uDt * 0.9, 0.0, 1.0);
+  o = vec4(max(prev.r * uDecay.x - 0.003, b), max(prev.g * uDecay.y - 0.002, b), dwell, 1.0);
 }`;
 
 export const WALL = /* glsl */ `#version 300 es
@@ -153,6 +159,10 @@ float breakAt(vec2 wp) {
   float t = trailAt(wp) + (edgeNoise(wp) - 0.5) * 0.55;
   return smoothstep(0.2, 0.62, t);
 }
+float dwellAt(vec2 wp) {
+  vec2 sp = wp - vec2(0.0, uScroll * PARALLAX);
+  return texture(tTrail, vec2(sp.x / uView.x, 1.0 - sp.y / uView.y)).b;
+}
 
 // The lilies: one screen of the wall carries the drawing, cover-fitted; below it the drawing repeats, mirrored
 // (so the forms run on without a seam) and quieter, so the long pages stay calm.
@@ -216,11 +226,12 @@ void main() {
     float askew = max(rc, menuIn * 0.1);
 
     // each shard moves on its own: a shift (it rides up out of the wall and slides), a tilt, a little shadow
-    vec2 sA = shardShift(cell) * rc, sB = shardShift(other) * ro;
+    float dA = dwellAt(cp), dB = dwellAt(op);
+    vec2 sA = shardShift(cell) * rc * (1.0 + 2.6 * dA), sB = shardShift(other) * ro * (1.0 + 2.6 * dB);
     vec2 ht = hash22(cell + 11.3) - 0.5;
     sw = w - sA;
     tilt = vec3(ht * 1.25 * askew, 0.0);
-    sink = 1.0 - 0.52 * askew * hash12(cell + 5.1);
+    sink = 1.0 - (0.52 + 0.25 * dA) * askew * hash12(cell + 5.1);
 
     // the crack between two shards: as wide as they have moved apart across it, never less than a hairline once
     // broken. Narrow, it is a dark line; wide, the light comes through.

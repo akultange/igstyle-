@@ -371,7 +371,8 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
     gl.uniform4fv(uT.uSeg, segs);
     gl.uniform2fv(uT.uSegK, segK);
     gl.uniform1i(uT.uSegN, Math.min(4, strokes.length));
-    gl.uniform2f(uT.uDecay, Math.exp(-dt / 0.42), Math.exp(-dt / 1.3));
+    gl.uniform3f(uT.uDecay, Math.exp(-dt / 0.42), Math.exp(-dt / 1.3), Math.exp(-dt / 1.4));
+    gl.uniform1f(uT.uDt, dt);
     if (burst) {
       const age = (now - burst.t0) / 1000;
       const r = age * Math.hypot(vw, vh) * 0.55;
