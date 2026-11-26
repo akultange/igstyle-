@@ -1,6 +1,7 @@
 ---
 // What every page uses; a part's own look comes with the part (its component imports its stylesheet), so a page
-// carries only the parts it shows. landscape.css stays last.
+// carries only the parts it shows. landscape.css stays last of the site's own; ig.css (the manner of immersive-g.com,
+// this repository's version) comes after it and only overrides.
 import '../styles/fonts.css';
 import '../styles/global.css';
 import '../styles/cut.css';
@@ -12,9 +13,11 @@ import '../styles/book.css';
 import '../styles/tune.css';
 import '../styles/footers.css';
 import '../styles/landscape.css';
+import '../styles/ig.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import AgeGate from '../components/AgeGate.astro';
+import IgGate from '../components/IgGate.astro';
+import Wall from '../components/Wall.astro';
 import MobileBar from '../components/MobileBar.astro';
 import SiteSwitch from '../components/SiteSwitch.astro';
 import Ask from '../components/Ask.astro';
@@ -94,8 +97,7 @@ const preload = lang === 'ru'
     {preload.map((href) => <link rel="preload" as="font" type="font/woff2" href={href} crossorigin />)}
 
     {/* the concrete of the 18+ door and of the page itself, found otherwise only after the stylesheet */}
-    {!bare && <link rel="preload" as="image" href="/img/concrete/concrete.webp" />}
-    {!bare && <link rel="preload" as="image" href="/img/concrete/mottle.webp" />}
+    {!bare && <link rel="preload" as="font" type="font/woff2" href={lang === 'ru' ? '/fonts/noto-serif-display-cyr-300.woff2' : '/fonts/noto-serif-display-lat-300.woff2'} crossorigin />}
     {/* what one page needs first (the home page's poster, HeroPreload.astro) */}
     <slot name="head" />
     {/* Dev and preview builds: which version of each contested part shows (Luka's or Gio's, data/variants.ts) */}
@@ -135,7 +137,7 @@ const preload = lang === 'ru'
           r.classList.add('motion');
           // The 18+ door as a place (src/door3d, AgeGate.astro): where the question will show and the browser can draw
           // in three dimensions (?door=2d in the address keeps the flat door; so does a visitor saving data).
-          try { if (!r.classList.contains('age-ok') && window.WebGL2RenderingContext && !/[?&]door=2d\b/.test(location.search) && !(navigator.connection && navigator.connection.saveData)) r.classList.add('d3'); } catch (e) {}
+          /* (this version asks on the loader's line, IgGate.astro: the door's three dimensions are not loaded) */
           var arm = function () { setTimeout(function () { if (!r.classList.contains('motion-ready')) r.classList.remove('motion'); }, 3000); };
           if (r.classList.contains('age-ok')) arm();
           else {
@@ -234,7 +236,10 @@ const preload = lang === 'ru'
         </filter>
       </defs>
     </svg>
-    {!bare && gate && <AgeGate lang={lang} />}
+    {/* the wall behind every page, and the 18+ question as the loader's line (AgeGate.astro, the club's door, stays
+        in the code: this version asks on the line instead) */}
+    {!bare && <Wall />}
+    {!bare && gate && <IgGate lang={lang} />}
     {!bare && <a class="skip" href="#main">{lang === 'ru' ? 'К содержанию' : 'Skip to content'}</a>}
     {!bare && <Header lang={lang} solid={solidHeader} />}
     <main id="main" tabindex="-1"><slot /></main>

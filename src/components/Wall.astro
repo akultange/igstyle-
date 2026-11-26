@@ -1,0 +1,28 @@
+---
+// The wall behind every page (the manner of immersive-g.com, in the club's own materials): graphite concrete with the
+// club's lilies carved into it, lit, and broken wherever the cursor or a finger passes, light coming through the
+// cracks (src/wall). One canvas, fixed behind everything; the page's own CSS ground (the concrete's picture) stays
+// underneath for a browser that can't draw it. Started here, once, and kept as window.__wall for the parts that
+// talk to it: the 18+ question breaks it open (IgGate.astro), the menu burns in (Header.astro), the home page's film
+// plays behind it (HeroWall.astro).
+---
+<canvas class="wall" id="wall" aria-hidden="true"></canvas>
+<script>
+  import { startWall } from '../wall/wall';
+  const c = document.getElementById('wall') as HTMLCanvasElement | null;
+  if (c) {
+    try {
+      const w = startWall(c);
+      if (w) {
+        (window as unknown as { __wall: typeof w }).__wall = w;
+        document.documentElement.classList.add('has-wall');
+        dispatchEvent(new Event('wall:ready'));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+</script>
+<style is:global>
+  .wall { position: fixed; inset: 0 0 auto 0; z-index: -1; display: block; width: 100%; height: 100lvh; pointer-events: none; background: var(--leather, #0e0d0d); }
+</style>

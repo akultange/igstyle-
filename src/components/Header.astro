@@ -8,6 +8,9 @@
 // html[data-hour]). Under the mouse a chalk line glides along the hairline from word to word. Over the top of a page
 // the bar is clear, only its line across; once the page moves under it, the bar is smoked: solid, a little
 // translucent, never blurred.
+// (igstyle-, the manner of immersive-g.com: no bar and no sections on the header at any width; the logo at the left
+// and booking and "Menu" at the right, the menu the full-screen sheet below on every screen, burnt in by the wall.
+// ig.css restyles; the markup is LUKA LATEST's.)
 // Phones: the logo at the centre and "Menu" on the right, over the same line, with the current section's seam lit
 // on the line where its word stands on a desktop (the first three left of the logo, the others right of it). The
 // menu is a full-screen sheet: the language, the logo and the cross on its top row (where the header's row was),
@@ -183,6 +186,12 @@ import { show } from '../data/variants';
     document.body.style.overflow = open ? 'hidden' : '';
     // (while the sheet is open, the header under it is no part of its own in a page change: nav.css)
     root.classList.toggle('mnav-open', open);
+    // the wall burns the menu in from the button, and lets it go again (Wall.astro; ig.css times the sheet to it)
+    const wall = (window as unknown as { __wall?: { menu(open: boolean, x?: number, y?: number): void } }).__wall;
+    if (wall) {
+      const b = opener?.getBoundingClientRect();
+      wall.menu(open, b ? b.left + b.width / 2 : innerWidth - 40, b ? b.top + b.height / 2 : 40);
+    }
     opener?.setAttribute('aria-expanded', String(open));
     dispatchEvent(new CustomEvent('menu:toggle', { detail: open })); // motion.ts pauses smooth scrolling
     if (instant) return;
@@ -201,8 +210,30 @@ import { show } from '../data/variants';
     if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   });
-  // Close the menu if the window grows past the phone layout.
-  matchMedia('(min-width: 900px)').addEventListener('change', (e) => { if (e.matches && mnav && !mnav.hidden) setOpen(false); });
+  // (the menu is the only way to the sections in this version, on every screen: it stays open as the window grows)
+
+  // The sections' names, under the pointer: they decode, a letter at a time, out of other letters (as theirs do)
+  const glyphs = document.documentElement.lang === 'ru' ? 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯабвгдежзиклмнопрстуфхцчшщэюя' : 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  const decode = (el: HTMLElement) => {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const word = el.dataset.word || (el.dataset.word = el.textContent || '');
+    const t0 = performance.now();
+    const id = (el.dataset.run = String(t0));
+    const step = (now: number) => {
+      if (el.dataset.run !== id) return;
+      const k = (now - t0) / 22; // letters settled so far
+      el.textContent = Array.from(word).map((ch, i) => (i < k || ch === ' ' ? ch : glyphs[(Math.random() * glyphs.length) | 0])).join('');
+      if (k < word.length) requestAnimationFrame(step);
+      else el.textContent = word;
+    };
+    requestAnimationFrame(step);
+  };
+  mnav?.querySelectorAll<HTMLElement>('.mnav-links a').forEach((a) => {
+    const label = a.querySelector<HTMLElement>('span');
+    if (!label) return;
+    a.addEventListener('pointerenter', (e) => { if (e.pointerType !== 'touch') decode(label); });
+    a.addEventListener('focus', () => { if (a.matches(':focus-visible')) decode(label); });
+  });
   // Coming back with the browser's Back button: the page returns as it was left, so shut the sheet at once.
   addEventListener('pageshow', (e) => { if (e.persisted && mnav && !mnav.hidden) setOpen(false, true); });
 </script>

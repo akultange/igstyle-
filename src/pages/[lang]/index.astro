@@ -1,7 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
-import Hero from '../../components/Hero.astro';
-import HeroPreload from '../../components/HeroPreload.astro';
+import HeroWall from '../../components/HeroWall.astro';
 import Parties from '../../components/Parties.astro';
 import PosterCard from '../../components/PosterCard.astro';
 import ShowTabs from '../../components/ShowTabs.astro';
@@ -44,8 +43,9 @@ const schema = {
 ---
 <Base lang={lang} description={ru ? `HOTLAND, мужской клуб в Москве. Шоу-программа, ужин и бар каждую ночь с ${hours[0]} до ${hours[1]}. Стол в зале, ложа у сцены, отдельный кабинет. 18+` : `HOTLAND, a gentlemen’s club in Moscow. The show, dinner and the bar every night from ${hours[0]} to ${hours[1]}. A table in the main room, a booth by the stage, a private room. 18+`} schema={schema}>
 
-  <HeroPreload slot="head" />
-  <Hero lang={lang} />
+  {/* the first screen: the wall and one line across it, the show behind the wall (HeroWall.astro; LUKA LATEST's
+      film header, Hero.astro, stays in the code) */}
+  <HeroWall lang={lang} />
 
   <!-- WHAT'S ON: the weekend's three nights as large posters, full width under the heading. On phones the row
        holds still while the page scrolls on and slides from one poster to the next (PosterCard.astro). Once every

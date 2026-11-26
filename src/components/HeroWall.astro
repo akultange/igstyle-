@@ -1,0 +1,53 @@
+---
+// The home page's first screen, in the manner of immersive-g.com: no picture of its own, only the wall (Wall.astro)
+// and one line across the middle of the screen: the club's logo, «Только между нами», and on the right the way on. The
+// 18+ question stood on this same line (IgGate.astro), so answering it changes nothing here but the words at the
+// right. The show is behind the wall: the home page's film plays there, unseen, and shows only through the cracks the
+// cursor (or a finger, or the wall's own idle hand) opens. In the corners, as on their page: booking at the bottom
+// left, and at the bottom right whether the club is open now (html[data-hour], scripts/site.ts).
+// (Hero.astro, the film header of LUKA LATEST, stays in the code: this version doesn't show it.)
+import type { Lang } from '../data/i18n';
+import { site } from '../data/site';
+import { HERO_PHONE } from '../data/hero';
+import Logo from './Logo.astro';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const ru = lang === 'ru';
+const open = site.hours[0].open, close = site.hours[0].close;
+---
+<section class="igh" id="top" aria-labelledby="igh-title">
+  <h1 class="sr-only" id="igh-title">{ru ? 'HOTLAND, мужской клуб в Москве' : 'HOTLAND, a gentlemen’s club in Moscow'}</h1>
+  <div class="ig-row igh-row">
+    <a class="ig-mark" href={`/${lang}/`} aria-label="HOTLAND"><Logo sign="tight" /></a>
+    <p class="ig-line">{ru ? 'Только между нами' : 'Just between us'}</p>
+    <a class="ig-end igh-down" href="#program">{ru ? 'Листайте вниз' : 'Scroll down'}</a>
+  </div>
+  <p class="igh-sub">{ru ? `Мужской клуб в Москве. Шоу, ужин и бар каждую ночь, ${open}–${close}` : `A gentlemen’s club in Moscow. The show, dinner and the bar every night, ${open}–${close}`}</p>
+  <a class="igh-corner igh-book" href={`/${lang}/booking/`}><span>{ru ? 'Забронировать стол' : 'Book a table'}</span><i aria-hidden="true"></i></a>
+  <p class="igh-corner igh-hour">
+    <span data-h="open">{ru ? `Открыто до ${close}` : `Open until ${close}`}</span>
+    <span data-h="late">{ru ? `Последние часы, до ${close}` : `The last hours, until ${close}`}</span>
+    <span data-h="closed">{ru ? `Откроемся в ${open}` : `Opening at ${open}`}</span>
+  </p>
+  <video class="igh-film" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1" data-src="/video/hero-d.mp4" data-src-phone="/video/hero-m.mp4"></video>
+</section>
+<script define:vars={{ PHONE: HERO_PHONE }}>
+  // The film behind the wall: fetched once the page has loaded and the 18+ question is answered (its megabytes never
+  // hold up the first screen), the cut this screen needs, and handed to the wall as soon as it plays.
+  (function () {
+    var v = document.querySelector('.igh-film');
+    if (!v) return;
+    var root = document.documentElement;
+    var go = function () {
+      var w = window.__wall;
+      if (!w || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      v.src = matchMedia(PHONE).matches ? v.dataset.srcPhone : v.dataset.src;
+      var p = v.play();
+      var hand = function () { w.film(v); };
+      if (p && p.then) p.then(hand, function () {}); else hand();
+    };
+    var whenLoaded = function () { if (document.readyState === 'complete') setTimeout(go, 300); else addEventListener('load', function () { setTimeout(go, 300); }, { once: true }); };
+    var start = function () { if (window.__wall) whenLoaded(); else addEventListener('wall:ready', whenLoaded, { once: true }); };
+    if (root.classList.contains('age-ok')) start(); else addEventListener('hotland:gate', start, { once: true });
+  })();
+</script>

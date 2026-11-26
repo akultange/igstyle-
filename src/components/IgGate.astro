@@ -1,0 +1,104 @@
+---
+// The 18+ question in the manner of immersive-g.com: their loader is one line across the middle of the screen (the
+// studio's mark, its line, a counter running to 100); here the same line is the club's (the logo, «Только между
+// нами», the counter) and when the counter reaches 100 the question takes its place, with its two answers. Behind it
+// the wall (Wall.astro) comes up out of the dark. "Yes" breaks the wall open from the button (a ring of cracks that
+// heals) and the page comes in; on the home page the line itself stays where it is, because the home page's first
+// screen is that same line (HeroWall.astro), so the answer cuts to nothing.
+//
+// Kept from the club's door (AgeGate.astro, which stays in the code): it is on every page that asks, every visit
+// (the answer lives in this tab for half an hour: Base.astro); while it shows, the page behind is out of reach (inert)
+// and the question has the focus; "Yes" tells the page it may begin (hotland:gate, a moment after) and the gate
+// carries .out from then on, as the door did, for the parts that wait on it (motion.ts and others).
+import { type Lang, ui, altPath } from '../data/i18n';
+import Logo from './Logo.astro';
+const { lang } = Astro.props as { lang: Lang };
+const t = ui[lang];
+const ru = lang === 'ru';
+const path = Astro.url.pathname;
+---
+<div class="igate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title" aria-describedby="gate-text" tabindex="-1" data-lenis-prevent>
+  <div class="ig-row">
+    <span class="ig-mark" aria-hidden="true"><Logo sign="tight" /></span>
+    <p class="ig-line">{ru ? 'Только между нами' : 'Just between us'}</p>
+    <div class="ig-end">
+      <span class="ig-count" aria-hidden="true">0</span>
+      <div class="ig-ask">
+        <h2 id="gate-title" class="ig-q">{t.gate.title}</h2>
+        <div class="ig-ans">
+          <button class="ig-yes" type="button" data-gate-yes>{t.gate.yes}</button>
+          <a class="ig-no" href={`/${lang}/goodbye/`}>{t.gate.no}</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="ig-note" id="gate-text">{t.gate.text}</p>
+  <div class="ig-foot">
+    <a href={altPath(path, 'ru')} hreflang="ru" lang="ru" aria-current={lang === 'ru' ? 'true' : undefined}>Рус</a>
+    <a href={altPath(path, 'en')} hreflang="en" lang="en" aria-current={lang === 'en' ? 'true' : undefined}>Eng</a>
+    <a href={`/${lang}/privacy/`}>{t.footer.privacy}</a>
+  </div>
+</div>
+<script>
+  const root = document.documentElement;
+  const gate = document.getElementById('gate');
+  const open = gate && !root.classList.contains('age-ok');
+  // the page behind is out of reach while the question shows
+  const behind = open
+    ? Array.from(document.body.children).filter((el): el is HTMLElement => el !== gate && el instanceof HTMLElement && !el.matches('script, .svg-defs, .wall'))
+    : [];
+  behind.forEach((el) => { el.inert = true; });
+  if (open && gate && !gate.contains(document.activeElement)) gate.focus({ preventScroll: true });
+
+  if (open && gate) {
+    // The counter: it runs to 100 as the page gets what the first screen needs (the faces, the wall's maps), never
+    // faster than about a second and a half, so it reads as a count and not a flicker. Anyone who asked for less motion
+    // gets the question at once.
+    const count = gate.querySelector<HTMLElement>('.ig-count');
+    const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let loaded = 0; // 0 … 3: the fonts, the wall's maps (or no wall), the page
+    const more = () => { loaded++; };
+    (document.fonts ? document.fonts.ready : Promise.resolve()).then(more);
+    if ((window as unknown as { __wallMaps?: boolean }).__wallMaps) more();
+    else if (root.classList.contains('has-wall')) addEventListener('wall:maps', more, { once: true });
+    else addEventListener('wall:ready', () => addEventListener('wall:maps', more, { once: true }), { once: true });
+    setTimeout(() => { if (!root.classList.contains('has-wall')) more(); }, 1200);
+    if (document.readyState === 'complete') more(); else addEventListener('load', more, { once: true });
+    const t0 = performance.now();
+    let shown = 0;
+    const ask = () => {
+      gate.classList.add('asked');
+      gate.querySelector<HTMLElement>('[data-gate-yes]')?.focus({ preventScroll: true });
+    };
+    if (calm || !count) ask();
+    else {
+      const tick = (now: number) => {
+        // where the count may go: a third for each thing arrived, and never past the time floor
+        const cap = Math.min(100, (loaded / 3) * 100, ((now - t0) / 1500) * 100);
+        shown += (cap - shown) * 0.12;
+        if (cap >= 100 && shown > 99.4) shown = 100;
+        count.textContent = String(Math.round(shown));
+        if (shown >= 100) { setTimeout(ask, 180); return; }
+        // (and if something never arrives, the question comes anyway after six seconds)
+        if (now - t0 > 6000) { count.textContent = '100'; ask(); return; }
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }
+
+    // Yes: the answer is kept for this visit, the page given back, the wall broken open from the button, and the page
+    // told it may begin; the gate goes once the light has gone round.
+    gate.querySelector<HTMLButtonElement>('[data-gate-yes]')?.addEventListener('click', (e) => {
+      if (gate.classList.contains('out')) return;
+      behind.forEach((el) => { el.inert = false; });
+      try { sessionStorage.setItem('age_ok', String(Date.now())); } catch {}
+      const b = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const wall = (window as unknown as { __wall?: { burst(x: number, y: number, k?: number): void } }).__wall;
+      wall?.burst(b.left + b.width / 2, b.top + b.height / 2, 1);
+      gate.classList.add('out');
+      root.classList.add('gate-going');
+      setTimeout(() => dispatchEvent(new Event('hotland:gate')), 250);
+      setTimeout(() => { root.classList.add('age-ok'); root.classList.remove('gate-going'); }, calm ? 0 : 900);
+    });
+  }
+</script>

@@ -1,0 +1,269 @@
+/* =====================================================================
+   HOTLAND in the manner of immersive-g.com (the igstyle- repository, a version for comparison, 2026-11-26).
+   Their site is a wall with things carved into it and the cursor working on it; one line of words across the
+   middle of the first screen; words at the corners; a menu that spreads over the page from its own button. Here the
+   wall is the club's: graphite formwork concrete with the lilies of its logo carved in, broken by the cursor, light
+   coming through the cracks (Wall.astro, src/wall). Their serif becomes the display voice (Noto Serif Display, with
+   Cyrillic); the text and the Label stay the site's. This sheet comes last (Base.astro) and only overrides.
+   ===================================================================== */
+
+@font-face {
+  font-family: 'Noto Serif Display'; font-style: normal; font-weight: 300; font-display: swap;
+  src: url('/fonts/noto-serif-display-cyr-300.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Noto Serif Display'; font-style: normal; font-weight: 300; font-display: swap;
+  src: url('/fonts/noto-serif-display-lat-300.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Noto Serif Display'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('/fonts/noto-serif-display-cyr-400.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Noto Serif Display'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('/fonts/noto-serif-display-lat-400.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  --f-serif: 'Noto Serif Display', 'Times New Roman', serif;
+  --ig-pad: clamp(20px, 3vw, 48px);
+  --ig-ease: cubic-bezier(.22, 1, .36, 1);
+}
+/* The display voice: the page's name, a section's heading and the closing card's title speak in the serif, light,
+   upright and in sentence case, a size or two under the condensed capitals they replace (a serif's lower case runs
+   about twice as wide). The numbers and the posters keep the Dial: it is a dial's face, and they were drawn in it. */
+:is(.t-xxl, .t-xl, .t-l:not(.long), .cta-h) {
+  font-family: var(--f-serif); font-weight: 300; font-stretch: normal; text-transform: none; letter-spacing: -.02em;
+}
+.t-xxl { font-size: clamp(64px, 10.5vw, 176px); line-height: .96; }
+.t-xl { font-size: clamp(56px, 8.6vw, 150px); line-height: .96; }
+.t-l:not(.long) { font-size: clamp(42px, 4.9vw, 82px); line-height: 1; }
+.ptitle-name { font-size: min(clamp(60px, 9.4vw, 160px), calc(var(--fit-size) * .56)); line-height: .96; }
+.cta-card .cta-h { font-size: clamp(56px, 9.5cqw, 128px); font-weight: 300; line-height: .96; }
+@media (max-width: 899px) { .cta-card .cta-h { font-size: clamp(52px, 15cqw, 92px); } }
+
+/* ---------- The wall shows through ----------
+   The page's own ground (the concrete's picture) is under the canvas and stays for a browser that can't draw it;
+   where the wall is drawn, sections that painted their own concrete or steel let it through. */
+html.has-wall body { background: transparent; }
+html.has-wall :is(.soot, .cloth) { background: transparent; }
+
+/* ---------- The words in the corners and the line across the middle ---------- */
+.ig-row {
+  display: grid; grid-template-columns: minmax(150px, 1fr) auto minmax(150px, 1fr); align-items: center; column-gap: clamp(24px, 4vw, 72px);
+  width: 100%; padding: 0 var(--ig-pad);
+}
+.ig-mark { justify-self: start; display: inline-grid; place-items: center; height: 44px; --logo-h: 11px; }
+.ig-mark .logo { height: var(--logo-h); }
+.ig-line {
+  margin: 0; font: 300 clamp(30px, 2.9vw, 46px)/1.05 var(--f-serif); letter-spacing: -.02em; color: var(--shirt);
+  text-wrap: balance; text-align: center;
+}
+.ig-end {
+  justify-self: end; font: 400 14px/1.2 var(--f-text); color: var(--ash); letter-spacing: .01em;
+}
+
+/* ---------- The 18+ question: the loader's line ---------- */
+.igate {
+  position: fixed; inset: 0; z-index: 200; display: grid; align-content: center; justify-items: stretch;
+  color: var(--shirt); outline: none;
+  /* until the wall is drawn, the dark it comes up out of */
+  background: radial-gradient(120% 90% at 30% 20%, #141416, #070708 70%);
+  transition: opacity .7s var(--ig-ease), visibility 0s linear .7s;
+}
+html.has-wall .igate { background: transparent; }
+html.age-ok .igate { display: none; }
+.igate.out { opacity: 0; visibility: hidden; pointer-events: none; }
+.igate .ig-end { position: relative; min-height: 44px; display: grid; align-items: center; justify-items: end; }
+.ig-count {
+  font: 300 clamp(22px, 1.6vw, 28px)/1 var(--f-serif); font-variant-numeric: tabular-nums lining-nums; color: var(--ash);
+  transition: opacity .35s ease, translate .5s var(--ig-ease);
+}
+.ig-ask {
+  position: absolute; right: 0; top: 50%; translate: 0 -50%; display: grid; justify-items: end; gap: 12px; white-space: nowrap;
+  opacity: 0; visibility: hidden; transition: opacity .6s var(--ig-ease) .1s, visibility 0s linear .7s;
+}
+.igate.asked .ig-count { opacity: 0; translate: 0 -10px; }
+.igate.asked .ig-ask { opacity: 1; visibility: visible; transition: opacity .6s var(--ig-ease) .1s, visibility 0s; }
+.ig-q { margin: 0; font: 300 clamp(22px, 1.7vw, 28px)/1.1 var(--f-serif); letter-spacing: -.01em; color: var(--shirt); }
+.ig-ans { display: flex; gap: 22px; align-items: center; }
+.ig-yes, .ig-no {
+  position: relative; display: inline-flex; align-items: center; min-height: 44px;
+  font: 500 14px/1 var(--f-text); letter-spacing: .01em; color: var(--shirt);
+}
+.ig-no { color: var(--ash); }
+/* the answer that opens the wall: a hairline that the light runs along under the pointer */
+.ig-yes::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 10px; height: 1px; background: currentColor; opacity: .5;
+  transform-origin: left; transition: opacity .3s ease;
+}
+.ig-yes::before {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 9px; height: 3px; pointer-events: none;
+  background: var(--lit-core); box-shadow: var(--seam-glow); transform: scaleX(0); transform-origin: left;
+  transition: transform .5s var(--ig-ease);
+}
+@media (hover: hover) {
+  .ig-yes:hover::before { transform: scaleX(1); }
+  .ig-no:hover { color: var(--shirt); }
+}
+.ig-yes:focus-visible::before { transform: scaleX(1); }
+.ig-yes:focus-visible, .ig-no:focus-visible { outline: none; }
+.ig-no:focus-visible { color: var(--shirt); text-decoration: underline; text-underline-offset: 6px; }
+.ig-note {
+  position: absolute; left: 0; right: 0; top: calc(50% + 46px); margin: 0; text-align: center;
+  font: 400 14px/1.4 var(--f-text); color: var(--ash); opacity: 0; transition: opacity .6s var(--ig-ease) .25s;
+}
+.igate.asked .ig-note { opacity: 1; }
+.ig-foot {
+  position: absolute; left: var(--ig-pad); bottom: calc(22px + env(safe-area-inset-bottom)); display: flex; gap: 22px;
+  font: 400 13px/1 var(--f-text); color: var(--ash);
+}
+.ig-foot a { display: inline-flex; align-items: center; min-height: 44px; }
+.ig-foot a[aria-current] { color: var(--shirt); }
+@media (hover: hover) { .ig-foot a:hover { color: var(--shirt); } }
+
+/* while the question shows, the page waits unseen behind it; it comes in as the wall breaks open */
+html.js:not(.age-ok) :is(#main, .ft, .hdr, .mbar, .site-switch, .skip) { opacity: 0; }
+html.js :is(#main, .ft, .hdr, .mbar, .site-switch) { transition: opacity .9s var(--ig-ease); }
+html.gate-going :is(#main, .ft, .hdr, .mbar, .site-switch) { opacity: 1; transition-delay: .25s; }
+
+/* ---------- The home page's first screen ---------- */
+.igh { position: relative; display: grid; align-content: center; min-height: 100svh; padding: var(--hdr-row, 72px) 0; }
+.igh .ig-row { pointer-events: auto; }
+.igh-down { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; transition: color .3s ease; }
+.igh-down::after {
+  content: ''; width: 1px; height: 22px; background: linear-gradient(currentColor, transparent);
+  animation: igh-drip 2.4s var(--ig-ease) infinite;
+}
+@keyframes igh-drip { 0% { transform: scaleY(0); transform-origin: top; } 45% { transform: scaleY(1); transform-origin: top; } 55% { transform: scaleY(1); transform-origin: bottom; } 100% { transform: scaleY(0); transform-origin: bottom; } }
+@media (hover: hover) { .igh-down:hover { color: var(--shirt); } }
+.igh-sub {
+  position: absolute; left: 0; right: 0; top: calc(50% + 40px); margin: 0; padding: 0 var(--ig-pad); text-align: center;
+  font: 400 14px/1.5 var(--f-text); color: var(--ash);
+}
+.igh-corner { position: absolute; bottom: calc(26px + env(safe-area-inset-bottom)); margin: 0; font: 400 14px/1.2 var(--f-text); }
+.igh-book { left: var(--ig-pad); display: inline-flex; align-items: center; gap: 12px; min-height: 44px; color: var(--shirt); }
+/* their "See all projects" carries a small moving mark: here, a seam of the light that grows and goes */
+.igh-book i { position: relative; width: 26px; height: 1px; background: rgba(236, 236, 232, .35); overflow: visible; }
+.igh-book i::after {
+  content: ''; position: absolute; left: 0; top: -1px; width: 100%; height: 3px; background: var(--lit-core); box-shadow: var(--seam-glow);
+  transform-origin: left; animation: igh-seam 2.8s var(--ig-ease) infinite;
+}
+@keyframes igh-seam { 0% { transform: scaleX(0); opacity: 1; } 55% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+.igh-hour { right: var(--ig-pad); display: flex; align-items: center; min-height: 44px; color: var(--ash); }
+.igh-hour span { display: none; }
+.igh-hour span::before {
+  content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 10px; border-radius: 50%; vertical-align: 1px;
+  background: var(--lit-core); box-shadow: 0 0 3px 1px var(--lit), 0 0 10px 2px color-mix(in srgb, var(--lit) 40%, transparent);
+}
+html:not([data-hour]) .igh-hour [data-h='open'], html[data-hour='open'] .igh-hour [data-h='open'], html[data-hour='late'] .igh-hour [data-h='late'], html[data-hour='closed'] .igh-hour [data-h='closed'] { display: inline; }
+html[data-hour='closed'] .igh-hour span::before { background: var(--steel-hi); box-shadow: none; }
+.igh-film { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+/* the line comes in where the question stood (the gate went out over it): only the words at the right are new */
+html.motion .igh .ig-end, html.motion .igh-sub, html.motion .igh-corner { animation: ig-in 1.2s var(--ig-ease) .35s backwards; }
+html.motion.hero-again .igh :is(.ig-mark, .ig-line) { animation: ig-in 1.2s var(--ig-ease) backwards; }
+@keyframes ig-in { from { opacity: 0; translate: 0 10px; } }
+/* the sections after it begin a screen down, with the usual air */
+.igh + .sec { padding-top: var(--sec-y); }
+
+/* ---------- The header: two words in the corners ----------
+   Their header is a word at the top right ("Menu") and nothing else. Here: the logo at the left (not on the home
+   page's first screen, where the line carries it), booking and "Menu" at the right; no bar, no line, no sections:
+   the sections are in the menu. */
+.hdr .hdr-bar, .hdr .hdr-links, .hdr .hdr-hl, .hdr .hdr-lang, .hdr .hdr-at { display: none !important; }
+.hdr .hdr-in { grid-template-columns: auto 1fr auto; max-width: none; padding: 0 var(--ig-pad); }
+.hdr .hdr-nav { grid-area: 1 / 1; display: flex; }
+.hdr .hdr-name { justify-self: start; padding: 0; }
+.hdr .hdr-r { grid-area: 1 / 3; gap: clamp(18px, 2vw, 32px); }
+.hdr .hdr-book {
+  height: 44px; padding: 0; background: none !important; box-shadow: none !important; color: var(--shirt);
+  font: 400 14px/1 var(--f-text); letter-spacing: .01em; text-transform: none;
+}
+.hdr .hdr-book::after { display: none; }
+@media (hover: hover) { .hdr .hdr-book:hover { color: var(--shirt); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 6px; } }
+.hdr .hdr-menu, .mnav-top .hdr-menu {
+  display: inline-flex !important; gap: 14px; padding: 0;
+  font: 400 14px/1 var(--f-text); letter-spacing: .01em; text-transform: none; color: var(--shirt);
+}
+/* their mark: a short dash after the word; in the open menu the dash crosses into an x */
+.hdr .hdr-menu i, .mnav-top .hdr-menu i { width: 18px; height: 1px; }
+.hdr .hdr-menu i::after, .mnav-top .hdr-menu i::after { content: none; }
+.hdr .hdr-menu i::before, .mnav-top .hdr-menu i::before { top: 0; transition: rotate .4s var(--ig-ease), translate .4s var(--ig-ease); }
+.mnav-top .hdr-menu.is-close i::before { translate: 0 0; rotate: 0deg; }
+.mnav-top .hdr-menu.is-close i::after { content: ''; top: 0; bottom: auto; translate: 0 0; rotate: 0deg; opacity: 0; }
+@media (max-width: 899px) { .hdr .hdr-book { display: none; } }
+/* the home page's first screen carries the logo on its line */
+body:has(.igh) .hdr:not(.is-scrolled) .hdr-name { opacity: 0; pointer-events: none; }
+.hdr .hdr-name { transition: opacity .5s ease; }
+/* (the header has no plate: over the page's words it would stand on them; it steps aside on the way down, as before,
+   and a soft dark falls from the top of the screen under it once the page has moved) */
+.hdr::before {
+  content: '' !important; position: absolute; inset: 0 0 auto; height: calc(var(--hdr-row, 72px) + 40px); pointer-events: none;
+  background: linear-gradient(rgba(5, 5, 6, .72), rgba(5, 5, 6, 0)); opacity: 0; transition: opacity .5s ease;
+}
+.hdr.is-scrolled::before { opacity: 1; }
+
+/* ---------- The menu: burnt in from its button ----------
+   The wall does the burning (wall.menu, Header.astro): a front of light spreads from the button across the screen,
+   the wall behind it darker and crazed. The sheet itself is clear: the sections in the serif, large, at the
+   centre; the rest small at the foot. The page under it fades away while it is open. */
+.mnav { background: transparent !important; display: grid; grid-template-rows: auto 1fr; }
+html.has-wall .mnav { background: transparent !important; }
+html:not(.has-wall) .mnav { background-color: rgba(5, 5, 6, .96) !important; }
+.mnav-top { border-bottom: 0; padding: 0 var(--ig-pad); }
+.mnav-top .seg { font: 400 14px/1 var(--f-text); text-transform: none; letter-spacing: .01em; }
+.mnav-body { align-content: center; justify-items: center; gap: clamp(28px, 4vh, 48px); padding: 0 var(--ig-pad) calc(28px + env(safe-area-inset-bottom)); }
+.mnav-links { --mn-y: 0px; justify-items: center; text-align: center; }
+.mnav-links a {
+  border: 0; padding: .06em 0;
+  font: 300 clamp(40px, 6.2vw, 92px)/1.02 var(--f-serif); letter-spacing: -.02em;
+  color: rgba(236, 236, 232, .5); transition: color .35s ease, opacity .35s ease;
+}
+.mnav-links a.on, .mnav-links a:hover, .mnav-links a:focus-visible { color: var(--shirt); }
+.mnav-links a.on span::after { left: 50%; right: auto; width: 40px; translate: -50% 0; bottom: .1em; }
+.mnav-links:hover a:not(:hover) { color: rgba(236, 236, 232, .32); }
+.mnav-info { justify-items: center; text-align: center; gap: 18px; }
+.mnav-book { width: auto; max-width: none; }
+.mnav-visit { justify-items: center; font-size: 14px; }
+.mnav-msg { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 26px; max-width: none; width: auto; }
+.mnav-act { border: 0 !important; background: none !important; padding: 0 !important; min-height: 44px; font: 400 14px/1 var(--f-text); color: var(--fg-2); }
+.mnav-act .fic { display: none; }
+@media (hover: hover) { .mnav-act:hover { color: var(--shirt); } }
+.mnav-careers { font-size: 14px; }
+/* the sheet arrives after the burn's front has passed (about .45s), word by word; it leaves at once */
+html.motion .mnav:not([hidden]) { animation: none; }
+html.motion .mnav:not([hidden]) :is(.mnav-links a, .mnav-info > *) { animation: ig-in .9s var(--ig-ease) calc(.42s + var(--i, 0) * .05s) backwards; }
+html.motion .mnav.closing { animation: ig-out .3s ease both; }
+@keyframes ig-out { to { opacity: 0; } }
+/* the page under the open menu fades into the burnt wall */
+html.mnav-open :is(#main, .ft, .mbar, .site-switch) { opacity: 0; transition: opacity .5s ease .1s; }
+html.mnav-open .hdr { opacity: 0; transition: opacity .12s ease; }
+html:not(.mnav-open) :is(#main, .ft, .mbar) { transition: opacity .7s ease .2s; }
+
+/* ---------- Phones: the line stands, the corners move ---------- */
+@media (max-width: 899px) {
+  .ig-row { grid-template-columns: 1fr; justify-items: center; row-gap: 22px; }
+  .ig-mark { justify-self: center; --logo-h: 10px; }
+  .ig-line { font-size: clamp(40px, 11.5vw, 54px); line-height: 1.02; max-width: 9em; }
+  .ig-end { justify-self: center; }
+  .igate .ig-end { justify-items: center; }
+  .ig-ask { position: static; translate: none; justify-items: center; }
+  .igate.asked .ig-count { display: none; }
+  .ig-note { position: static; margin-top: 18px; }
+  .igate { align-content: center; gap: 0; }
+  .ig-foot { left: 0; right: 0; justify-content: center; }
+  .igh { padding-bottom: calc(var(--dock, 76px) + 70px); }
+  .igh-sub { position: static; margin-top: 20px; }
+  .igh .ig-row { row-gap: 26px; }
+  .igh-down { display: none; }
+  .igh-book { display: none; }
+  .igh-hour { left: 0; right: 0; justify-content: center; bottom: calc(var(--dock, 76px) + 18px + env(safe-area-inset-bottom)); }
+}
+
+/* the switch between the versions (review copies only, SiteSwitch.astro): at the foot of the screen in the middle,
+   clear of the corners' words */
+@media (min-width: 900px) { .site-switch { left: 50%; translate: -50% 0; bottom: 18px; } }

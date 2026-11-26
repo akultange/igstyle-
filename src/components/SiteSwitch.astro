@@ -6,10 +6,12 @@
 const on = !!import.meta.env.PUBLIC_SITE_SWITCH;
 const path = Astro.url.pathname;
 const ru = !path.startsWith('/en/');
+// (igstyle-, 2026-11-26: a fourth, this one, the site in the manner of immersive-g.com; LUKA LATEST is a link from here)
 const versions = [
   { name: ru ? 'Гио' : 'Gio', href: 'https://hotland-mezhdu.club-site.workers.dev' + path },
   { name: ru ? 'Лука' : 'Luka', href: 'https://akultange.github.io/hotlandbeta' + path },
-  { name: ru ? 'Лука latest' : 'Luka latest', href: null },
+  { name: ru ? 'Лука latest' : 'Luka latest', href: 'https://akultange.github.io/hotland-latest' + path },
+  { name: 'IG', href: null },
 ];
 ---
 {on && (
