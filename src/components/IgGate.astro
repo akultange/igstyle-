@@ -68,6 +68,8 @@ const path = Astro.url.pathname;
     let shown = 0;
     const ask = () => {
       gate.classList.add('asked');
+      // (the page may start fetching what it shows behind the wall: the home page's film)
+      dispatchEvent(new Event('hotland:asked'));
       gate.querySelector<HTMLElement>('[data-gate-yes]')?.focus({ preventScroll: true });
     };
     if (calm || !count) ask();

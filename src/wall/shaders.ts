@@ -51,9 +51,10 @@ void main() {
     b = max(b, exp(-d * d) * uSegK[i].y);
   }
   if (uBurst.w > 0.0) {
+    // the wall opens from a point: a disc that grows, its edge soft, then lets go
     float d = length(p - uBurst.xy);
-    float ring = 1.0 - smoothstep(0.0, 0.22 * uBurst.z + 40.0, abs(d - uBurst.z));
-    b = max(b, ring * uBurst.w);
+    float disc = 1.0 - smoothstep(uBurst.z * 0.7 - 40.0, uBurst.z, d);
+    b = max(b, disc * uBurst.w);
   }
   // the dwell: how long a hand has stayed here; it opens the wall wider the longer it stays (about two seconds to
   // the full), and lets it close again after
@@ -143,26 +144,16 @@ float voronoi(vec2 x, out vec2 cell, out vec2 other, out vec2 dir) {
   return md;
 }
 
-// how a shard moves when the wall breaks under it: a slide of up to 12 px, its own way
-vec2 shardShift(vec2 c) {
-  vec2 h = hash22(c + 3.7) - 0.5;
-  return h * 19.0;
+// the window's field at a point of the wall: the trail (wider where a hand has rested) and the noise that chips
+// its edge; the window is where it passes WIN
+const float WIN = 0.55;
+float windowField(vec2 wp, vec4 trv) {
+  float lumps = texture(tN, wp / 760.0 + 0.21).r;
+  float chips = texture(tN, wp / 118.0 + 0.63).r;
+  return trv.r * 0.86 + trv.b * 0.62 + (lumps - 0.5) * 0.48 + (chips - 0.5) * 0.2;
 }
 
-// how far the trail (and the menu's burn) has broken the wall at a point of the wall (CSS px, wall space)
-float trailAt(vec2 wp) {
-  vec2 sp = wp - vec2(0.0, uScroll * PARALLAX);
-  return texture(tTrail, vec2(sp.x / uView.x, 1.0 - sp.y / uView.y)).r;
-}
 float edgeNoise(vec2 wp) { return texture(tN, wp / 560.0).r; }
-float breakAt(vec2 wp) {
-  float t = trailAt(wp) + (edgeNoise(wp) - 0.5) * 0.55;
-  return smoothstep(0.2, 0.62, t);
-}
-float dwellAt(vec2 wp) {
-  vec2 sp = wp - vec2(0.0, uScroll * PARALLAX);
-  return texture(tTrail, vec2(sp.x / uView.x, 1.0 - sp.y / uView.y)).b;
-}
 
 // The lilies: one screen of the wall carries the drawing, cover-fitted; below it the drawing repeats, mirrored
 // (so the forms run on without a seam) and quieter, so the long pages stay calm.
@@ -197,6 +188,9 @@ void main() {
   vec4 tr = texture(tTrail, vec2(sp.x / uView.x, 1.0 - sp.y / uView.y));
   float en = edgeNoise(w);
 
+  vec2 drift0 = (uPtr / uView - 0.5) * (1.0 - uCalm);
+  vec3 L0 = normalize(vec3(-0.52 + 0.22 * drift0.x, -0.62 + 0.16 * drift0.y, 0.58));
+
   // ---- the menu: a burn that spreads from the button, noisy at its front ----
   float menuIn = 0.0, front = 0.0, charBand = 0.0;
   if (uMenu > 0.0) {
@@ -210,81 +204,55 @@ void main() {
     charBand = smoothstep(0.01, 0.03, f) * (1.0 - smoothstep(0.03, 0.16, f));
   }
 
-  // ---- the stone, unbroken ----
-  vec2 sw = w;            // where the stone is read (a shard shifts it)
-  vec3 tilt = vec3(0.0);  // a shard's tilt
+  // ---- the stone, and where the hand is, the window ----
+  vec2 sw = w;            // where the stone is read
+  vec3 tilt = vec3(0.0);  // a shard's tilt (the menu's crazed wall)
   float sink = 1.0;       // a shard sunk a little into shadow
-  vec3 emit = vec3(0.0);  // light: the cracks, their glow, the embers, the burn's front
-  float gapMix = 0.0;     // how much of this pixel is the gap (light, the show)
-  float goneA = 0.0, goneB = 0.0, holeEdge = 99.0; // a shard come away (this one, the one across the border)
-  vec3 gapCol = vec3(0.0);
+  vec3 emit = vec3(0.0);  // light: the burn's front, the faint light round the window
+  float hole = 0.0;       // 1 inside the window onto the show
+  float lip = 0.0;        // the broken concrete round it, sloping down into it
+  vec2 lipDir = vec2(0.0);
+  float holeShadow = 0.0; // the lip's shadow on what is inside
 
-  float broken = max(max(tr.r, tr.g), menuIn);
+  float broken = max(max(tr.r, tr.b), menuIn);
   if (broken > 0.003) {
-    vec2 cell, other, dir;
-    float e = voronoi(w / CELL, cell, other, dir);
-    float ePx = e * CELL;                                   // distance to the border, CSS px
-    vec2 cp = cellPoint(cell) * CELL, op = cellPoint(other) * CELL;
-    float rc = breakAt(cp), ro = breakAt(op);
-    float open = max(rc, ro);
-    // behind the menu's burn every shard has settled a little askew, but nothing parts: no light, only the cracks
-    float askew = max(rc, menuIn * 0.1);
+    // The window: the concrete crumbles away where the hand is, as a hole with a chipped, ragged edge (big lumps
+    // and small chips from the cellular noise, so no edge is ever a clean circle), wider the longer a hand rests.
+    float v = windowField(w, tr);
+    float fw = max(fwidth(v), 1e-4);
+    hole = smoothstep(WIN - fw, WIN + fw, v);
+    // about nine pixels of broken concrete round the hole: its broken face, sloping down into the hole
+    lip = smoothstep(WIN - fw * 9.0, WIN - fw * 0.5, v) * (1.0 - hole);
+    lipDir = normalize(vec2(dFdx(v), -dFdy(v)) + 1e-6);
+    // what is inside lies in the lip's shadow on the side the light comes from
+    vec2 toL = normalize(L0.xy);
+    vec2 ps = sp + toL * 16.0;
+    float vS = windowField(w + toL * 16.0, texture(tTrail, vec2(ps.x / uView.x, 1.0 - ps.y / uView.y)));
+    holeShadow = hole * (1.0 - smoothstep(WIN - fw * 4.0, WIN + fw * 4.0, vS));
 
-    // each shard moves on its own: a shift (it rides up out of the wall and slides), a tilt, a little shadow
-    float dA = dwellAt(cp), dB = dwellAt(op);
-    // where a hand has rested long, shards come away altogether, one by one, and leave a hole in the wall
-    goneA = smoothstep(0.0, 0.2, dA * 1.2 - 0.45 - hash12(cell + 9.1) * 0.6) * rc;
-    goneB = smoothstep(0.0, 0.2, dB * 1.2 - 0.45 - hash12(other + 9.1) * 0.6) * ro;
-    holeEdge = ePx;
-    vec2 sA = shardShift(cell) * rc * (1.0 + 2.6 * dA), sB = shardShift(other) * ro * (1.0 + 2.6 * dB);
-    vec2 ht = hash22(cell + 11.3) - 0.5;
-    sw = w - sA;
-    tilt = vec3(ht * 1.25 * askew, 0.0);
-    sink = 1.0 - (0.52 + 0.25 * dA) * askew * hash12(cell + 5.1);
-
-    // the crack between two shards: as wide as they have moved apart across it, never less than a hairline once
-    // broken. Narrow, it is a dark line; wide, the light comes through.
-    // (and not the same width all along: stone parts unevenly, so the light comes through in places, pinched shut
-    // in others; the same noise on both sides of the crack, so both edges agree)
-    float along = smoothstep(0.3, 0.78, texture(tN, w / 150.0 + hash22(min(cell, other) + max(cell, other) * 1.7)).r);
-    float gap = max(dot(sB - sA, dir), 0.0) * (0.15 + 1.25 * along) + 1.5 * open;
-    float half_ = 0.5 * gap;
-    float inGap = (1.0 - smoothstep(half_ - 0.55, half_ + 0.55, ePx)) * step(0.02, open);
-    float t = clamp(1.0 - ePx / max(half_, 1.4), 0.0, 1.0);
-    float through = smoothstep(2.6, 8.5, gap);              // how much light gets through a crack this wide
-    float wide = smoothstep(4.0, 14.0, gap);                // a wide crack burns white at its middle
-    vec3 light = (uLit * (0.45 + 0.75 * t) + uLitCore * (0.25 + 1.6 * wide) * pow(t, 4.0)) * through;
-    // behind the wall, on the home page: the show, lit by that light
-    if (uFilm > 0.0) {
-      vec3 show = film(sp, (hash22(cell + 1.9) - 0.5) * 0.006) * 1.4;
-      light = mix(light, show * (0.35 + through) + light * 0.3, uFilm * smoothstep(3.0, 9.0, gap));
-    }
-    gapCol = vec3(0.002) + light;
-    gapMix = inGap;
-
-    // the light spilling out of a wide crack over the shards' broken edges, and the edge itself, bevelled
-    float past = max(ePx - half_, 0.0);
-    float spill = exp(-past / 6.0) * through;
-    emit += (uLit * spill * 0.38 + uLitCore * spill * spill * through * 0.18) * (1.0 - 0.75 * uHdr);
-    float bevel = (1.0 - smoothstep(0.0, 3.2, past)) * open;
-    tilt.xy += dir * bevel * 1.1;
-
-    // the embers: where a wide crack has just closed, a hairline still glows and cools
-    float was = smoothstep(3.0, 9.0, max(dot(shardShift(other) - shardShift(cell), dir), 0.0));
-    float ember = smoothstep(0.08, 0.55, tr.g + (en - 0.5) * 0.3) * (1.0 - open) * was;
-    emit += mix(uLit, uLitCore, 0.2) * ember * (1.0 - smoothstep(0.3, 1.7, ePx)) * 0.6;
-
-    // behind the burn, the wall is scorched and crazed: every border a dark line, a few still smouldering
-    if (menuIn > 0.0) {
-      float line = 1.0 - smoothstep(0.0, 1.4, ePx);
-      sink *= 1.0 - 0.45 * line * menuIn;
-      emit += uLit * line * menuIn * 0.07 * step(0.9, hash12(min(cell, other) * 3.1 + max(cell, other)));
+    // round the window the stone is cracked: a few dark lines running out from the edge, faintly lit near it
+    float ring = smoothstep(WIN - 0.32, WIN - 0.04, v) * (1.0 - hole);
+    if (ring > 0.0 || menuIn > 0.0) {
+      vec2 cell, other, dir;
+      float e = voronoi(w / CELL, cell, other, dir);
+      float ePx = e * CELL;
+      float line = 1.0 - smoothstep(0.35, 1.3, ePx);
+      // (only some borders crack: the rest of the shards' outlines stay whole)
+      float cracks = step(0.45, hash12(min(cell, other) * 3.1 + max(cell, other))) * ring;
+      sink *= 1.0 - 0.75 * line * cracks;
+      emit += uLit * line * cracks * smoothstep(WIN - 0.1, WIN, v) * 0.35;
+      // behind the menu's burn every shard has settled a little askew, scorched along its borders
+      if (menuIn > 0.0) {
+        vec2 ht = hash22(cell + 11.3) - 0.5;
+        tilt = vec3(ht * 0.125 * menuIn, 0.0);
+        sink *= 1.0 - 0.45 * line * menuIn;
+        emit += uLit * line * menuIn * 0.07 * step(0.9, hash12(min(cell, other) * 3.1 + max(cell, other)));
+      }
     }
   }
 
   // ---- light ----
-  vec2 drift = (uPtr / uView - 0.5) * (1.0 - uCalm);
-  vec3 L = normalize(vec3(-0.52 + 0.22 * drift.x, -0.62 + 0.16 * drift.y, 0.58));
+  vec3 L = L0;
   vec3 N = surfaceNormal(sw, 1.7);
   // the lilies: carved into the same stone; they rise a little where the hand has just passed, and stand fixed to
   // the screen once the menu has burnt in
@@ -307,8 +275,9 @@ void main() {
       shade = min(shade, 1.0 - 0.7 * smoothstep(0.0, 4.0, over));
     }
   }
-  N = normalize(N + tilt);
+  N = normalize(N + tilt + vec3(lipDir * 1.15 * lip, 0.0));
   float alb = texture(tA, sw / TILE).r;
+  alb = mix(alb, 0.85 + 0.3 * (texture(tN, w / 37.0).r - 0.5), lip * 0.8);   // fresh fracture: lighter, grainier
   float mottle = texture(tN, sw / 2600.0 + 0.37).r;
   float dif = max(dot(N, L), 0.0) * shade;
   vec3 H = normalize(L + vec3(0.0, 0.0, 1.0));
@@ -319,23 +288,21 @@ void main() {
   vec2 q = sp / uView;
   float pool = 0.55 + 0.75 * exp(-dot(q - vec2(0.3, 0.12), q - vec2(0.3, 0.12)) * 1.6);
   vec3 col = base * (0.42 * ao + 1.35 * dif) * pool * sink + spec * pool * shade;
-  // the light of an open crack nearby rakes across whatever faces it
-  vec2 tg = vec2(texture(tTrail, vec2((sp.x + 24.0) / uView.x, 1.0 - sp.y / uView.y)).r - texture(tTrail, vec2((sp.x - 24.0) / uView.x, 1.0 - sp.y / uView.y)).r,
-                 texture(tTrail, vec2(sp.x / uView.x, 1.0 - (sp.y + 24.0) / uView.y)).r - texture(tTrail, vec2(sp.x / uView.x, 1.0 - (sp.y - 24.0) / uView.y)).r);
-  col += uLit * max(dot(N.xy, normalize(tg + 1e-5)), 0.0) * length(tg) * 0.22 * ao;
+  // the broken face takes a little of the light coming out of the window
+  col += (uFilm > 0.0 ? uLitCore * 0.05 : uLit * 0.06) * lip * max(dot(N.xy, -lipDir), 0.0);
 
-  col = mix(col, gapCol, gapMix) + emit;
+  col += emit;
 
-  // ---- a hole where shards have come away: the show behind the wall (or, on other pages, the club's light) ----
-  if (goneA + goneB > 0.0) {
-    vec3 inside = uLit * 0.16 + uLitCore * 0.025;
-    if (uFilm > 0.0) inside = mix(inside, film(sp, vec2(0.0)) * 2.1 + uLit * 0.02, uFilm);
-    // the broken rim: the edge of what stands catches the light from the hole
-    float rim = goneB * (1.0 - goneA) * (1.0 - smoothstep(0.0, 5.0, holeEdge));
-    col += (uLit * 0.45 + uLitCore * 0.35 * rim) * rim;
-    float inHole = goneA * mix(smoothstep(0.0, 2.5, holeEdge), 1.0, goneB);
-    col = mix(col, inside, inHole);
-    col += uLit * goneA * (1.0 - goneB) * (1.0 - smoothstep(0.0, 4.0, holeEdge)) * 0.55;
+  // ---- the window onto the show (on pages without the film, the club's own red light, far back) ----
+  if (hole > 0.0) {
+    vec3 inside = uLit * 0.07 * (0.6 + 0.8 * texture(tN, sp / 900.0).r) + uLitCore * 0.012;
+    if (uFilm > 0.0) {
+      // a little deeper than the wall: it slides against the window as the hand moves
+      vec2 par = (uPtr / uView - 0.5) * 0.03 * (1.0 - uCalm);
+      inside = mix(inside, film(sp, par) * 1.9, uFilm);
+    }
+    inside *= 1.0 - 0.72 * holeShadow;
+    col = mix(col, inside, hole);
   }
 
   // ---- the menu's world: darker, and the burning front ----

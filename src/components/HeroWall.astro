@@ -32,22 +32,29 @@ const open = site.hours[0].open, close = site.hours[0].close;
   <video class="igh-film" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1" data-src="/video/hero-d.mp4" data-src-phone="/video/hero-m.mp4"></video>
 </section>
 <script define:vars={{ PHONE: HERO_PHONE }}>
-  // The film behind the wall: fetched once the page has loaded and the 18+ question is answered (its megabytes never
-  // hold up the first screen), the cut this screen needs, and handed to the wall as soon as it plays.
+  // The film behind the wall: fetched while the 18+ question waits for its answer (so that "yes", which breaks the
+  // wall wide open, opens it onto the show), or once the page has loaded when the question isn't asked; the cut this
+  // screen needs. It is handed to the wall only once the question is answered: nothing of the show before that.
   (function () {
     var v = document.querySelector('.igh-film');
-    if (!v) return;
+    if (!v || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var root = document.documentElement;
-    var go = function () {
-      var w = window.__wall;
-      if (!w || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var fetched = false, answered = root.classList.contains('age-ok');
+    var hand = function () { if (answered && window.__wall && v.readyState >= 2) window.__wall.film(v); };
+    var fetch = function () {
+      if (fetched) return;
+      fetched = true;
       v.src = matchMedia(PHONE).matches ? v.dataset.srcPhone : v.dataset.src;
+      v.addEventListener('playing', hand);
       var p = v.play();
-      var hand = function () { w.film(v); };
-      if (p && p.then) p.then(hand, function () {}); else hand();
+      if (p && p.catch) p.catch(function () {});
     };
-    var whenLoaded = function () { if (document.readyState === 'complete') setTimeout(go, 300); else addEventListener('load', function () { setTimeout(go, 300); }, { once: true }); };
-    var start = function () { if (window.__wall) whenLoaded(); else addEventListener('wall:ready', whenLoaded, { once: true }); };
-    if (root.classList.contains('age-ok')) start(); else addEventListener('hotland:gate', start, { once: true });
+    addEventListener('wall:ready', hand);
+    if (answered) {
+      if (document.readyState === 'complete') setTimeout(fetch, 200); else addEventListener('load', function () { setTimeout(fetch, 200); }, { once: true });
+    } else {
+      addEventListener('hotland:asked', fetch, { once: true });
+      addEventListener('hotland:gate', function () { answered = true; fetch(); hand(); }, { once: true });
+    }
   })();
 </script>

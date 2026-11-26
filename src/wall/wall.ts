@@ -242,7 +242,9 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
   hourWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-hour'] });
 
   // ---------- the hands ----------
-  const radius = () => Math.max(80, Math.min(170, Math.min(vw, vh) * 0.2, vw * 0.095));
+  // the window's brush: about a third of the screen's shorter side across (the hole itself is a little over half
+  // of that, wider where a hand rests)
+  const radius = () => (coarse ? Math.max(120, Math.min(220, vw * 0.38)) : Math.max(130, Math.min(300, Math.min(vw, vh) * 0.3)));
   let ptr: { x: number; y: number } | null = null;   // the mouse, while over the page
   let last: { x: number; y: number } | null = null;  // where the last frame's stroke ended
   let eased = { x: innerWidth * 0.5, y: innerHeight * 0.4 };
@@ -346,7 +348,7 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
         if (u >= 1) { ghost = null; nextGhost = now + (coarse ? 2200 : 3400) + Math.random() * 3600; }
         else {
           const p = ghostAt(ghost, u);
-          const k = Math.sin(Math.PI * Math.min(1, u * 1.25)) * 0.78;
+          const k = Math.sin(Math.PI * Math.min(1, u * 1.25)) * 0.92;
           strokes.push({ ax: ghost.px, ay: ghost.py, bx: p.x, by: p.y, r: R * 0.85, k });
           ghost.px = p.x; ghost.py = p.y;
         }
@@ -388,9 +390,9 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
     gl.uniform1f(uT.uDt, dt);
     if (burst) {
       const age = (now - burst.t0) / 1000;
-      const r = age * Math.hypot(vw, vh) * 0.55;
-      gl.uniform4f(uT.uBurst, burst.x, burst.y, r, burst.k * Math.max(0, 1 - age / 1.6));
-      if (age > 1.6) burst = null;
+      const r = Math.min(1, age / 0.9) * Math.hypot(vw, vh) * 0.62;
+      gl.uniform4f(uT.uBurst, burst.x, burst.y, r, burst.k * Math.max(0, 1 - Math.max(0, age - 0.6) / 1.4));
+      if (age > 2) burst = null;
     } else gl.uniform4f(uT.uBurst, 0, 0, 0, 0);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     flip = 1 - flip;

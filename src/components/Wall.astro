@@ -8,7 +8,27 @@
 ---
 <canvas class="wall" id="wall" aria-hidden="true"></canvas>
 <script>
-  import { startWall } from '../wall/wall';
+  import { startWall, type Wall } from '../wall/wall';
+
+  // What the wall's window shows on the pages that have no film of their own (the home page has the show's, in
+  // HeroWall.astro): the club's room at ten, the doors open, a short loop. Fetched once the question is answered and
+  // the page has loaded, the cut this screen needs; the browser keeps it from page to page.
+  function behind(w: Wall) {
+    if (document.querySelector('.igh-film') || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const root = document.documentElement;
+    const go = () => {
+      const v = document.createElement('video');
+      v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto';
+      v.setAttribute('aria-hidden', 'true');
+      v.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none';
+      v.src = matchMedia('(max-width: 899px) and (orientation: portrait)').matches ? '/media/night-1-2200-doors-phone.mp4' : '/media/night-1-2200-doors.mp4';
+      document.body.appendChild(v);
+      v.addEventListener('playing', () => w.film(v), { once: true });
+      v.play().catch(() => {});
+    };
+    const later = () => (document.readyState === 'complete' ? setTimeout(go, 600) : addEventListener('load', () => setTimeout(go, 600), { once: true }));
+    if (root.classList.contains('age-ok')) later(); else addEventListener('hotland:gate', later, { once: true });
+  }
   const c = document.getElementById('wall') as HTMLCanvasElement | null;
   if (c) {
     try {
@@ -17,6 +37,7 @@
         (window as unknown as { __wall: typeof w }).__wall = w;
         document.documentElement.classList.add('has-wall');
         dispatchEvent(new Event('wall:ready'));
+        behind(w);
       }
     } catch (e) {
       console.error(e);
