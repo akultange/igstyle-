@@ -1,10 +1,11 @@
 ---
 // The 18+ question in the manner of immersive-g.com: their loader is one line across the middle of the screen (the
-// studio's mark, its line, a counter running to 100); here the same line is the club's (the logo, «Только между
-// нами», the counter) and when the counter reaches 100 the question takes its place, with its two answers. Behind it
-// the wall (Wall.astro) comes up out of the dark. "Yes" breaks the wall open from the button (a ring of cracks that
-// heals) and the page comes in; on the home page the line itself stays where it is, because the home page's first
-// screen is that same line (HeroWall.astro), so the answer cuts to nothing.
+// studio's mark, its line, a counter running to 100); here the same line is the club's (the logo, the door's own
+// words «За этой дверью мужской клуб», the counter) and when the counter reaches 100 the question takes its place,
+// with its two answers. The words are the club's door's (AgeGate.astro): nothing added. Behind it the wall
+// (Wall.astro) comes up out of the dark. "Yes" breaks the wall open from the button (a ring of cracks that heals)
+// and the page comes in; on the home page the logo stays where it is, because the home page's first screen is the
+// same line (HeroWall.astro), and only the words change.
 //
 // Kept from the club's door (AgeGate.astro, which stays in the code): it is on every page that asks, every visit
 // (the answer lives in this tab for half an hour: Base.astro); while it shows, the page behind is out of reach (inert)
@@ -14,13 +15,12 @@ import { type Lang, ui, altPath } from '../data/i18n';
 import Logo from './Logo.astro';
 const { lang } = Astro.props as { lang: Lang };
 const t = ui[lang];
-const ru = lang === 'ru';
 const path = Astro.url.pathname;
 ---
 <div class="igate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title" aria-describedby="gate-text" tabindex="-1" data-lenis-prevent>
   <div class="ig-row">
     <span class="ig-mark" aria-hidden="true"><Logo sign="tight" /></span>
-    <p class="ig-line">{ru ? 'Только между нами' : 'Just between us'}</p>
+    <p class="ig-line" id="gate-text">{t.gate.text}</p>
     <div class="ig-end">
       <span class="ig-count" aria-hidden="true">0</span>
       <div class="ig-ask">
@@ -32,7 +32,6 @@ const path = Astro.url.pathname;
       </div>
     </div>
   </div>
-  <p class="ig-note" id="gate-text">{t.gate.text}</p>
   <div class="ig-foot">
     <a href={altPath(path, 'ru')} hreflang="ru" lang="ru" aria-current={lang === 'ru' ? 'true' : undefined}>Рус</a>
     <a href={altPath(path, 'en')} hreflang="en" lang="en" aria-current={lang === 'en' ? 'true' : undefined}>Eng</a>

@@ -13,7 +13,7 @@
 //                      wall is never just a picture
 //   burst(x, y)        a ring of breaking from a point (the entrance, after the 18+ question)
 //   menu(open, x, y)   the menu burning in from its button, and out again
-import { VERT, TRAIL, WALL, BRIGHT, BLUR, FINAL } from './shaders';
+import { VERT, TRAIL, WALL, BRIGHT, BLUR, FINAL, DEBRIS_V, DEBRIS_F } from './shaders';
 
 export interface Wall {
   menu(open: boolean, x?: number, y?: number): void;
@@ -28,9 +28,9 @@ const RELIEF = { wide: '/img/wall/relief-w.webp', tall: '/img/wall/relief-t.webp
 
 interface Stroke { ax: number; ay: number; bx: number; by: number; r: number; k: number }
 
-function compile(gl: WebGL2RenderingContext, frag: string): WebGLProgram | null {
+function compile(gl: WebGL2RenderingContext, frag: string, vert = VERT): WebGLProgram | null {
   const p = gl.createProgram()!;
-  for (const [type, src] of [[gl.VERTEX_SHADER, VERT], [gl.FRAGMENT_SHADER, frag]] as const) {
+  for (const [type, src] of [[gl.VERTEX_SHADER, vert], [gl.FRAGMENT_SHADER, frag]] as const) {
     const s = gl.createShader(type)!;
     gl.shaderSource(s, src);
     gl.compileShader(s);
@@ -88,6 +88,9 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
   const uB = bloom ? uniforms(gl, brightProg!) : {};
   const uBl = bloom ? uniforms(gl, blurProg!) : {};
   const uF = bloom ? uniforms(gl, finalProg!) : {};
+  // the debris (drawn into the scene with the bloom; where there is no bloom there is no debris)
+  const debrisProg = bloom ? compile(gl, DEBRIS_F, DEBRIS_V) : null;
+  const uD = debrisProg ? uniforms(gl, debrisProg) : {};
   const vao = gl.createVertexArray();
   gl.bindVertexArray(vao);
 
@@ -194,8 +197,9 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     return r;
   };
-  let scene: { tex: WebGLTexture; fb: WebGLFramebuffer } | null = null;
-  let bloomA: typeof scene = null, bloomB: typeof scene = null;
+  type Target = { tex: WebGLTexture; fb: WebGLFramebuffer };
+  let scene: Target | null = null;
+  let bloomA: Target | null = null, bloomB: Target | null = null;
   let bw = 0, bh = 0;
   const sizeBloom = () => {
     if (!bloom) return;
@@ -299,6 +303,65 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
   let burst: { x: number; y: number; t0: number; k: number } | null = null;
   let introT = 0, introTarget = 1;
 
+  // ---------- the debris ----------
+  // Chips and dust that come off where the wall breaks: spawned on the broken band round each stroke (the edge of
+  // the opening lies about half a brush from the hand), thrown a little outward and up, then falling; a few more
+  // while a hand rests (the edge keeps crumbling as it widens), a shower when the wall bursts open.
+  const MAXP = coarse ? 140 : 320;
+  const pAttr = new Float32Array(MAXP * 8);   // per particle: x, y, size, turn | life, lit, kind, random
+  const pVel = new Float32Array(MAXP * 4);    // vx, vy, spin, how fast its life runs out
+  let pNext = 0, pLive = 0;
+  const pBuf = gl.createBuffer();
+  const pVao = gl.createVertexArray();
+  if (debrisProg) {
+    gl.bindVertexArray(pVao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, pBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, pAttr.byteLength, gl.DYNAMIC_DRAW);
+    const aP = gl.getAttribLocation(debrisProg, 'aP'), aQ = gl.getAttribLocation(debrisProg, 'aQ');
+    gl.enableVertexAttribArray(aP);
+    gl.vertexAttribPointer(aP, 4, gl.FLOAT, false, 32, 0);
+    gl.enableVertexAttribArray(aQ);
+    gl.vertexAttribPointer(aQ, 4, gl.FLOAT, false, 32, 16);
+    gl.bindVertexArray(vao);
+  }
+  const spawn = (x: number, y: number, ox: number, oy: number, dust: boolean) => {
+    if (!debrisProg) return;
+    const i = pNext;
+    pNext = (pNext + 1) % MAXP;
+    pLive = Math.min(MAXP, pLive + 1);
+    const r = Math.random();
+    pAttr.set([x, y, dust ? 8 + 10 * Math.random() : 2.4 + 5.2 * r * r, Math.random() * 6.28, 1, Math.random(), dust ? 1 : 0, Math.random()], i * 8);
+    const sp = dust ? 25 + 40 * Math.random() : 60 + 160 * Math.random();
+    pVel.set([ox * sp + (Math.random() - 0.5) * 40, oy * sp - (dust ? 10 : 60 + 120 * Math.random()), (Math.random() - 0.5) * 14, dust ? 0.45 + 0.4 * Math.random() : 0.7 + 0.6 * Math.random()], i * 4);
+  };
+  const crumble = (x: number, y: number, R: number, n: number) => {
+    for (let k = 0; k < n; k++) {
+      const a = Math.random() * Math.PI * 2, d = R * (0.42 + 0.26 * Math.random());
+      const ox = Math.cos(a), oy = Math.sin(a);
+      spawn(x + ox * d, y + oy * d, ox, oy, false);
+      if (Math.random() < 0.6) spawn(x + ox * d, y + oy * d, ox * 0.5, oy * 0.5, true);
+    }
+  };
+  const stepDebris = (dt: number) => {
+    if (!pLive) return;
+    let alive = 0;
+    for (let i = 0; i < MAXP; i++) {
+      const a = i * 8, v = i * 4;
+      if (pAttr[a + 4] <= 0) continue;
+      const dust = pAttr[a + 6] > 0.5;
+      pVel[v + 1] += (dust ? 140 : 1500) * dt;      // gravity (dust hangs in the air)
+      pVel[v] *= dust ? 0.98 : 0.995;
+      pAttr[a] += pVel[v] * dt;
+      pAttr[a + 1] += pVel[v + 1] * dt;
+      pAttr[a + 3] += pVel[v + 2] * dt;
+      pAttr[a + 4] -= dt * pVel[v + 3];
+      if (pAttr[a + 1] > vh + 20) pAttr[a + 4] = 0;
+      if (pAttr[a + 4] > 0) alive++;
+    }
+    pLive = alive;
+  };
+  let crumbleClock = 0;
+
   // ---------- the frame ----------
   let raf = 0, prev = performance.now(), start = prev;
   let running = true;
@@ -307,6 +370,16 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
   const segs = new Float32Array(16), segK = new Float32Array(8);
 
   let lastStroke = 0;
+  // the home page's first screen (the show is behind the wall only there), and how far the wall has stepped back
+  const hero = document.querySelector<HTMLElement>('.igh');
+  let deep = 0;
+  // the 18+ question is the wall's moment; once it's answered (or wasn't asked) the wall steps back for the page
+  const root = document.documentElement;
+  const isIn = () => root.classList.contains('age-ok') || root.classList.contains('gate-going');
+  let rest = isIn() ? 1 : 0;
+  // (the page moving under a still pointer is motion too: the wall's parallax and its stepping back)
+  let lastY = scrollY;
+  const deepAt = () => Math.min(1, Math.max(0, (scrollY - vh * 0.35) / (vh * 0.8)));
   const frame = (now: number) => {
     raf = requestAnimationFrame(frame);
     // nothing moving, nothing fading: draw a quarter as often (a phone's battery). The time since the last frame
@@ -328,7 +401,8 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
 
     // strokes this frame
     const strokes: Stroke[] = [];
-    const R = radius();
+    // (further down the page the wall steps back, and the hand opens less of it)
+    const R = radius() * (1 - 0.28 * deep);
     if (ptr) {
       const a = last || ptr;
       strokes.push({ ax: a.x, ay: a.y, bx: ptr.x, by: ptr.y, r: R, k: 1 });
@@ -341,7 +415,7 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
       strokes.push({ ax: t.px, ay: t.py, bx: t.x, by: t.y, r: R * 0.9, k: 1 });
       t.px = t.x; t.py = t.y;
     }
-    if (!calm && !touches.size && !menuTarget && now - idleSince > (coarse ? 900 : 2600) && (scrollY < vh * 0.9 || now - idleSince > 9000)) {
+    if (!calm && !touches.size && !menuTarget && now - idleSince > (coarse ? 900 : 2600) && scrollY < vh * 0.6) {
       if (!ghost && now > nextGhost) newGhost(now);
       if (ghost) {
         const u = (now - ghost.t0) / ghost.dur;
@@ -355,6 +429,21 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
       }
     }
 
+    // the debris: off the broken band of every stroke that moved, and now and then off a resting hand's
+    if (!calm && debrisProg) {
+      for (const st of strokes) {
+        const len = Math.hypot(st.bx - st.ax, st.by - st.ay);
+        if (len > 2 && st.k > 0.5) crumble(st.bx, st.by, st.r, Math.min(5, Math.ceil(len / 16)));
+      }
+      crumbleClock -= dt;
+      if (ptr && crumbleClock <= 0) { crumble(ptr.x, ptr.y, R * 1.1, 1); crumbleClock = 0.11 + Math.random() * 0.12; }
+      if (burst) {
+        const age = (now - burst.t0) / 1000;
+        if (age < 1) crumble(burst.x, burst.y, Math.min(1, age / 0.9) * Math.hypot(vw, vh) * 0.62 * 1.6, 6);
+      }
+      stepDebris(dt);
+    }
+
     // the menu's burn runs its course in a fixed time (in 1.15 s, out in .8), eased in and out; the start's fade
     // eases toward its target
     if (menuT !== menuTarget) {
@@ -366,7 +455,9 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
     introT += (introTarget - introT) * Math.min(1, dt * 1.6);
 
     if (strokes.length || burst) lastStroke = now;
-    const busy = strokes.length > 0 || burst || menuT !== menuTarget || Math.abs(introTarget - introT) > 0.002 || (reliefOn > 0 && reliefOn < 1);
+    const scrolled = scrollY !== lastY;
+    lastY = scrollY;
+    const busy = strokes.length > 0 || burst || pLive > 0 || scrolled || Math.abs(deepAt() - deep) > 0.002 || rest !== (isIn() ? 1 : 0) || menuT !== menuTarget || Math.abs(introTarget - introT) > 0.002 || (reliefOn > 0 && reliefOn < 1);
     quietFrames = busy ? 0 : quietFrames + 1;
 
     // --- trail ---
@@ -434,8 +525,31 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
     gl.uniform1i(uW.tR, 5);
     gl.uniform1f(uW.uRelief, reliefOn);
     gl.uniform1f(uW.uReliefAspect, reliefAspect);
+    const heroBox = hero ? hero.getBoundingClientRect() : null;
+    gl.uniform1f(uW.uFilmBottom, heroBox ? heroBox.bottom : -1);
+    deep += (deepAt() - deep) * Math.min(1, dt * 4);
+    gl.uniform1f(uW.uDeep, deep * deep * (3 - 2 * deep));
+    const restTo = isIn() ? 1 : 0;
+    if (rest !== restTo) rest = Math.abs(restTo - rest) < 0.002 ? restTo : rest + (restTo - rest) * Math.min(1, dt * 1.1);
+    gl.uniform1f(uW.uRest, rest);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     if (!bloom) return;
+
+    // --- the debris, over the wall, before the bloom (a chip in the light of the opening glows a little) ---
+    if (pLive && debrisProg) {
+      gl.useProgram(debrisProg);
+      gl.bindVertexArray(pVao);
+      gl.bindBuffer(gl.ARRAY_BUFFER, pBuf);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, pAttr);
+      gl.uniform2f(uD.uView, vw, vh);
+      gl.uniform1f(uD.uDpr, canvas.width / vw);
+      gl.uniform3fv(uD.uLit, lit);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.drawArrays(gl.POINTS, 0, MAXP);
+      gl.disable(gl.BLEND);
+      gl.bindVertexArray(vao);
+    }
 
     // --- bloom: the bright light at a quarter of the size, blurred twice each way, then the picture finished ---
     gl.activeTexture(gl.TEXTURE6);

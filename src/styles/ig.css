@@ -113,11 +113,6 @@ html.age-ok .igate { display: none; }
 .ig-yes:focus-visible::before { transform: scaleX(1); }
 .ig-yes:focus-visible, .ig-no:focus-visible { outline: none; }
 .ig-no:focus-visible { color: var(--shirt); text-decoration: underline; text-underline-offset: 6px; }
-.ig-note {
-  position: absolute; left: 0; right: 0; top: calc(50% + 46px); margin: 0; text-align: center;
-  font: 400 14px/1.4 var(--f-text); color: var(--ash); opacity: 0; transition: opacity .6s var(--ig-ease) .25s;
-}
-.igate.asked .ig-note { opacity: 1; }
 .ig-foot {
   position: absolute; left: var(--ig-pad); bottom: calc(22px + env(safe-area-inset-bottom)); display: flex; gap: 22px;
   font: 400 13px/1 var(--f-text); color: var(--ash);
@@ -134,37 +129,23 @@ html.gate-going :is(#main, .ft, .hdr, .mbar, .site-switch) { opacity: 1; transit
 /* ---------- The home page's first screen ---------- */
 .igh { position: relative; display: grid; align-content: center; min-height: 100svh; padding: var(--hdr-row, 72px) 0; }
 .igh .ig-row { pointer-events: auto; }
-.igh-down { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; transition: color .3s ease; }
-.igh-down::after {
-  content: ''; width: 1px; height: 22px; background: linear-gradient(currentColor, transparent);
-  animation: igh-drip 2.4s var(--ig-ease) infinite;
-}
-@keyframes igh-drip { 0% { transform: scaleY(0); transform-origin: top; } 45% { transform: scaleY(1); transform-origin: top; } 55% { transform: scaleY(1); transform-origin: bottom; } 100% { transform: scaleY(0); transform-origin: bottom; } }
-@media (hover: hover) { .igh-down:hover { color: var(--shirt); } }
-.igh-sub {
-  position: absolute; left: 0; right: 0; top: calc(50% + 40px); margin: 0; padding: 0 var(--ig-pad); text-align: center;
-  font: 400 14px/1.5 var(--f-text); color: var(--ash);
-}
-.igh-corner { position: absolute; bottom: calc(26px + env(safe-area-inset-bottom)); margin: 0; font: 400 14px/1.2 var(--f-text); }
-.igh-book { left: var(--ig-pad); display: inline-flex; align-items: center; gap: 12px; min-height: 44px; color: var(--shirt); }
-/* their "See all projects" carries a small moving mark: here, a seam of the light that grows and goes */
+/* at the right, the two ways on (Hero.astro's two buttons, in this manner's words): booking, carrying their "See all
+   projects" mark (a seam of the light that grows and goes), and the programme */
+.igh-act { display: flex; align-items: center; gap: clamp(22px, 2.2vw, 34px); white-space: nowrap; }
+.igh-book, .igh-prog { position: relative; display: inline-flex; align-items: center; gap: 12px; min-height: 44px; transition: color .3s ease; }
+.igh-book { color: var(--shirt); }
 .igh-book i { position: relative; width: 26px; height: 1px; background: rgba(236, 236, 232, .35); overflow: visible; }
 .igh-book i::after {
   content: ''; position: absolute; left: 0; top: -1px; width: 100%; height: 3px; background: var(--lit-core); box-shadow: var(--seam-glow);
   transform-origin: left; animation: igh-seam 2.8s var(--ig-ease) infinite;
 }
 @keyframes igh-seam { 0% { transform: scaleX(0); opacity: 1; } 55% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
-.igh-hour { right: var(--ig-pad); display: flex; align-items: center; min-height: 44px; color: var(--ash); }
-.igh-hour span { display: none; }
-.igh-hour span::before {
-  content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 10px; border-radius: 50%; vertical-align: 1px;
-  background: var(--lit-core); box-shadow: 0 0 3px 1px var(--lit), 0 0 10px 2px color-mix(in srgb, var(--lit) 40%, transparent);
-}
-html:not([data-hour]) .igh-hour [data-h='open'], html[data-hour='open'] .igh-hour [data-h='open'], html[data-hour='late'] .igh-hour [data-h='late'], html[data-hour='closed'] .igh-hour [data-h='closed'] { display: inline; }
-html[data-hour='closed'] .igh-hour span::before { background: var(--steel-hi); box-shadow: none; }
+.igh-prog { color: var(--ash); }
+@media (hover: hover) { .igh-prog:hover { color: var(--shirt); } .igh-book:hover span { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 6px; } }
+.igh-act a:focus-visible { outline: none; text-decoration: underline; text-underline-offset: 6px; }
 .igh-film { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-/* the line comes in where the question stood (the gate went out over it): only the words at the right are new */
-html.motion .igh .ig-end, html.motion .igh-sub, html.motion .igh-corner { animation: ig-in 1.2s var(--ig-ease) .35s backwards; }
+/* the line comes in where the question stood: the logo stays, the words rise in once the door's have gone */
+html.motion .igh :is(.ig-line, .ig-end) { animation: ig-in 1.2s var(--ig-ease) .55s backwards; }
 html.motion.hero-again .igh :is(.ig-mark, .ig-line) { animation: ig-in 1.2s var(--ig-ease) backwards; }
 @keyframes ig-in { from { opacity: 0; translate: 0 10px; } }
 /* the sections after it begin a screen down, with the usual air */
@@ -254,15 +235,11 @@ html:not(.mnav-open) :is(#main, .ft, .mbar) { transition: opacity .7s ease .2s; 
   .igate .ig-end { justify-items: center; }
   .ig-ask { position: static; translate: none; justify-items: center; }
   .igate.asked .ig-count { display: none; }
-  .ig-note { position: static; margin-top: 18px; }
   .igate { align-content: center; gap: 0; }
   .ig-foot { left: 0; right: 0; justify-content: center; }
   .igh { padding-bottom: calc(var(--dock, 76px) + 70px); }
-  .igh-sub { position: static; margin-top: 20px; }
   .igh .ig-row { row-gap: 26px; }
-  .igh-down { display: none; }
-  .igh-book { display: none; }
-  .igh-hour { left: 0; right: 0; justify-content: center; bottom: calc(var(--dock, 76px) + 18px + env(safe-area-inset-bottom)); }
+  .igh-act { gap: 28px; }
 }
 
 /* the switch between the versions (review copies only, SiteSwitch.astro): at the foot of the screen in the middle,
@@ -270,7 +247,7 @@ html:not(.mnav-open) :is(#main, .ft, .mbar) { transition: opacity .7s ease .2s; 
 @media (min-width: 900px) { html .site-switch { left: 50%; translate: -50% 0; bottom: 18px; } }
 /* (without scripts there is no counter to wait for: the question is there at once) */
 html:not(.js) .igate .ig-count { display: none; }
-html:not(.js) .igate :is(.ig-ask, .ig-note) { opacity: 1; visibility: visible; }
+html:not(.js) .igate .ig-ask { opacity: 1; visibility: visible; }
 /* on a phone the word "Close" stays beside its dash (a dash alone doesn't say what it does) */
 @media (max-width: 479px) {
   .mnav-top .hdr-menu { gap: 12px; min-width: 0; }

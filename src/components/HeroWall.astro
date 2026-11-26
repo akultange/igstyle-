@@ -1,34 +1,34 @@
 ---
 // The home page's first screen, in the manner of immersive-g.com: no picture of its own, only the wall (Wall.astro)
-// and one line across the middle of the screen: the club's logo, «Только между нами», and on the right the way on. The
-// 18+ question stood on this same line (IgGate.astro), so answering it changes nothing here but the words at the
-// right. The show is behind the wall: the home page's film plays there, unseen, and shows only through the cracks the
-// cursor (or a finger, or the wall's own idle hand) opens. In the corners, as on their page: booking at the bottom
-// left, and at the bottom right whether the club is open now (html[data-hour], scripts/site.ts).
+// and one line across the middle of the screen: the club's logo, the line that says what the place is, and at the
+// right the two ways on. The words are the club's own, as on LUKA LATEST's first screen (Hero.astro): «Мужской клуб
+// в Москве», «Забронировать стол», «Афиша». (The motto «Только между нами» and the hours went from this screen at
+// the club's request, 2026-11-19 and -20; the motto stays in the page's title and on the footer's card.) The 18+
+// question stood on this same line (IgGate.astro), its words giving way to these as the page comes in. The show is
+// behind the wall: the home page's film plays there, unseen, and shows only where the cursor (or a finger, or the
+// wall's own idle hand) breaks through, on this first screen only.
 // (Hero.astro, the film header of LUKA LATEST, stays in the code: this version doesn't show it.)
-import type { Lang } from '../data/i18n';
-import { site } from '../data/site';
+import { type Lang, ui } from '../data/i18n';
 import { HERO_PHONE } from '../data/hero';
 import Logo from './Logo.astro';
 interface Props { lang: Lang }
 const { lang } = Astro.props;
+const t = ui[lang];
 const ru = lang === 'ru';
-const open = site.hours[0].open, close = site.hours[0].close;
+const p = (s: string) => `/${lang}/${s}/`;
+// (Hero.astro's copy, word for word: no-break spaces keep a short word with the one after it)
+const lead = ru ? 'Мужской клуб в Москве' : 'A gentlemen’s club in Moscow';
 ---
 <section class="igh" id="top" aria-labelledby="igh-title">
   <h1 class="sr-only" id="igh-title">{ru ? 'HOTLAND, мужской клуб в Москве' : 'HOTLAND, a gentlemen’s club in Moscow'}</h1>
   <div class="ig-row igh-row">
     <a class="ig-mark" href={`/${lang}/`} aria-label="HOTLAND"><Logo sign="tight" /></a>
-    <p class="ig-line">{ru ? 'Только между нами' : 'Just between us'}</p>
-    <a class="ig-end igh-down" href="#program">{ru ? 'Листайте вниз' : 'Scroll down'}</a>
+    <p class="ig-line">{lead}</p>
+    <div class="ig-end igh-act">
+      <a class="igh-book" href={p('booking')}><span>{t.bookTable}</span><i aria-hidden="true"></i></a>
+      <a class="igh-prog" href={p('program')}>{t.nav.program}</a>
+    </div>
   </div>
-  <p class="igh-sub">{ru ? `Мужской клуб в Москве. Шоу, ужин и бар каждую ночь, ${open}–${close}` : `A gentlemen’s club in Moscow. The show, dinner and the bar every night, ${open}–${close}`}</p>
-  <a class="igh-corner igh-book" href={`/${lang}/booking/`}><span>{ru ? 'Забронировать стол' : 'Book a table'}</span><i aria-hidden="true"></i></a>
-  <p class="igh-corner igh-hour">
-    <span data-h="open">{ru ? `Открыто до ${close}` : `Open until ${close}`}</span>
-    <span data-h="late">{ru ? `Последние часы, до ${close}` : `The last hours, until ${close}`}</span>
-    <span data-h="closed">{ru ? `Откроемся в ${open}` : `Opening at ${open}`}</span>
-  </p>
   <video class="igh-film" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1" data-src="/video/hero-d.mp4" data-src-phone="/video/hero-m.mp4"></video>
 </section>
 <script define:vars={{ PHONE: HERO_PHONE }}>
