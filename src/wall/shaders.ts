@@ -316,7 +316,7 @@ void main() {
       vec2 par = (uPtr / uView - 0.5) * 0.03 * (1.0 - uCalm);
       inside = mix(inside, film(sp, par) * 1.9, uFilm);
     }
-    inside *= 1.0 - 0.72 * holeShadow;
+    inside *= (1.0 - 0.72 * holeShadow) * (1.0 - 0.55 * menuIn);   // (dimmer behind the menu's words)
     col = mix(col, inside, hole);
   }
 

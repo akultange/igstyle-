@@ -222,6 +222,7 @@ html:not(.has-wall) .mnav { background-color: rgba(5, 5, 6, .96) !important; }
   border: 0; padding: .06em 0;
   font: 300 clamp(38px, min(11vw, 7.6vh), 92px)/1.02 var(--f-serif); letter-spacing: -.02em;
   color: rgba(236, 236, 232, .5); transition: color .35s ease, opacity .35s ease;
+  text-shadow: 0 0 28px rgba(5, 5, 6, .55);
 }
 .mnav-links a.on, .mnav-links a:hover, .mnav-links a:focus-visible { color: var(--shirt); }
 .mnav-links a.on span::after { left: 50%; right: auto; width: 40px; translate: -50% 0; bottom: .1em; }
