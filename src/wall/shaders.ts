@@ -147,10 +147,25 @@ float voronoi(vec2 x, out vec2 cell, out vec2 other, out vec2 dir) {
 // the window's field at a point of the wall: the trail (wider where a hand has rested) and the noise that chips
 // its edge; the window is where it passes WIN
 const float WIN = 0.55;
+// (stone breaks in pieces, not in curves: the wall is cut into small polygons, about 30 px, each a little more or
+// less ready to come away, so the hole's edge steps along their sides and reads as broken)
+vec2 chunkCell(vec2 x) {
+  vec2 n = floor(x), f = x - n, best = n;
+  float md = 8.0;
+  for (int j = -1; j <= 1; j++)
+  for (int i = -1; i <= 1; i++) {
+    vec2 g = vec2(float(i), float(j));
+    vec2 r = g + 0.08 + 0.84 * hash22(n + g + 71.0) - f;
+    float d = dot(r, r);
+    if (d < md) { md = d; best = n + g; }
+  }
+  return best;
+}
 float windowField(vec2 wp, vec4 trv) {
   float lumps = texture(tN, wp / 760.0 + 0.21).r;
   float chips = texture(tN, wp / 118.0 + 0.63).r;
-  return trv.r * 0.86 + trv.b * 0.62 + (lumps - 0.5) * 0.48 + (chips - 0.5) * 0.2;
+  float chunk = hash12(chunkCell(wp / 30.0) + 13.7) - 0.5;
+  return trv.r * 0.86 + trv.b * 0.62 + (lumps - 0.5) * 0.46 + (chips - 0.5) * 0.12 + chunk * 0.16;
 }
 
 float edgeNoise(vec2 wp) { return texture(tN, wp / 560.0).r; }
