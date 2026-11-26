@@ -177,7 +177,7 @@ float windowField(vec2 wp, vec4 trv) {
 vec4 trailAtScreen(vec2 sp) { return texture(tTrail, vec2(sp.x / uView.x, 1.0 - sp.y / uView.y)); }
 
 // The core: the concrete inside the skin, broken open. Stones of two sizes (the coarse aggregate about 19 px, the
-// fine about 7), each its own grey (a warm one now and then), each smaller than its cell by its own amount so the
+// fine about 10), each its own grey (a warm one now and then), each smaller than its cell by its own amount so the
 // paste runs between them in uneven widths; the paste lighter than the skin (the inside of concrete is), rough and
 // pitted with small voids; rust here and there. ht: the surface's rise, for its light.
 float stones(vec2 g, float seed, float share, out float rise, out vec2 id) {
@@ -193,7 +193,7 @@ float stones(vec2 g, float seed, float share, out float rise, out vec2 id) {
   }
   float edge = sqrt(d2) - sqrt(d1);
   float size = 0.06 + 0.22 * hash12(id + seed + 1.7);
-  float s = smoothstep(size, size + 0.1, edge) * step(1.0 - share, hash12(id + seed + 2.2));
+  float s = smoothstep(size, size + 0.14, edge) * step(1.0 - share, hash12(id + seed + 2.2));
   rise = s * smoothstep(size, size + 0.55, edge);
   return s;
 }
@@ -201,7 +201,7 @@ vec3 coreStone(vec2 p, out float ht) {
   float r1, r2;
   vec2 i1, i2;
   float s1 = stones(p / 19.0, 5.3, 0.62, r1, i1);
-  float s2 = stones(p / 7.5, 11.9, 0.5, r2, i2) * (1.0 - s1);
+  float s2 = stones(p / 10.5, 11.9, 0.5, r2, i2) * (1.0 - s1);
   float pits = smoothstep(0.8, 0.92, texture(tN, p / 13.0 + 0.3).r);
   ht = max(r1, r2 * 0.6) + texture(tN, p / 11.0).r * 0.16 - pits * 0.2;
   float t1 = hash12(i1 + 7.7), t2 = hash12(i2 + 3.1);

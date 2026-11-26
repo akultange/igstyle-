@@ -330,7 +330,7 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
     pNext = (pNext + 1) % MAXP;
     pLive = Math.min(MAXP, pLive + 1);
     const r = Math.random();
-    pAttr.set([x, y, dust ? 8 + 10 * Math.random() : 2.4 + 5.2 * r * r, Math.random() * 6.28, 1, Math.random(), dust ? 1 : 0, Math.random()], i * 8);
+    pAttr.set([x, y, dust ? 8 + 10 * Math.random() : 3 + 6.5 * r * r, Math.random() * 6.28, 1, Math.random(), dust ? 1 : 0, Math.random()], i * 8);
     const sp = dust ? 25 + 40 * Math.random() : 60 + 160 * Math.random();
     pVel.set([ox * sp + (Math.random() - 0.5) * 40, oy * sp - (dust ? 10 : 60 + 120 * Math.random()), (Math.random() - 0.5) * 14, dust ? 0.45 + 0.4 * Math.random() : 0.7 + 0.6 * Math.random()], i * 4);
   };
@@ -433,7 +433,7 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
     if (!calm && debrisProg) {
       for (const st of strokes) {
         const len = Math.hypot(st.bx - st.ax, st.by - st.ay);
-        if (len > 2 && st.k > 0.5) crumble(st.bx, st.by, st.r, Math.min(5, Math.ceil(len / 16)));
+        if (len > 2 && st.k > 0.5) crumble(st.bx, st.by, st.r, Math.min(6, Math.ceil(len / 13)));
       }
       crumbleClock -= dt;
       if (ptr && crumbleClock <= 0) { crumble(ptr.x, ptr.y, R * 1.1, 1); crumbleClock = 0.11 + Math.random() * 0.12; }
