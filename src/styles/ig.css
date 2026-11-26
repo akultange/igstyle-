@@ -266,4 +266,4 @@ html:not(.mnav-open) :is(#main, .ft, .mbar) { transition: opacity .7s ease .2s; 
 
 /* the switch between the versions (review copies only, SiteSwitch.astro): at the foot of the screen in the middle,
    clear of the corners' words */
-@media (min-width: 900px) { .site-switch { left: 50%; translate: -50% 0; bottom: 18px; } }
+@media (min-width: 900px) { html .site-switch { left: 50%; translate: -50% 0; bottom: 18px; } }

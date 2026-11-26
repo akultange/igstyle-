@@ -140,7 +140,7 @@ float voronoi(vec2 x, out vec2 cell, out vec2 other, out vec2 dir) {
 // how a shard moves when the wall breaks under it: a slide of up to 12 px, its own way
 vec2 shardShift(vec2 c) {
   vec2 h = hash22(c + 3.7) - 0.5;
-  return h * 30.0;
+  return h * 19.0;
 }
 
 // how far the trail (and the menu's burn) has broken the wall at a point of the wall (CSS px, wall space)
@@ -189,9 +189,10 @@ void main() {
     float far = length(uView) * 1.08;
     float d = length(sp - uMenuO) / far;
     float big = texture(tN, w / 1400.0).r;
-    float f = uMenu * 1.32 - d - (big - 0.5) * 0.34 - (en - 0.5) * 0.08;
-    menuIn = smoothstep(0.0, 0.035, f);
-    front = exp(-abs(f - 0.014) / 0.009) * (1.0 - smoothstep(0.96, 1.0, uMenu));
+    float f = uMenu * 1.32 - d - (big - 0.5) * 0.34 - (en - 0.5) * 0.035;
+    menuIn = smoothstep(0.0, 0.04, f);
+    // the front: a band of heat a little behind the edge, thicker where the noise lets it linger
+    front = exp(-abs(f - 0.018) / 0.014) * (1.0 - smoothstep(0.96, 1.0, uMenu));
     charBand = smoothstep(0.01, 0.03, f) * (1.0 - smoothstep(0.03, 0.16, f));
   }
 
@@ -219,15 +220,15 @@ void main() {
     vec2 ht = hash22(cell + 11.3) - 0.5;
     sw = w - sA;
     tilt = vec3(ht * 1.25 * askew, 0.0);
-    sink = 1.0 - 0.42 * askew * hash12(cell + 5.1);
+    sink = 1.0 - 0.52 * askew * hash12(cell + 5.1);
 
     // the crack between two shards: as wide as they have moved apart across it, never less than a hairline once
     // broken. Narrow, it is a dark line; wide, the light comes through.
-    float gap = max(dot(sB - sA, dir), 0.0) + 1.1 * open;
+    float gap = max(dot(sB - sA, dir), 0.0) + 1.5 * open;
     float half_ = 0.5 * gap;
     float inGap = (1.0 - smoothstep(half_ - 0.55, half_ + 0.55, ePx)) * step(0.02, open);
     float t = clamp(1.0 - ePx / max(half_, 1.4), 0.0, 1.0);
-    float through = smoothstep(1.2, 6.5, gap);              // how much light gets through a crack this wide
+    float through = smoothstep(2.6, 8.5, gap);              // how much light gets through a crack this wide
     vec3 light = (uLit * (0.5 + 0.9 * t) + uLitCore * 2.2 * pow(t, 3.0)) * through;
     // behind the wall, on the home page: the show, lit by that light
     if (uFilm > 0.0) {
@@ -245,9 +246,9 @@ void main() {
     tilt.xy += dir * bevel * 1.1;
 
     // the embers: where a wide crack has just closed, a hairline still glows and cools
-    float was = smoothstep(2.0, 8.0, max(dot(shardShift(other) - shardShift(cell), dir), 0.0));
+    float was = smoothstep(3.0, 9.0, max(dot(shardShift(other) - shardShift(cell), dir), 0.0));
     float ember = smoothstep(0.08, 0.55, tr.g + (en - 0.5) * 0.3) * (1.0 - open) * was;
-    emit += mix(uLit, uLitCore, 0.2) * ember * (1.0 - smoothstep(0.0, 1.2, ePx)) * 0.7;
+    emit += mix(uLit, uLitCore, 0.2) * ember * (1.0 - smoothstep(0.3, 1.7, ePx)) * 0.6;
 
     // behind the burn, the wall is scorched and crazed: every border a dark line, a few still smouldering
     if (menuIn > 0.0) {
@@ -305,7 +306,7 @@ void main() {
   col *= mix(1.0, 0.42, menuIn);
   // the burning front: a red edge with a white-hot thread, and just behind it the char
   col *= 1.0 - 0.6 * charBand;
-  col += (uLit * 1.15 + uLitCore * 0.3 * front * front) * front * 1.2;
+  col += (uLit * 0.95 + uLitCore * 0.22 * front * front * front) * front * 1.1;
 
   // vignette, the start's fade, tone, and a grain fine enough to break the banding of the dark
   float vig = 1.0 - 0.38 * smoothstep(0.35, 1.05, length((q - 0.5) * vec2(1.0, 0.8)) * 1.35);
