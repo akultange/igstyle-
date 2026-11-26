@@ -58,7 +58,7 @@ void main() {
   // the dwell: how long a hand has stayed here; it opens the wall wider the longer it stays (about two seconds to
   // the full), and lets it close again after
   // (a small step down besides the fading, so that where the browser keeps this in 8 bits a value still reaches 0)
-  float dwell = clamp(prev.b * uDecay.z - 0.003 + b * b * uDt * 0.9, 0.0, 1.0);
+  float dwell = clamp(prev.b * uDecay.z - 0.0006 + b * uDt * 1.2, 0.0, 1.0);
   o = vec4(max(prev.r * uDecay.x - 0.003, b), max(prev.g * uDecay.y - 0.002, b), dwell, 1.0);
 }`;
 
@@ -235,12 +235,16 @@ void main() {
 
     // the crack between two shards: as wide as they have moved apart across it, never less than a hairline once
     // broken. Narrow, it is a dark line; wide, the light comes through.
-    float gap = max(dot(sB - sA, dir), 0.0) + 1.5 * open;
+    // (and not the same width all along: stone parts unevenly, so the light comes through in places, pinched shut
+    // in others; the same noise on both sides of the crack, so both edges agree)
+    float along = smoothstep(0.3, 0.78, texture(tN, w / 150.0 + hash22(min(cell, other) + max(cell, other) * 1.7)).r);
+    float gap = max(dot(sB - sA, dir), 0.0) * (0.15 + 1.25 * along) + 1.5 * open;
     float half_ = 0.5 * gap;
     float inGap = (1.0 - smoothstep(half_ - 0.55, half_ + 0.55, ePx)) * step(0.02, open);
     float t = clamp(1.0 - ePx / max(half_, 1.4), 0.0, 1.0);
     float through = smoothstep(2.6, 8.5, gap);              // how much light gets through a crack this wide
-    vec3 light = (uLit * (0.5 + 0.9 * t) + uLitCore * 2.2 * pow(t, 3.0)) * through;
+    float wide = smoothstep(4.0, 14.0, gap);                // a wide crack burns white at its middle
+    vec3 light = (uLit * (0.45 + 0.75 * t) + uLitCore * (0.25 + 1.6 * wide) * pow(t, 4.0)) * through;
     // behind the wall, on the home page: the show, lit by that light
     if (uFilm > 0.0) {
       vec3 show = film(sp, (hash22(cell + 1.9) - 0.5) * 0.006) * 2.2;

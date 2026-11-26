@@ -207,13 +207,15 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
   };
 
   // ---------- size ----------
+  // (quality: 1, or less where the device can't keep up: the frame's own timing lowers it, below)
+  let quality = 1;
   let vw = 1, vh = 1;
   const resize = () => {
     vw = canvas.clientWidth || innerWidth;
     vh = canvas.clientHeight || innerHeight;
     // the canvas's own resolution: the screen's, capped (the stone is soft; the cracks are drawn by the shader, so
     // they stay sharp at any size)
-    const dpr = Math.min(devicePixelRatio || 1, coarse ? 1.25 : 1.5);
+    const dpr = Math.min(devicePixelRatio || 1, coarse ? 1.25 : 1.5) * quality;
     const w = Math.round(vw * dpr), h = Math.round(vh * dpr);
     if (canvas.width !== w || canvas.height !== h || (bloom && !scene)) {
       canvas.width = w;
@@ -299,6 +301,7 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
   let raf = 0, prev = performance.now(), start = prev;
   let running = true;
   let quietFrames = 0, skipped = 0;
+  const slow: number[] = [];
   const segs = new Float32Array(16), segK = new Float32Array(8);
 
   let lastStroke = 0;
@@ -310,6 +313,16 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
     skipped = 0;
     const dt = Math.min(0.08, Math.max(0.001, (now - prev) / 1000));
     prev = now;
+    // a device that can't keep up (the frames come slower than 25 a second while the wall is working) is drawn
+    // at a lower resolution, in two steps at most; the cracks are drawn by the shader and stay sharp enough
+    if (!skipped && quietFrames === 0 && quality > 0.6) {
+      slow.push(dt);
+      if (slow.length >= 90) {
+        slow.sort((a, b) => a - b);
+        if (slow[45] > 0.04) { quality = quality > 0.9 ? 0.8 : 0.62; resize(); }
+        slow.length = 0;
+      }
+    }
 
     // strokes this frame
     const strokes: Stroke[] = [];
@@ -450,7 +463,7 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
     gl.bindTexture(gl.TEXTURE_2D, bloomA!.tex);
     gl.uniform1i(uF.tScene, 6);
     gl.uniform1i(uF.tBloom, 7);
-    gl.uniform1f(uF.uBloom, 1.15);
+    gl.uniform1f(uF.uBloom, 0.9);
     gl.uniform1f(uF.uTime, (now - start) / 1000);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };
