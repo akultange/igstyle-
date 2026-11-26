@@ -184,7 +184,11 @@ vec3 film(vec2 sp, vec2 shift) {
   float s = uFilmAspect.y / uFilmAspect.x;
   uv = s > 1.0 ? vec2((uv.x - 0.5) / s + 0.5, uv.y) : vec2(uv.x, (uv.y - 0.5) * s + 0.5);
   uv += shift;
-  return toLinear(texture(tFilm, vec2(uv.x, uv.y)).rgb);
+  vec3 c = toLinear(texture(tFilm, vec2(uv.x, uv.y)).rgb);
+  // graded as the site grades its pictures (colour.css, the red that stays): grey, except where it is red
+  float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
+  float red = clamp((c.r - max(c.g, c.b)) * 4.0, 0.0, 1.0);
+  return mix(vec3(lum), c, 0.15 + 0.85 * red);
 }
 
 void main() {
@@ -211,7 +215,8 @@ void main() {
   vec3 tilt = vec3(0.0);  // a shard's tilt
   float sink = 1.0;       // a shard sunk a little into shadow
   vec3 emit = vec3(0.0);  // light: the cracks, their glow, the embers, the burn's front
-  float gapMix = 0.0;     // how much of this pixel is the gap (light, rebar, the show)
+  float gapMix = 0.0;     // how much of this pixel is the gap (light, the show)
+  float goneA = 0.0, goneB = 0.0, holeEdge = 99.0; // a shard come away (this one, the one across the border)
   vec3 gapCol = vec3(0.0);
 
   float broken = max(max(tr.r, tr.g), menuIn);
@@ -227,6 +232,10 @@ void main() {
 
     // each shard moves on its own: a shift (it rides up out of the wall and slides), a tilt, a little shadow
     float dA = dwellAt(cp), dB = dwellAt(op);
+    // where a hand has rested long, shards come away altogether, one by one, and leave a hole in the wall
+    goneA = smoothstep(0.0, 0.2, dA * 1.2 - 0.45 - hash12(cell + 9.1) * 0.6) * rc;
+    goneB = smoothstep(0.0, 0.2, dB * 1.2 - 0.45 - hash12(other + 9.1) * 0.6) * ro;
+    holeEdge = ePx;
     vec2 sA = shardShift(cell) * rc * (1.0 + 2.6 * dA), sB = shardShift(other) * ro * (1.0 + 2.6 * dB);
     vec2 ht = hash22(cell + 11.3) - 0.5;
     sw = w - sA;
@@ -247,7 +256,7 @@ void main() {
     vec3 light = (uLit * (0.45 + 0.75 * t) + uLitCore * (0.25 + 1.6 * wide) * pow(t, 4.0)) * through;
     // behind the wall, on the home page: the show, lit by that light
     if (uFilm > 0.0) {
-      vec3 show = film(sp, (hash22(cell + 1.9) - 0.5) * 0.006) * 2.2;
+      vec3 show = film(sp, (hash22(cell + 1.9) - 0.5) * 0.006) * 1.4;
       light = mix(light, show * (0.35 + through) + light * 0.3, uFilm * smoothstep(3.0, 9.0, gap));
     }
     gapCol = vec3(0.002) + light;
@@ -316,6 +325,18 @@ void main() {
   col += uLit * max(dot(N.xy, normalize(tg + 1e-5)), 0.0) * length(tg) * 0.22 * ao;
 
   col = mix(col, gapCol, gapMix) + emit;
+
+  // ---- a hole where shards have come away: the show behind the wall (or, on other pages, the club's light) ----
+  if (goneA + goneB > 0.0) {
+    vec3 inside = uLit * 0.16 + uLitCore * 0.025;
+    if (uFilm > 0.0) inside = mix(inside, film(sp, vec2(0.0)) * 1.15 + uLit * 0.04, uFilm);
+    // the broken rim: the edge of what stands catches the light from the hole
+    float rim = goneB * (1.0 - goneA) * (1.0 - smoothstep(0.0, 5.0, holeEdge));
+    col += (uLit * 0.7 + uLitCore * 0.5 * rim) * rim;
+    float inHole = goneA * mix(smoothstep(0.0, 2.5, holeEdge), 1.0, goneB);
+    col = mix(col, inside, inHole);
+    col += uLit * goneA * (1.0 - goneB) * (1.0 - smoothstep(0.0, 6.0, holeEdge)) * 0.9;
+  }
 
   // ---- the menu's world: darker, and the burning front ----
   col *= mix(1.0, 0.42, menuIn);
