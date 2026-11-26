@@ -1,0 +1,35 @@
+/* =====================================================================
+   Colour (LUKA LATEST, 2026-11-23: Luka wanted the colour back, though not the neon colours the pictures came with,
+   and chosen for where each picture stands)
+   The grade itself is in the files: every photograph and film is graded once, in the house grade (tools/grade/
+   house.py; tools/grade/apply.sh): purple, magenta and pink turned to the club's crimson and wine, blue and cyan
+   cooled to steel, skin and lamplight kept warm and a touch held back, the blacks left black; steel in the
+   shadows, amber in the highlights. So every picture on the site speaks one light, the club's: red and amber on
+   black, steel and skin.
+   What a place adds here is only how far forward its pictures stand (--grade, global.css):
+   - the film behind the name, and every picture in the guest's way (the gallery, the rooms, the parties, the
+     menu's films): as graded, nothing added;
+   - the Афиша's posters: a newspaper's print, the colour a touch flatter and the ink a touch denser (the torn
+     paper and the dot screen are Gio's: cut.css, posters.css);
+   - the artists' stage: the one in front in full colour, the others behind her held back, nearly grey and a
+     little darker, so the eye goes where the stage's light is; each comes up to full as she comes to the front;
+   - a page's own picture under its giant name (the page titles, the film bands): a step quieter, so the name
+     leads;
+   - the dimmed pictures (the gallery's band, the booking's rooms, the table sets) keep their own brightness rules
+     and start from the grade as before.
+   Line art is never graded.
+   ===================================================================== */
+
+/* the posters: printed */
+.poster-shot { --grade: saturate(.88) contrast(1.05); }
+
+/* the artists' stage: the light follows the one in front */
+.mdl-card .photo { transition: filter .7s ease; }
+.mdl-card:not(.is-active) .photo { --grade: saturate(.4) brightness(.8); }
+@media (hover: hover) { .mdl-card:not(.is-active):hover .photo { --grade: saturate(.8) brightness(.92); } }
+
+/* a page's own picture, under its name: a step quieter */
+:is(.ptitle-media, .film-media) { --grade: saturate(.86) brightness(.94); }
+
+/* the film behind the name plays as graded */
+.hero { --grade: saturate(1); }

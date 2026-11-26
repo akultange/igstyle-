@@ -1,0 +1,152 @@
+---
+// Careers: the page the casting call leads to. Three parts, no more:
+//   1. the title, what this is and the two ways to apply (the form, Telegram);
+//   2. the five roles, each a card with a picture of that work in the club, straight under the title so they are
+//      on the first screen. A card opens the application with its role already chosen (Apply.astro);
+//   3. how applying goes, as one card like the closing invitation on the other pages (global.css, .cta-card):
+//      the three steps, when the club answers, the two ways to apply again, and beside them the dressing room's
+//      mirror with its free chair (the picture the casting call on the home page is set in).
+// (It was a list of five thin lines beside one small dark picture, and under it a second, bare block that
+// repeated the title's two buttons.)
+import Base from '../../layouts/Base.astro';
+import PageTitle from '../../components/PageTitle.astro';
+import { site } from '../../data/site';
+import { photo } from '../../data/images';
+import { type Lang, ui, tr, langPaths } from '../../data/i18n';
+import { careers, media } from '../../data/content';
+
+export const getStaticPaths = langPaths;
+const lang = Astro.params.lang as Lang;
+const t = ui[lang];
+const ru = lang === 'ru';
+
+// Each role's picture, from the gallery: which one, and how it is cut for a card. The pictures are dark at their
+// edges, so each is drawn larger than its frame (zoom) around the part that matters (at: where that part is in the
+// picture), and the frame holds the lit middle. The last one, the hall, is a wide picture: on a phone its card is
+// wide too. (2026-11-22: the artists' card shows the stage, three dancers against the light, in place of an artist
+// in a bodysuit at the pole: a content card, not the gallery.)
+const shots = [
+  { img: 'gallery-23-eclipse.webp', at: '59% 60%', zoom: 1.08 },
+  { img: 'gallery-08-hostess-door.webp', at: '50% 46%', zoom: 1.38 },
+  { img: 'gallery-07-glove-champagne.webp', at: '52% 46%', zoom: 1.18 },
+  { img: 'gallery-21-flame-bar.webp', at: '50% 50%', zoom: 1.08 },
+  { img: 'gallery-20-laser-hall.webp', at: '34% 60%', zoom: 1 },
+];
+const roles = await Promise.all(careers.roles.map(async (r, i) => ({
+  name: tr(r, lang),
+  shot: shots[i],
+  src: media(shots[i].img),
+  set: await photo(media(shots[i].img), '(min-width: 900px) min(19vw, 260px), (min-width: 600px) 46vw, 92vw'),
+})));
+const room = await photo('/media/casting-room.webp', '(min-width: 900px) min(54vw, 760px), 100vw');
+const steps = ru ? ['Роль', 'Как связаться', 'Пара слов о себе'] : ['The role', 'How to reach you', 'A few words about you'];
+---
+<Base lang={lang} title={t.footer.careers} description={tr(careers.lead, lang)} closing={false}>
+  <PageTitle
+    crumbs={[{ href: `/${lang}/`, label: 'HOTLAND' }, { label: t.footer.careers }]}
+    title={t.footer.careers}
+    sub={tr(careers.title, lang)}
+    lead={tr(careers.lead, lang)}
+  >
+    <!-- the main action is the form, as in the casting call on the other pages; Telegram is the second one -->
+    <a class="btn btn-crimson" href="#apply" data-apply>{ru ? 'Заполнить анкету' : 'Apply'}</a>
+    <a class="btn btn-line" href={site.telegramCasting} target="_blank" rel="noopener">{tr(careers.cta, lang)}</a>
+  </PageTitle>
+
+  <!-- 01 The roles -->
+  <section class="sec-t cr-sec">
+    <div class="wrap">
+      <ul class="cr-roles" role="list" aria-label={ru ? 'Кого мы ищем' : 'Who we’re looking for'}>
+        {roles.map((r, i) => (
+          <li>
+            <a class="cr-role" href="#apply" data-apply data-apply-role={i}>
+              <span class="photo cr-shot" style={`--at:${r.shot.at};--zoom:${r.shot.zoom}`}><img src={r.src} {...r.set} alt="" loading={i < 2 ? 'eager' : 'lazy'} decoding="async" /></span>
+              <span class="cr-n" aria-hidden="true">0{i + 1}</span>
+              <span class="cr-k">{r.name}</span>
+              <span class="cr-go">{ru ? 'Откликнуться' : 'Apply'}<i aria-hidden="true">→</i></span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <!-- 02 Applying: the full-screen dialog (Apply.astro), three short steps; the second way is Telegram -->
+  <section class="sec" id="apply">
+    <div class="wrap">
+      <div class="cta-card cr-apply">
+        <div class="cta-words">
+          <div class="cr-apply-head">
+            <h2 class="t-l cta-h" set:html={ru ? 'Отправить <em>анкету</em>' : 'Apply <em>in private</em>'} />
+            <p class="lead">{ru ? 'Три коротких шага. Ответим в течение двух дней.' : 'Three short steps. We reply within two days.'}</p>
+          </div>
+          <div class="cta-act">
+            <ol class="cr-steps" role="list">
+              {steps.map((s, i) => <li><span aria-hidden="true">0{i + 1}</span>{s}</li>)}
+            </ol>
+            <div class="btns">
+              <a class="btn btn-crimson" href="#apply" data-apply>{ru ? 'Заполнить анкету' : 'Apply'}</a>
+              <a class="btn btn-line" href={site.telegramCasting} target="_blank" rel="noopener">{tr(careers.cta, lang)}</a>
+            </div>
+          </div>
+        </div>
+        <div class="photo cta-shot" aria-hidden="true"><img src="/media/casting-room.webp" {...room} alt="" loading="lazy" decoding="async" /></div>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  /* ---------- The roles ----------
+     Five cards in one row, each a picture with its number, its name and the way in under it; the whole card is
+     the link. Under 900px: two to a row, and the fifth, the hall, a wide card across both. */
+  /* (the cards start a little further under the title's buttons than a section's first line does, and the card
+     about applying follows one section's air under them, not two: the two belong together) */
+  .sec-t.cr-sec { padding-bottom: 0; }
+  .cr-roles { list-style: none; margin: clamp(10px, 1.7vw, 26px) 0 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: clamp(12px, 1.5vw, 22px); }
+  .cr-role { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; gap: 6px 10px; color: var(--fg); -webkit-tap-highlight-color: transparent; }
+  .cr-shot.photo { grid-column: 1 / -1; aspect-ratio: 3 / 4; margin-bottom: 8px; }
+  /* (the hairline round pictures that stand side by side, global.css: three of the five are dark to their edges,
+     and without it their cards had no shape beside the two bright ones) */
+  .cr-shot.photo::after { box-shadow: inset 0 0 0 1px var(--rule); }
+  /* (drawn larger than its frame around the part that matters: --at, --zoom, set per picture above) */
+  .cr-shot img { object-position: var(--at, 50% 50%); transform-origin: var(--at, 50% 50%); transform: scale(var(--zoom, 1)); }
+  /* (a role's number is a serial number: the Label; its way in, a control: the Label too, the arrow in steel) */
+  .cr-n { font: var(--label-wght) 12px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); color: var(--steel-hi); font-variant-numeric: lining-nums tabular-nums; }
+  .cr-k { font: 500 var(--item-s)/1.25 var(--f-text); text-wrap: balance; } /* (a name in a small card: the text face's item-s) */
+  .cr-go { grid-column: 2; display: inline-flex; align-items: center; gap: 8px; margin-top: 2px; font: var(--label-wght) 12px/1.2 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); text-transform: uppercase; color: var(--fg-2); transition: color .3s ease, gap .3s var(--ease-out); }
+  .cr-go i { font: 400 14px/1 var(--f-text); font-style: normal; letter-spacing: 0; color: var(--steel-hi); }
+  @media (hover: hover) {
+    .cr-role:hover .cr-go { color: var(--fg); gap: 10px; }
+    .cr-role:hover .cr-shot img { transform: scale(calc(var(--zoom, 1) * 1.04)); }
+  }
+  .cr-role:active .cr-shot { scale: .985; }
+  .cr-shot.photo { transition: scale .25s var(--ease-out); }
+  @media (max-width: 899px) {
+    .cr-roles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 12px; }
+    .cr-roles li:last-child { grid-column: 1 / -1; }
+    .cr-roles li:last-child .cr-shot.photo { aspect-ratio: 16 / 9; }
+    .cr-k { font-size: 17px; }
+    .cr-go { min-height: 24px; }
+  }
+
+  /* ---------- Applying ----------
+     The invitation's card (global.css, .cta-card) with this page's words: the title a step smaller than the
+     invitation's (its first word is longer), the three steps as a short ruled row, the two buttons. */
+  /* (the card's title is a section's heading here, not the page's name: the Dial at a section heading's size and
+     weight, global.css .t-l, and its two halves on one line, never a word to a line) */
+  .cr-apply .cta-h { font-size: var(--dial-head); font-weight: var(--dial-head-wght); }
+  .cr-apply .cta-h :global(em) { display: inline; }
+  .cr-apply-head { display: grid; gap: clamp(12px, 1.6cqw, 20px); }
+  .cr-apply-head .lead { max-width: 30ch; text-wrap: pretty; }
+  .cr-steps { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 clamp(10px, 1.6cqw, 20px); }
+  .cr-steps li { display: grid; align-content: start; gap: 10px; padding-top: 14px; border-top: 1px solid var(--rule-2); font: 400 16px/1.35 var(--f-text); color: var(--fg); }
+  /* (a step's number: the Dial, as the watch's hours are; never under 44px and a touch apart, or its narrow 0 and 1
+     run together into two bars) */
+  .cr-steps span { font: var(--dial-num-s-wght) var(--dial-num-s)/.8 var(--f-flex); font-stretch: var(--dial-wdth); letter-spacing: .05em; color: var(--fg); font-variant-numeric: lining-nums tabular-nums; }
+  /* (the dressing room: the mirror and its bulbs stand in the picture's right half, the free chair to their left) */
+  .cr-apply .cta-shot img { object-position: 86% 50%; transform: none; }
+  @media (max-width: 899px) {
+    .cr-apply .cta-shot img { object-position: 80% 50%; }
+  }
+</style>

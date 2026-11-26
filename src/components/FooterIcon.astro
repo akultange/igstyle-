@@ -1,0 +1,7 @@
+---
+// A line icon for the footer's ways to reach the club (data/footer.ts). Decorative: the link carries the words.
+import { ICONS, type IconName } from '../data/footer';
+interface Props { name: IconName; class?: string }
+const { name, class: cls = '' } = Astro.props;
+---
+<svg class:list={['fic', cls]} viewBox="0 0 24 24" aria-hidden="true" focusable="false">{ICONS[name].map((d) => <path d={d} />)}</svg>

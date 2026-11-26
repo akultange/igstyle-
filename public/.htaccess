@@ -1,0 +1,48 @@
+# HOTLAND on regular Apache hosting (Timeweb's virtual hosting): the pages and files straight from this folder, the
+# forms through api/index.php. (The Cloudflare preview ignores this file: it reads _headers, and worker/ answers the
+# forms there.)
+Options -Indexes
+DirectoryIndex index.html
+ErrorDocument 404 /404.html
+AddDefaultCharset utf-8
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # https only: the host's front server says which one a visitor used (only an explicit "http" is sent on, so a
+  # front server that doesn't say can't cause a loop)
+  RewriteCond %{HTTP:X-Forwarded-Proto} =http
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+  # the bare address goes straight to the Russian site (src/pages/index.astro stays as a fallback)
+  RewriteRule ^$ /ru/ [R=302,L]
+  # the forms, the anonymous counts, the outbox the Cloudflare worker collects, and the forms' health check (nothing
+  # from the address's query is passed on)
+  RewriteRule ^api/(booking|careers|event|outbox|health)/?$ api/index.php?route=$1 [L]
+</IfModule>
+
+AddType font/woff2 .woff2
+AddType image/webp .webp
+AddType image/avif .avif
+AddType video/mp4 .mp4
+AddType image/svg+xml .svg
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/plain text/javascript application/javascript application/json image/svg+xml application/xml
+</IfModule>
+
+# How long browsers keep each kind of file (as _headers says for Cloudflare): the pages are checked afresh every time,
+# photos and films are kept for a month; the build's /_astro/ files and the fonts for a year (their own .htaccess,
+# since their names change with their contents). Where the host's own front server hands out static files itself,
+# it uses its own rules for them instead.
+<IfModule mod_headers.c>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  <FilesMatch "\.(webp|avif|jpe?g|png|svg|mp4|ico)$">
+    Header set Cache-Control "public, max-age=2592000"
+  </FilesMatch>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Strict-Transport-Security "max-age=31536000"
+  Header always set X-Frame-Options "DENY"
+  Header always set Content-Security-Policy "frame-ancestors 'none'"
+</IfModule>

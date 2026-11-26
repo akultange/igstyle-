@@ -1,0 +1,5 @@
+# Cloudflare: the bare address goes straight to the Russian site (src/pages/index.astro stays as a fallback)
+/ /ru/ 302
+# the membership page used to live at /vip/
+/ru/vip/* /ru/membership/:splat 301
+/en/vip/* /en/membership/:splat 301

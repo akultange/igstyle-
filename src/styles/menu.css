@@ -1,0 +1,179 @@
+/* =====================================================================
+   The menu page (menu.astro). Loaded after global.css (Base.astro). The page's header is the shared one
+   (PageTitle); under it, the bar card: three tabs, the chosen list, and that tab's photograph.
+   The client (2026-11-13): "everything is too tight, no hierarchy". So the card no longer squeezes itself into
+   one screen: the list is set large and with air, and the tabs stay pinned under the header while you read, so
+   you can switch at any point. Each tab is as long as its own list.
+   «Между» (2026-11-21): a price list on black, the way a good bar prints one. The names in the text face, the
+   prices and volumes in the Label's small capitals (the prices in shirt white, the volumes in ash), one hairline
+   under each row. The tabs are plain words on one hairline, the chosen one lit.
+   2026-11-22 (the client's call): beside the list stands the tab's line drawing, large, with no frame (the glass,
+   the cigar, the bottle; LineArt.astro), the chosen one shown and drawn again when its tab is chosen. No photograph.
+   Desktop: the tabs and the list on the left (the bar's groups and the kitchen's dishes in two columns), the
+   drawing on the right (4:5), staying in view while the list scrolls. Phones: the drawing (6:5), the tabs,
+   pinned under the header once the page reaches them, the list in one column.
+   The order the eye reads in: the page's name; the tabs; each group's name over a fine rule; the dishes and drinks,
+   one to a row between fine rules, their prices on the right (the rouble sign and «от» quieter); the volumes, in a
+   column of their own before the prices, and the few words under a name in ash. The house's own cocktails are
+   marked in steel. The price note closes the list. The hookah lounge's prices under the card are set in the same
+   rows: one price list on the page.
+   ===================================================================== */
+
+/* ---------- The card ---------- */
+/* (right under the page's header, as any content without a heading of its own: the lists' headings are hidden when
+   the tabs work, so the global rule for a section with headings, two sections' air, isn't for this one) */
+section.bm, .ptitle + section.bm { padding-top: var(--head-gap); }
+.bm-in { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "media" "tabs" "panels" "note"; }
+.bm-media { grid-area: media; }
+.bm-tabs { grid-area: tabs; }
+/* (a mark with no size standing where the tabs start: menu.astro watches it to know when the tabs are stuck) */
+.bm-pin { grid-area: tabs; align-self: start; height: 0; pointer-events: none; }
+.bm-panels { grid-area: panels; min-width: 0; }
+.bm-note { grid-area: note; }
+
+/* ---------- The drawing: one for each tab (2026-11-22, the client's call: drawings, not photographs) ----------
+   The three stand in one 4:5 place, each fitted whole into it (the glass is square, the cigar 4:5, the bottle 1:2),
+   standing on its foot; the chosen one shows and draws itself again (menu.astro), the others wait unseen. */
+.bm-draw { display: grid; aspect-ratio: 4 / 5; }
+.bm-draw .bm-art { grid-area: 1 / 1; width: 100%; height: 100%; opacity: 0; visibility: hidden; transition: opacity .5s ease, visibility 0s .5s; }
+.bm-draw .bm-art.on { opacity: 1; visibility: visible; transition: opacity .5s ease; }
+
+/* the tabs: on a phone they stay under the header while the list scrolls (see "Phones" below); on a wide screen
+   they simply stand over the list. One hairline runs under them, the list's width, and the chosen tab's line of
+   light lies on it. */
+.bm-tabs {
+  position: relative; z-index: 5; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;
+  background: linear-gradient(var(--rule-2), var(--rule-2)) 0 100% / 100% 1px no-repeat;
+}
+/* the tabs themselves: plain words in the Label's capitals, the chosen one in shirt white over a line of the light
+   (.tabs-ink, global.css), as the current page is lit on the header's line. No panel round them. Each word is a
+   finger's height, and a little wider than itself to the touch (::before). */
+.bm-tabs .tabs { display: flex; gap: clamp(28px, 3vw, 44px); padding: 0; overflow: visible; background: none; box-shadow: none; }
+.bm-tabs .tabs button { height: 52px; padding: 0; font-size: 13px; }
+.bm-tabs .tabs button::before { content: ''; position: absolute; inset: 0 -14px; }
+/* (the focus line round the word itself, clear of its letters: the word has no padding to hold it inside) */
+.bm-tabs .tabs button:focus-visible { outline-offset: 6px; }
+@media (max-width: 599px) {
+  .bm-tabs .tabs { gap: 28px; }
+  .bm-tabs .tabs button { height: 48px; font-size: 12px; }
+}
+
+
+/* without scripts: no tabs, the three lists one after another, each under its own heading */
+.bm-panel-h { margin: 0 0 18px; font: 500 var(--item)/1.15 var(--f-text); letter-spacing: -.012em; }
+/* with the tabs, each panel's own heading is for screen readers only (the tab says it on screen) */
+.bm.tabbed .bm-panel-h { position: absolute; width: 1px; height: 1px; margin: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.bm:not(.tabbed) .bm-tabs { display: none; }
+.bm:not(.tabbed) .bm-panel + .bm-panel { margin-top: 56px; }
+/* with them: the chosen list rises in */
+@media (prefers-reduced-motion: no-preference) {
+  .bm.tabbed .bm-panel:not([hidden]) { animation: bm-panel .6s var(--ease-out) both; }
+}
+@keyframes bm-panel { from { opacity: 0; translate: 0 10px; } }
+
+/* ---------- The lists ---------- */
+.bm-panels { margin-top: 18px; }
+.bm-cols { columns: 1; }
+/* (a dish never splits between the two columns: the kitchen list has no groups to hold it together) */
+.bm-cols > .mrow { break-inside: avoid; }
+.mgroup { break-inside: avoid; padding-bottom: clamp(36px, 4vw, 60px); }
+.bm .mgroup-h {
+  margin: 0; padding-bottom: 14px; border-bottom: 1px solid var(--rule-2);
+  font: 500 var(--item)/1.15 var(--f-text); letter-spacing: -.012em;
+}
+/* the kitchen's and the door's lists have no group names: a fine rule opens them all the same (with the tabs, their
+   hairline is that rule) */
+.bm :is(#kitchen .bm-cols, #entry .mrows) { margin-top: 0; border-top: 1px solid var(--rule-2); }
+.bm.tabbed :is(#kitchen .bm-cols, #entry .mrows) { border-top: 0; }
+
+/* a row: the name on the left, the price on the right, and for a drink its volume in a column of its own before
+   the price; the few words under a name run the whole width of the row; a fine rule under each row carries the eye
+   across to its price (no dotted leaders). The hookah lounge's rows are the same rows. */
+:is(.bm, .hk-offers) .mrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 14px; align-items: baseline; padding: 14px 0 15px; border-bottom: 1px solid var(--rule); }
+:is(.bm, .hk-offers) .mrow .ds { grid-column: 1 / -1; margin-top: 4px; font: 400 16px/1.45 var(--f-text); color: var(--ash); }
+.bm .mrow .ds .own { color: var(--steel-hi); }
+.bm .mrow .ds .desc + .own::before { content: '·'; margin: 0 .45em; color: var(--ash); }
+/* the price: the Label (global.css, Price lists), in shirt white; «по запросу» in it too, in ash */
+:is(.bm, .hk-offers) .mrow .pr { justify-self: end; }
+:is(.bm, .hk-offers) .mrow .pr.req { font: var(--label-wght) 13px/1.05 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); text-transform: uppercase; color: var(--ash); }
+.hk-offers { border-top: 1px solid var(--rule-2); }
+/* a group of the bar is one grid, and its rows share the group's columns: the volumes line up, right-aligned,
+   whatever the widths of the prices after them, and a volume never drops under its name */
+.bm .mgroup { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; column-gap: 14px; }
+.bm .mgroup > .mgroup-h { grid-column: 1 / -1; }
+.bm .mgroup > .mrow { grid-column: 1 / -1; grid-template-columns: subgrid; }
+/* the volume: the Label too, a size down and in ash, so the eye takes the price first */
+.bm .mgroup > .mrow .vol {
+  grid-column: 2; justify-self: end; margin-left: 0;
+  font: var(--label-wght) 12px/1.05 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); text-transform: uppercase;
+  font-variant-numeric: tabular-nums lining-nums; white-space: nowrap; color: var(--ash);
+}
+.bm .mgroup > .mrow .pr { grid-column: 3; }
+/* (a browser without shared columns: a fixed column for the volume in every row) */
+@supports not (grid-template-columns: subgrid) { .bm .mgroup > .mrow { grid-template-columns: minmax(0, 1fr) 64px auto; } }
+/* every price on the page (the card's and the hookah's): «от» before the figure in ash, the rouble sign a little
+   smaller and dimmer after it */
+.mrow .pr .pr-from { margin-right: .4em; text-transform: uppercase; color: var(--ash); }
+.mrow .pr .pr-cur { font-size: .86em; opacity: .62; }
+
+/* the price note: the list's last line */
+.bm-note { margin-top: clamp(4px, 1vw, 14px); font: 400 16px/1.5 var(--f-text); color: var(--ash); text-wrap: balance; }
+
+/* ---------- Tablets and up: two columns where a list is long ---------- */
+@media (min-width: 600px) {
+  .bm :is(#bar, #kitchen) .bm-cols { columns: 2; column-gap: clamp(40px, 4.4vw, 76px); }
+  .bm #entry .mrows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: clamp(40px, 4.4vw, 76px); }
+}
+
+/* ---------- Desktop: the tabs and the list on the left, the photograph on the right, staying in view ---------- */
+@media (min-width: 900px) {
+  section.bm { --bm-pic: clamp(300px, 31vw, 460px); }
+  .bm-in {
+    grid-template-columns: minmax(0, 1fr) var(--bm-pic);
+    grid-template-areas: "tabs media" "panels media" "note media";
+    grid-template-rows: auto auto 1fr;
+    column-gap: clamp(44px, 5.5vw, 96px);
+  }
+  .bm-media { align-self: start; position: sticky; top: calc(var(--hdr) + 24px); }
+  .bm-panels { margin-top: clamp(22px, 2.6vw, 40px); }
+}
+
+/* ---------- Phones: the photograph, then the tabs across the screen, then the list ----------
+   The tabs stay under the header while the list scrolls. Only while they are stuck there (.is-stuck, set by
+   menu.astro) do they stand on a band of matte black, the same black reaching up under the header's row, so the
+   header and the band read as one surface; its hairline is the band's edge, and the list slides under it. (Matte,
+   not smoked: through a smoked band the rows passing under showed as a ghost behind the tabs' words.) Before that
+   the band is clear. When the header tucks away the band rides up with it, as one piece: a transform with the
+   header's own time and easing, not a change of where it sticks. */
+@media (max-width: 899px) {
+  /* (a little wider than tall, so the photograph leaves the tabs on the first screen) */
+  .bm-draw { aspect-ratio: 6 / 5; max-height: 42svh; margin-inline: auto; }
+  .bm-media { margin-bottom: 22px; }
+  .bm-tabs { position: sticky; top: var(--hdr); margin: 0 calc(-1 * var(--pad)); padding: 0 var(--pad); transition: translate .4s var(--ease-out); }
+  /* (stuck under the header, the tabs take the header bar’s own black, so the two read as one bar) */
+  .bm-tabs.is-stuck { background-color: rgba(5, 5, 6, .985); }
+  /* (the black under the header's row: exactly its height, whatever the band's own) */
+  .bm-tabs.is-stuck::before { content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--hdr); background: rgba(5, 5, 6, .985); pointer-events: none; }
+  html.hdr-hide .bm-tabs.is-stuck { translate: 0 calc(-1 * var(--hdr)); }
+  .bm .mgroup-h { padding-bottom: 12px; }
+  :is(.bm, .hk-offers) .mrow { gap: 0 10px; padding: 13px 0 14px; }
+  .bm .mgroup { column-gap: 10px; }
+  :is(.bm, .hk-offers) .mrow .nm { font-size: 17px; }
+}
+/* the narrowest phones: closer, so a drink's name, its volume and a long price share one line; under 340px the
+   drawing gives way to the three tabs */
+@media (max-width: 374px) {
+  :is(.bm, .hk-offers) .mrow .nm { font-size: 16px; }
+  :is(.bm, .hk-offers) .mrow, .bm .mgroup { column-gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .bm-tabs { transition: none; } }
+
+/* ---------- A phone held sideways, or any screen as short (landscape.css): the photograph no taller than the
+   screen ---------- */
+@media (orientation: landscape) and (max-height: 500px) {
+  .bm .bm-draw { aspect-ratio: auto; height: calc(100svh - var(--hdr) - 72px); }
+}
+
+/* ---------- The hookah lounge: its picture (4:5) is the section's last thing on a computer, so the section ends
+   at the middle of the picture's fall into the charcoal (global.css, Photos) ---------- */
+@media (min-width: 900px) { #hookah .g12 > :first-child { margin-bottom: -12.5%; } }

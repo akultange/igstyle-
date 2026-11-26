@@ -1,0 +1,97 @@
+---
+// Finding the club (styles in styles/visit.css): the About page's contacts (and the end of the home page, when the
+// club brings it back there). Read top to bottom: the heading and the address; the car at the side entrance, drawn
+// (LineArt), as a band across the page on a plate of black stock torn out as the photographs are (cut.css): a long
+// black saloon, the door's red seam behind it caught on the roof, the shoulder and the wet asphalt; under it one
+// line about the side entrance, then the facts in a row (hours, shows, dress code, entry) and the way there.
+// (2026-11-21, «Между»: it was a round peephole with a film of the door; the drawing says how a guest arrives, and a
+// drawing never shows a face or a number plate. 2026-11-22: the plate is torn, as every plate on the site.)
+// Whatever the page puts inside <Visit> sits under the block, in the same section (About: the ways to reach us).
+import LineArt from './LineArt.astro';
+import { visit } from '../data/content';
+import { lineArt } from '../data/lineart';
+import { type Lang, ui, tr } from '../data/i18n';
+import { site } from '../data/site';
+interface Props {
+  lang: Lang;
+  /** The section's id: "visit" on the home page, "contacts" on About (the old /contacts/ sends visitors there). */
+  id?: string;
+  /** How many of the facts to list, from the first (all four unless told). */
+  facts?: number;
+  /** The second button, a call: Luka's "request a call" or Gio's number (shown unless told). */
+  call?: boolean;
+}
+const { lang, id = 'visit', facts: factCount = visit.rows.length, call = true } = Astro.props;
+const t = ui[lang];
+const ru = lang === 'ru';
+
+// The address: the street, then the city after its last comma ("ул. Примерная, 00" + "Москва"). The comma between
+// the two is set apart (.vs-sep): on a phone the city stands on its own line, and a line's end needs no comma.
+const addr = site.address[lang];
+const cut = addr.lastIndexOf(',');
+// No-break spaces keep the house number with its street and "ул." with the name ("ул. Примерная, 00" / "00 Sample").
+const street = (cut > 0 ? addr.slice(0, cut) : addr)
+  .replace(/(^|\s)(ул\.|пр\.|пер\.|д\.)\s/g, '$1$2\u00a0')
+  .replace(/,\s(?=\d)/g, ',\u00a0')
+  .replace(/^(\d+)\s/, '$1\u00a0');
+const city = cut > 0 ? addr.slice(cut + 1).trim() : '';
+
+// Each fact: its value up to the first comma, the rest as a note under it ("22:00–06:00" + "каждую ночь").
+// A value without spaces (a time range) never breaks, not even at its dash.
+const facts = visit.rows.slice(0, factCount).map((r) => {
+  const all = tr(r.v, lang);
+  const i = all.indexOf(',');
+  const v = i > 0 ? all.slice(0, i) : all;
+  return { k: tr(r.k, lang), v, whole: !/\s/.test(v), note: i > 0 ? all.slice(i + 1).trim() : '' };
+});
+import VariantSwitch from './VariantSwitch.astro';
+import { choosing, show } from '../data/variants';
+import '../styles/visit.css';
+---
+<!-- VISIT: read top to bottom: where, the car at the side entrance across the page, then when and the way there -->
+<section class:list={['sec vs', { 'vx-host': choosing('contact') }]} id={id} aria-labelledby={`${id}-h`} data-visit>
+  <VariantSwitch name="contact" />
+  <div class="wrap vs-wrap">
+    <div class="vs-head">
+      <h2 class="t-l" id={`${id}-h`} set:html={tr(visit.title, lang)} />
+      <p class="vs-addr" style={`--len:${street.length}`}><span class="vs-street">{street}{city && <span class="vs-sep">,</span>}</span>{city && <> <span class="vs-city">{city}</span></>}</p>
+    </div>
+    <figure class="vs-fig">
+      <div class="vs-plate ab-plate"><LineArt name="car" class="vs-car" label={tr(lineArt.car.alt, lang)} /></div>
+      <figcaption class="vs-cap">{ru
+        ? 'Боковой вход: машина встаёт у\u00a0самой двери. Водителю есть где подождать.'
+        : 'The side entrance: the car pulls up at the door. Your driver has a place to wait.'}</figcaption>
+    </figure>
+    <!-- the facts in the order a guest asks: when, the show, what to wear, the door (--n: how many, for the row) -->
+    <dl class="vs-facts" style={`--n:${facts.length}`}>
+      {facts.map((f) => <div class="vs-fact"><dt>{f.k}</dt><dd><b class:list={{ whole: f.whole }}>{f.v}</b>{f.note && <span>, {f.note}</span>}</dd></div>)}
+    </dl>
+    <div class="btns vs-btns">
+      <a class="btn btn-crimson" href={site.mapUrl} target="_blank" rel="noopener">{t.directions}</a>
+      {call && show('contact', 'luka') && <button class="btn btn-line" data-v="contact:luka" type="button" data-contact="callback">{ru ? 'Заказать звонок' : 'Request a call'}</button>}
+      {call && show('contact', 'gio') && <a class="btn btn-line" data-v="contact:gio" href={site.phoneHref}>{site.phone}</a>}
+    </div>
+  </div>
+  {Astro.slots.has('default') && <div class="wrap vs-more"><slot /></div>}
+</section>
+
+<script>
+  // Finding us: the block's entrance (visit.css): with motion on, once, when the block comes into view after the
+  // 18+ question. Nothing is hidden unless this runs (.vs-wait), and nothing at all without html.motion. It watches
+  // the block itself, not what a page adds under it (About's ways to reach us), so a long section on a short screen
+  // still gets far enough into view. (The drawing draws itself in: LineArt.astro.)
+  const sec = document.querySelector<HTMLElement>('[data-visit]');
+  const root = document.documentElement;
+  if (sec && root.classList.contains('motion') && 'IntersectionObserver' in window) {
+    sec.classList.add('vs-wait');
+    const io = new IntersectionObserver((entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return;
+      sec.classList.add('vs-on');
+      io.disconnect();
+    }, { threshold: 0.3 });
+    const start = () => io.observe(sec.querySelector('.vs-wrap') || sec);
+    const gate = document.getElementById('gate');
+    if (!gate || root.classList.contains('age-ok') || gate.classList.contains('out')) start();
+    else addEventListener('hotland:gate', start, { once: true });
+  }
+</script>

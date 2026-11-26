@@ -1,0 +1,20 @@
+---
+// The ways to reach the club, for the footer's v4 and v5 (styles: footers.css, .freach): a call back and a question
+// (Luka's way: no number shown) or the phone number (Gio's), then WhatsApp, Telegram and the email, each a plain row
+// in the text face over a hairline, with its line icon. (No Instagram: the club doesn't have one.)
+import { type Lang } from '../data/i18n';
+import { site } from '../data/site';
+import { show } from '../data/variants';
+import Ic from './FooterIcon.astro';
+interface Props { lang: Lang; class?: string }
+const { lang, class: cls = '' } = Astro.props;
+const ru = lang === 'ru';
+---
+<ul class:list={['freach', cls]}>
+  {show('contact', 'luka') && <li data-v="contact:luka"><button class="freach-a" type="button" data-contact="callback"><Ic name="phone" /><span>{ru ? 'Заказать звонок' : 'Request a call'}</span></button></li>}
+  {show('contact', 'luka') && <li data-v="contact:luka"><button class="freach-a" type="button" data-contact="question"><Ic name="ask" /><span>{ru ? 'Задать вопрос' : 'Ask a question'}</span></button></li>}
+  {show('contact', 'gio') && <li data-v="contact:gio"><a class="freach-a" href={site.phoneHref}><Ic name="phone" /><span>{site.phone}</span></a></li>}
+  <li><a class="freach-a" href={site.whatsapp} target="_blank" rel="noopener"><Ic name="whatsapp" /><span>WhatsApp</span></a></li>
+  <li><a class="freach-a" href={site.telegram} target="_blank" rel="noopener"><Ic name="telegram" /><span>Telegram</span></a></li>
+  <li><a class="freach-a" href={`mailto:${site.email}`}><Ic name="mail" /><span>{site.email}</span></a></li>
+</ul>

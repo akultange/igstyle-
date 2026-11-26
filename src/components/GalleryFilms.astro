@@ -1,0 +1,232 @@
+---
+// The gallery's films: a dark strip where the film in the middle plays. Each film stands in a frame, like a
+// screen (square-cut, a hairline and a band of lacquer, a play mark on a square smoked plate, a line of the light
+// along its foot as it plays), so the section reads at once as films, not more photographs.
+// Desktop with motion: the strip stays on screen and slides sideways as you scroll; the film nearest the
+// middle plays, its neighbours wait dimmed on their first frame. Phones: a row you swipe, and only the film
+// on screen plays. Reduced motion: the posters only. A click opens the film full screen (GalleryViewer).
+import { type Lang, tr } from '../data/i18n';
+import { galleryFilms, galleryText } from '../data/gallery';
+import { keepShort, headClass } from '../data/format';
+import '../styles/gallery.css';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const ru = lang === 'ru';
+const n = galleryFilms.length;
+const pad = (i: number) => String(i).padStart(2, '0');
+const num = (r: string) => { const [a, b] = r.split('/').map(Number); return (a / b).toFixed(4); };
+// the last film's shape on a phone: the row keeps room after it, so it too can rest on the left edge (gallery.css)
+const lastFilm = galleryFilms[n - 1];
+const rpl = num(lastFilm.ratioPhone ?? lastFilm.ratio);
+---
+<section class="gxf" id="films" aria-labelledby="gxf-h" data-gxf>
+  <div class="gxf-pin">
+  <div class="gxf-stage">
+    <div class="wrap gxf-head">
+      <h2 class={headClass(tr(galleryText.films, lang))} id="gxf-h">{tr(galleryText.films, lang)}</h2>
+      <p class="gxf-lead" set:html={keepShort(tr(galleryText.filmsLead, lang), lang)} />
+    </div>
+    <ul class="gxf-rail" role="list" style={`--rpl:${rpl}`}>
+      {galleryFilms.map((f, i) => {
+        const rp = f.ratioPhone ?? f.ratio;
+        const cap = tr(f.cap, lang);
+        return (
+          <li class="gxf-card" style={`--r:${f.ratio};--rp:${rp};--rn:${num(f.ratio)};--rpn:${num(rp)}`} data-src={f.src} data-src-phone={f.srcPhone}>
+            <button class="gxf-open" type="button" aria-label={`${ru ? 'Смотреть' : 'Watch'}: ${f.time ? `${f.time}, ` : ''}${cap}`}>
+              <span class="gxf-media">
+                <picture>
+                  {f.posterPhone && <source media="(max-width: 899px)" srcset={f.posterPhone} />}
+                  <img src={f.poster} alt="" loading="lazy" decoding="async" />
+                </picture>
+                <span class="gxf-play" aria-hidden="true"></span>
+              </span>
+            </button>
+            <p class="gxf-cap" aria-hidden="true">
+              <span class="gxf-no">{pad(i + 1)}</span>
+              {f.time && <span class="gxf-time">{f.time}</span>}
+              <span class="gxf-t">{cap}</span>
+            </p>
+          </li>
+        );
+      })}
+    </ul>
+    <div class="wrap gxf-foot" aria-hidden="true">
+      <span class="gxf-bar"><i></i></span>
+      <span class="gxf-meter"><b>01</b> / {pad(n)}</span>
+    </div>
+  </div>
+  </div>
+  <p class="wrap gxf-end">{tr(galleryText.end, lang)}</p>
+</section>
+
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+  gsap.registerPlugin(ScrollTrigger);
+  const root = document.documentElement;
+  const sec = document.querySelector<HTMLElement>('[data-gxf]');
+  if (sec) films(sec);
+
+  function films(sec: HTMLElement) {
+    const pin = sec.querySelector<HTMLElement>('.gxf-pin')!;
+    const rail = sec.querySelector<HTMLElement>('.gxf-rail')!;
+    const cards = Array.from(rail.querySelectorAll<HTMLElement>('.gxf-card'));
+    const meter = sec.querySelector<HTMLElement>('.gxf-meter b')!;
+    const bar = sec.querySelector<HTMLElement>('.gxf-bar i')!;
+    const phoneQ = matchMedia('(max-width: 899px)');
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const saveData = Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData);
+    const pad2 = (n: number) => String(n).padStart(2, '0');
+    const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
+    let viewerOpen = false;
+    let seen = false; // the strip is on screen
+    let focus = -1;
+
+    // click: open the film full screen
+    cards.forEach((card, i) => {
+      const b = card.querySelector<HTMLButtonElement>('.gxf-open')!;
+      b.addEventListener('click', () => document.dispatchEvent(new CustomEvent('gx:view', { detail: { list: 'films', i, from: b } })));
+    });
+
+    /* ---------- the film in focus plays, the others wait on their first frame ---------- */
+    const videoOf = (card: HTMLElement) => {
+      let v = card.querySelector<HTMLVideoElement>('video');
+      if (!v) {
+        v = document.createElement('video');
+        v.muted = true;
+        v.loop = true;
+        v.playsInline = true;
+        v.setAttribute('playsinline', '');
+        v.setAttribute('aria-hidden', 'true');
+        v.preload = 'auto';
+        v.src = (matchMedia('(max-width: 899px) and (orientation: portrait)').matches && card.dataset.srcPhone) || card.dataset.src || ''; // (upright cut: phones held upright)
+        const vv = v;
+        vv.addEventListener('playing', () => card.classList.add('playing'));
+        // the crimson line along the frame's foot follows the film (and snaps back when it starts again)
+        let pt = 0;
+        vv.addEventListener('timeupdate', () => {
+          if (!vv.duration) return;
+          const t = vv.currentTime / vv.duration;
+          card.classList.toggle('rewind', t < pt);
+          pt = t;
+          card.style.setProperty('--pt', t.toFixed(4));
+        });
+        card.querySelector('.gxf-media')!.append(vv);
+      }
+      return v;
+    };
+    // (an iPhone in Low Power Mode refuses to start a film without a touch: the next tap starts the one in focus)
+    let refused = false;
+    function play() {
+      cards.forEach((card, i) => {
+        const want = i === focus && seen && !viewerOpen && !reduce && !saveData;
+        const v = card.querySelector<HTMLVideoElement>('video');
+        if (want) videoOf(card).play().then(() => { refused = false; }).catch((err: DOMException) => { if (err?.name === 'NotAllowedError') refused = true; });
+        else if (v && !v.paused) v.pause();
+        if (!want) card.classList.remove('playing');
+      });
+    }
+    addEventListener('touchend', () => { if (refused) play(); }, { passive: true });
+    function setFocus(i: number) {
+      if (i === focus) return;
+      focus = i;
+      cards.forEach((c, k) => c.classList.toggle('on', k === i));
+      meter.textContent = pad2(i + 1);
+      play();
+    }
+    // (the stage, not the rail: in the strip the rail is many screens wide)
+    new IntersectionObserver(([e]) => { seen = e.isIntersecting; play(); }, { threshold: 0.2 }).observe(sec.querySelector('.gxf-stage')!);
+    document.addEventListener('gx:viewer', (e) => { viewerOpen = (e as CustomEvent<{ open: boolean }>).detail.open; play(); });
+
+    /* ---------- desktop: the strip slides sideways as you scroll ---------- */
+    const stripOk = root.classList.contains('motion') && !reduce;
+    let strip = false, dist = 0, x = 0, xT = 0, drawn = NaN, last = performance.now();
+    let mids: number[] = [];
+    const ticker = () => {
+      const now = performance.now();
+      const dt = Math.min(64, now - last);
+      last = now;
+      if (!strip) return;
+      const r = pin.getBoundingClientRect();
+      if (r.bottom < -40 || r.top > innerHeight + 40) return;
+      const p = clamp(-r.top / Math.max(1, dist), 0, 1);
+      xT = -p * dist;
+      x += (xT - x) * (1 - Math.exp(-dt / 70));
+      if (Math.abs(xT - x) < 0.1) x = xT;
+      if (x === drawn) return; // nothing moved
+      drawn = x;
+      rail.style.transform = `translate3d(${x.toFixed(2)}px, 0, 0)`;
+      bar.style.transform = `scaleX(${Math.max(0.02, p).toFixed(4)})`;
+      const vw = root.clientWidth;
+      const mid = vw / 2;
+      let best = 0, bd = Infinity;
+      cards.forEach((card, i) => {
+        const d = (mids[i] + x - mid) / vw; // from -0.5 to 0.5 is on screen
+        const a = Math.min(1, Math.abs(d) * 1.9);
+        card.style.setProperty('--f', (1 - a).toFixed(3));
+        card.style.setProperty('--d', clamp(d, -1, 1).toFixed(3));
+        if (Math.abs(d) < bd) { bd = Math.abs(d); best = i; }
+      });
+      setFocus(best);
+    };
+    function measure() {
+      // the first film starts in the middle of the screen and the last one ends there
+      const vw = root.clientWidth;
+      const first = cards[0].querySelector<HTMLElement>('.gxf-media')!.offsetWidth;
+      const lastW = cards[cards.length - 1].querySelector<HTMLElement>('.gxf-media')!.offsetWidth;
+      rail.style.paddingLeft = `${Math.max(0, (vw - first) / 2)}px`;
+      rail.style.paddingRight = `${Math.max(0, (vw - lastW) / 2)}px`;
+      const was = dist;
+      dist = Math.max(0, rail.scrollWidth - vw);
+      sec.style.setProperty('--dist', `${dist}px`);
+      mids = cards.map((c) => c.offsetLeft + c.querySelector<HTMLElement>('.gxf-media')!.offsetWidth / 2);
+      // the page below moved: let the site's scroll animations know
+      if (was && Math.abs(was - dist) > 1) ScrollTrigger.refresh();
+    }
+    function setMode() {
+      const want = stripOk && !phoneQ.matches;
+      if (want === strip && !want) return;
+      strip = want;
+      sec.classList.toggle('is-strip', strip);
+      if (strip) {
+        measure();
+        x = xT = 0;
+        drawn = NaN;
+      } else {
+        rail.style.transform = '';
+        rail.style.paddingLeft = '';
+        rail.style.paddingRight = '';
+        sec.style.removeProperty('--dist');
+        cards.forEach((c) => { c.style.removeProperty('--f'); c.style.removeProperty('--d'); });
+      }
+    }
+    setMode();
+    gsap.ticker.add(ticker);
+    let rz = 0;
+    addEventListener('resize', () => {
+      clearTimeout(rz);
+      rz = window.setTimeout(() => { setMode(); if (strip) { measure(); drawn = NaN; } }, 150);
+    });
+    addEventListener('load', () => { if (strip) { measure(); drawn = NaN; } });
+
+    /* ---------- phones (and the plain row): the film most in view plays ---------- */
+    const ratios = new Map<Element, number>();
+    const rowIO = new IntersectionObserver((es) => {
+      if (strip) return;
+      es.forEach((e) => ratios.set(e.target, e.intersectionRatio));
+      let best = -1, br = 0.6;
+      cards.forEach((c, i) => { const r = ratios.get(c) || 0; if (r > br) { br = r; best = i; } });
+      if (best >= 0) setFocus(best);
+    }, { root: rail, threshold: [0, 0.3, 0.6, 0.8, 1] });
+    cards.forEach((c) => rowIO.observe(c));
+    // the meter follows the swipe
+    rail.addEventListener('scroll', () => {
+      if (strip) return;
+      const max = rail.scrollWidth - rail.clientWidth;
+      bar.style.transform = `scaleX(${Math.max(0.02, max > 0 ? rail.scrollLeft / max : 0).toFixed(4)})`;
+    }, { passive: true });
+    if (!strip && focus < 0) setFocus(0);
+  }
+</script>

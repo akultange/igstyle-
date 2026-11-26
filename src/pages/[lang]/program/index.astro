@@ -1,0 +1,111 @@
+---
+// The Афиша: the special nights as posters, each with the night's own photograph and film (PosterCard.astro), month
+// by month, as a printed programme has them, then every night's own programme: the four acts by the hour beside a
+// photograph of the show (torn like every picture on the site: Photo.astro, cut.css). Once every night on the list
+// has passed, the months give way to a quiet line beside the rocks glass in chalk (the line art, an accent). Styles:
+// styles/posters.css.
+import Base from '../../../layouts/Base.astro';
+import PageTitle from '../../../components/PageTitle.astro';
+import PosterCard from '../../../components/PosterCard.astro';
+import Photo from '../../../components/Photo.astro';
+import LineArt from '../../../components/LineArt.astro';
+import { type Lang, ui, tr, langPaths } from '../../../data/i18n';
+import { events, eventsLead, night, media, type Event } from '../../../data/content';
+import { site } from '../../../data/site';
+import { keepShort, headClass } from '../../../data/format';
+
+export const getStaticPaths = langPaths;
+const lang = Astro.params.lang as Lang;
+const t = ui[lang];
+const ru = lang === 'ru';
+const shows = site.showTimes;
+// a hyphenated word never breaks at its hyphen ("шоу-балет", "дресс-код")
+const nb = (s: string) => s.replace(/(\S)-(?=\S)/g, '$1\u2011');
+// The nights by month, in date order: each month's name (in the Dial, the one display voice) over
+// its own row of posters. A month carries the date of its last night, so the site's script (scripts/site.ts, "Events
+// that have passed") takes its name away with its posters once that night has been.
+const months: { key: string; name: string; year: string; last: string; nights: Event[] }[] = [];
+const byDate = [...events].sort((a, b) => a.date.localeCompare(b.date));
+for (const e of byDate) {
+  const key = e.date.slice(0, 7);
+  let m = months.find((x) => x.key === key);
+  if (!m) {
+    const [y, mo] = key.split('-').map(Number);
+    m = { key, name: new Date(y, mo - 1, 1).toLocaleDateString(ru ? 'ru-RU' : 'en-GB', { month: 'long' }), year: String(y), last: e.date, nights: [] };
+    months.push(m);
+  }
+  m.nights.push(e);
+  m.last = e.date;
+}
+// The page's description, from the list itself: each night with its date ("Courchevel 11 декабря"), then the show.
+const dayMonth = (s: string) => {
+  const [y, mo, d] = s.split('-').map(Number);
+  return new Date(y, mo - 1, d).toLocaleDateString(ru ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'long' });
+};
+const nightsList = byDate.map((e) => `${tr(e.title, lang)} ${dayMonth(e.date)}`).join(', ');
+const description = ru
+  ? `Афиша HOTLAND. Особые вечера: ${nightsList}. Шоу-программа каждую ночь в ${shows[0]} и ${shows[1]}.`
+  : `Events at HOTLAND. Special nights: ${nightsList}. The show runs every night at ${shows[0]} and ${shows[1]}.`;
+const empty = ru
+  ? `Новых особых вечеров пока нет. Шоу-программа каждую ночь в ${shows[0]} и ${shows[1]}.`
+  : `No special nights on the list yet. The show runs every night at ${shows[0]} and ${shows[1]}.`;
+// the photograph beside the four acts: the show itself, a singer under the beams with the company behind her
+const stage = {
+  img: 'gallery-22-teal-singer.webp',
+  alt: { ru: 'Шоу: певица у микрофона в лучах прожекторов, за ней артистки', en: 'The show: a singer at the microphone in the spotlights, artists behind her' },
+};
+---
+<Base lang={lang} title={ru ? 'Афиша' : 'Events'} description={description}>
+  <PageTitle
+    crumbs={[{ href: `/${lang}/`, label: 'HOTLAND' }, { label: t.nav.program }]}
+    title={ru ? 'Афиша' : 'Events'}
+    sub={ru ? 'Один вечер, <em>одна тема</em>' : 'One night, <em>one theme</em>'}
+    lead={tr(eventsLead, lang)}
+  >
+    <a class="btn btn-crimson" href={`/${lang}/booking/`}>{t.bookTable}</a>
+  </PageTitle>
+
+  <!-- 01 Event nights: month by month, the month's name over its row of posters -->
+  <section class="sec afisha">
+    <div data-events>
+      {months.map((m) => (
+        <div class="afisha-month" data-event-date={m.last}>
+          <div class="wrap"><h2 class="afisha-mname">{m.name}<span>{m.year}</span></h2></div>
+          <div class="posters" data-lenis-prevent-horizontal>
+            {m.nights.map((e) => <PosterCard e={e} lang={lang} />)}
+          </div>
+        </div>
+      ))}
+    </div>
+    <div class="wrap">
+      <div class="afisha-quiet" data-events-empty hidden>
+        <LineArt name="glass" class="afisha-quiet-art" />
+        <p class="body" set:html={keepShort(nb(empty), lang)} />
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 Every night: the four acts by the hour (the Dial) beside a photograph of the show -->
+  <section class="sec nightly" aria-labelledby="nightly-h">
+    <div class="wrap">
+      <div class="bighead bh-line">
+        <h2 class={headClass(tr(night.title, lang))} id="nightly-h">{tr(night.title, lang)}</h2>
+        <div class="bighead-side"><p class="body" set:html={keepShort(nb(tr(night.lead, lang)), lang)} /></div>
+      </div>
+      <div class="nightly-in">
+        <Photo class="nightly-pic" src={media(stage.img)} alt={tr(stage.alt, lang)} pos="50% 30%" />
+        <ol class="rows nightly-acts">
+          {night.acts.map((a) => (
+            <li class="row nightly-act">
+              <span class="nightly-time">{a.time}</span>
+              <div class="nightly-words">
+                <h3 class="nightly-t">{tr(a.title, lang)}</h3>
+                <p class="nightly-x" set:html={keepShort(nb(tr(a.text, lang)), lang)} />
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </div>
+  </section>
+</Base>

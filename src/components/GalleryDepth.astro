@@ -1,0 +1,621 @@
+---
+// The gallery's photographs, as a walk through the club at night.
+// With motion: a dark stage stays on screen while you scroll, and the scroll moves the camera forward
+// through the pictures hung at different depths: to the sides and right in the way, higher and lower, bigger and
+// smaller, never simply left, right, left, right (SLOTS in the script). Each one comes
+// out of the dark (far pictures are small, dim and a little out of focus), grows, passes you and fades; the
+// pictures carry no captions, and the count runs at the foot of the stage. A picture with a short film comes
+// to life when you stop in front of it. Click the picture in focus to open it full screen, a far one to walk
+// up to it. Phones get fewer pictures at once, smaller files and no blur; there the pictures crowd the narrow
+// screen, so only the one in focus is bright and its neighbours wait dim until the walk reaches them.
+// Reduced motion, or no script: the same pictures in calm rows that fill the width.
+// Either way a click opens the viewer (GalleryViewer.astro, the 'gx:view' event).
+import { type Lang, tr } from '../data/i18n';
+import { galleryPhotos, galleryText, type GalleryPhoto } from '../data/gallery';
+import '../styles/gallery.css';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const ru = lang === 'ru';
+const n = galleryPhotos.length;
+const pad = (i: number) => String(i).padStart(2, '0');
+// How much scroll the walk takes while the stage stays on screen, in steps (the script uses the same rule):
+// one step per picture, more around the big moments, and a pause on the last one. The way up to the first
+// picture is walked before that, while the stage rises into place.
+const weight = 0.6 + galleryPhotos.slice(1).reduce((s, p, i) => s + (p.wide || galleryPhotos[i].wide ? 1.45 : 1), 0);
+const ratioOf = (r: string) => { const [a, b] = r.split('/').map(Number); return a / b; };
+// How wide a picture is drawn when the walk stops in front of it (the script's layout()), so the browser
+// picks the right file. Phones: a wide one fills the width, the others about two thirds of it (on a phone
+// up to 430 px wide that is 240-300 px, which the 720 px copy covers almost fully even on a 3x screen,
+// so phones keep the small files). Computers: a wide one takes up to 84% of the width, the others about 86%
+// of the height (at most 56% of the width, more for the big ones), here worked out for a 16:10 screen.
+const sizesOf = (p: GalleryPhoto) =>
+  p.wide
+    ? '(max-width: 899px) 96vw, 84vw'
+    : `(max-width: 430px) 320px, (max-width: 899px) 80vw, ${Math.min(60, Math.round(60 * ratioOf(p.ratio)))}vw`;
+---
+<section class="gxd" id="photos" aria-labelledby="gxd-h" data-gxd style={`--gxw:${weight.toFixed(2)}`}>
+  <h2 class="sr-only" id="gxd-h">{tr(galleryText.photos, lang)}</h2>
+  <div class="gxd-stage">
+    <ul class="gxd-world" role="list">
+      {galleryPhotos.map((p, i) => (
+        <li class:list={['gxd-item', { wide: p.wide }]} style={`--r:${p.ratio};--rn:${ratioOf(p.ratio).toFixed(4)}`} data-ratio={p.ratio} data-wide={p.wide ? '' : undefined} data-film={p.film}>
+          <button class="gxd-open" type="button">
+            <span class="gxd-ph">
+              <img
+                src={p.thumb ?? p.src}
+                srcset={p.thumb ? `${p.thumb} 720w, ${p.src} ${p.w}w` : undefined}
+                sizes={sizesOf(p)}
+                width={p.w}
+                height={Math.round(p.w / ratioOf(p.ratio))}
+                alt={tr(p.alt, lang)}
+                loading={i < 4 ? 'eager' : 'lazy'}
+                fetchpriority={i < 4 ? 'low' : undefined}
+                decoding="async"
+              />
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
+    <div class="gxd-hud">
+      <div class="gxd-labs" aria-hidden="true"></div>
+      <div class="gxd-meter">
+        <!-- the ticks are a control too: tap one, or press and slide along them, to walk to that picture -->
+        <span class="gxd-ticks" role="slider" tabindex="0" aria-label={ru ? 'Фотографии' : 'Photographs'} aria-valuemin="1" aria-valuemax={n} aria-valuenow="1" aria-valuetext={ru ? `1 из ${n}` : `1 of ${n}`}>{galleryPhotos.map(() => <i />)}</span>
+        <span class="gxd-count" aria-hidden="true"><b class="gxd-num">01</b><span class="gxd-of">/ {pad(n)}</span></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { gsap } from 'gsap';
+
+  const root = document.documentElement;
+  const sec = document.querySelector<HTMLElement>('[data-gxd]');
+  const view = (i: number, from: Element) =>
+    document.dispatchEvent(new CustomEvent('gx:view', { detail: { list: 'photos', i, from } }));
+
+  type Depth = { click: (i: number) => boolean; focus: (i: number) => void };
+
+  if (sec) {
+    const items = Array.from(sec.querySelectorAll<HTMLElement>('.gxd-item'));
+    let depth: Depth | null = null;
+    if (root.classList.contains('motion')) {
+      try {
+        depth = walk(sec, items);
+      } catch (err) {
+        console.error(err);
+        sec.classList.remove('is-3d');
+        items.forEach((it) => ['width', 'height', 'transform', 'opacity', 'filter'].forEach((p) => it.style.removeProperty(p)));
+        depth = null;
+      }
+    }
+    if (!depth) {
+      sec.classList.add('gx-still');
+      rows(sec, items);
+    }
+    items.forEach((it, i) => {
+      const b = it.querySelector<HTMLButtonElement>('.gxd-open')!;
+      b.addEventListener('click', () => {
+        if (depth && depth.click(i)) return;
+        view(i, b);
+      });
+      // keyboard: tabbing to a picture walks up to it
+      b.addEventListener('focus', () => { if (depth && b.matches(':focus-visible')) depth.focus(i); });
+    });
+  }
+
+  /** Without the walk: the pictures in rows that fill the width, every picture in a row the same height
+   *  (so there are no holes), each run of pictures closed by its wide one across the page. */
+  function rows(sec: HTMLElement, els: HTMLElement[]) {
+    const list = sec.querySelector<HTMLElement>('.gxd-world')!;
+    const rn = els.map((el) => parseFloat(el.style.getPropertyValue('--rn')) || 0.75);
+    let was = 0;
+    const fit = () => {
+      const cs = getComputedStyle(list);
+      const W = list.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      if (!(W > 0) || Math.abs(W - was) < 1) return;
+      was = W;
+      const gap = parseFloat(cs.columnGap) || 0;
+      // the height a row aims for: two pictures across a phone, three or four across a computer
+      const aim = W < 700 ? W * 0.62 : Math.min(480, Math.max(300, innerHeight * 0.52));
+      let run: number[] = [];
+      const height = (a: number, b: number) => {
+        let sum = 0;
+        for (let k = a; k < b; k++) sum += rn[run[k]];
+        return (W - gap * (b - a - 1)) / sum;
+      };
+      const place = () => {
+        // the way to break this run into rows that keeps every row nearest the aim
+        const n = run.length;
+        const best = [0];
+        const from = [0];
+        for (let i = 1; i <= n; i++) {
+          best[i] = Infinity;
+          for (let j = i - 1; j >= 0 && i - j <= 5; j--) {
+            const c = best[j] + (height(j, i) / aim - 1) ** 2;
+            if (c < best[i]) { best[i] = c; from[i] = j; }
+          }
+        }
+        // (a hair under the full width, so the browser never wraps a row early; it grows back to fill it)
+        for (let i = n; i > 0; i = from[i]) {
+          const h = height(from[i], i);
+          for (let k = from[i]; k < i; k++) els[run[k]].style.flexBasis = `${(rn[run[k]] * h - 0.5).toFixed(2)}px`;
+        }
+        run = [];
+      };
+      els.forEach((el, i) => { if (el.classList.contains('wide')) place(); else run.push(i); });
+      place();
+    };
+    fit();
+    if ('ResizeObserver' in window) new ResizeObserver(fit).observe(list);
+    else addEventListener('resize', fit);
+  }
+
+  /** The walk through the room. Returns null-safe handlers for clicks and focus. */
+  function walk(sec: HTMLElement, els: HTMLElement[]): Depth {
+    const stage = sec.querySelector<HTMLElement>('.gxd-stage')!;
+    const world = sec.querySelector<HTMLElement>('.gxd-world')!;
+    const labs = sec.querySelector<HTMLElement>('.gxd-labs')!;
+    const ticks = Array.from(sec.querySelectorAll<HTMLElement>('.gxd-ticks i'));
+    const bar = sec.querySelector<HTMLElement>('.gxd-ticks');
+    const num = sec.querySelector<HTMLElement>('.gxd-num')!;
+    const N = els.length;
+    const mouse = matchMedia('(hover: hover) and (pointer: fine)').matches;
+    const saveData = Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData);
+    const pad2 = (n: number) => String(n).padStart(2, '0');
+    const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
+    const smooth = (t: number) => { const x = clamp(t, 0, 1); return x * x * (3 - 2 * x); };
+
+    type It = {
+      el: HTMLElement; ph: HTMLElement; img: HTMLImageElement | null; lab: HTMLElement; ratio: number; wide: boolean; film?: string;
+      x: number; y: number; z: number; w: number; h: number; stop: number;
+      on: boolean; op: number; bl: number; lop: number; pe: boolean; lw: number; lh: number;
+    };
+    const its: It[] = els.map((el, i) => {
+      const [a, b] = (el.dataset.ratio || '3/4').split('/').map(Number);
+      const wide = el.hasAttribute('data-wide');
+      const lab = document.createElement('div');
+      lab.className = 'gxd-lab' + (wide ? ' wide' : '');
+      const tx = el.querySelector('.gxd-tx');
+      if (tx) lab.append(tx.cloneNode(true));
+      labs.append(lab);
+      const img = el.querySelector('img');
+      if (img) {
+        // each picture fades in once it has arrived, instead of showing an empty frame
+        if (img.complete && img.naturalWidth) img.classList.add('ok');
+        else img.addEventListener('load', () => img.classList.add('ok'), { once: true });
+        // the far ones load only when the walk comes near them (all of them stay in the page, for
+        // keyboards and screen readers)
+        if (i > 7 && !img.complete) {
+          img.dataset.srcset = img.getAttribute('srcset') || '';
+          img.dataset.src = img.getAttribute('src') || '';
+          img.removeAttribute('srcset');
+          img.removeAttribute('src');
+        }
+      }
+      return {
+        el, ph: el.querySelector<HTMLElement>('.gxd-ph')!, img, lab, ratio: a / b, wide, film: el.dataset.film,
+        x: 0, y: 0, z: 0, w: 0, h: 0, stop: 0, on: false, op: -1, bl: -1, lop: -1, pe: false, lw: 0, lh: 0,
+      };
+    });
+    const load = (it: It) => {
+      const img = it.img;
+      if (!img || img.dataset.src == null) return;
+      img.loading = 'eager';
+      if (img.dataset.srcset) img.srcset = img.dataset.srcset;
+      img.src = img.dataset.src;
+      delete img.dataset.src;
+      delete img.dataset.srcset;
+    };
+    sec.classList.add('is-3d');
+
+    /* ---------- where everything hangs ---------- */
+    // Not left, right, left, right: a choreography of places that repeats. Some hang to the side, turned towards
+    // you; some right in the way, so the walk goes through them; some higher or lower, bigger or smaller, a few
+    // a little tilted; and the distance from one to the next varies, so the pace changes. x, y: from the middle of
+    // the screen, in shares of its width and height; s: size; ry: turned towards the middle of the room (degrees);
+    // rz: tilt; dz: how far behind the one before it hangs (in steps).
+    type Slot = { x: number; y: number; s: number; ry: number; rz: number; dz: number };
+    const SLOTS: Slot[] = [
+      { x: -0.21, y: -0.02, s: 1, ry: 12, rz: 0, dz: 1 },
+      { x: 0.25, y: 0.035, s: 0.88, ry: -16, rz: 0.8, dz: 0.88 },
+      { x: 0, y: -0.015, s: 1.1, ry: 0, rz: 0, dz: 1.22 },
+      { x: 0.27, y: -0.05, s: 0.8, ry: -19, rz: -1.2, dz: 0.86 },
+      { x: -0.11, y: 0.04, s: 1.05, ry: 7, rz: 0, dz: 1.06 },
+      { x: -0.28, y: -0.035, s: 0.84, ry: 18, rz: 1.3, dz: 0.9 },
+      { x: 0.15, y: 0.012, s: 1.03, ry: -9, rz: 0, dz: 1.12 },
+      { x: 0.02, y: 0.03, s: 1.08, ry: -3, rz: -0.8, dz: 1.16 },
+    ];
+    // phones: the narrow screen leaves less room to the sides
+    const PSLOTS: Slot[] = [
+      { x: -0.11, y: -0.02, s: 1, ry: 7, rz: 0, dz: 1 },
+      { x: 0.14, y: 0.03, s: 0.9, ry: -8, rz: 1, dz: 0.9 },
+      { x: 0, y: -0.01, s: 1.1, ry: 0, rz: 0, dz: 1.15 },
+      { x: 0.16, y: -0.045, s: 0.86, ry: -9, rz: -1, dz: 0.9 },
+      { x: -0.05, y: 0.035, s: 1.05, ry: 4, rz: 0, dz: 1.05 },
+      { x: -0.17, y: -0.03, s: 0.9, ry: 9, rz: 1.2, dz: 0.95 },
+    ];
+    let W = 0, H = 0, P = 1000, D = 900, phone = false, ox = 0, oy = 0, padX = 16, foot = 80;
+    let wts: number[] = [], cum: number[] = [], total = 1;
+
+    function layout() {
+      W = stage.clientWidth;
+      H = stage.clientHeight;
+      phone = W < 900 && H > W * 0.7; // (a phone held sideways walks the wide room, sized to its short screen)
+      P = phone ? Math.round(Math.max(560, H * 0.72)) : Math.round(Math.max(900, W * 0.68));
+      D = phone ? P * 0.66 : P * 0.7;
+      ox = W / 2;
+      oy = H * (phone ? 0.42 : 0.47);
+      padX = clamp(W * 0.032, 16, 48); // the page's side margin (--pad)
+      foot = phone ? 168 : 104; // room for the count (and on phones the dock) at the foot of the stage
+      stage.style.perspective = `${P}px`;
+      stage.style.perspectiveOrigin = `${ox}px ${oy}px`;
+      let z = 0;
+      let n = 0;
+      its.forEach((it, i) => {
+        const slot = (phone ? PSLOTS : SLOTS)[n % (phone ? PSLOTS.length : SLOTS.length)];
+        if (i > 0) z -= D * (it.wide || its[i - 1].wide ? 1.25 : slot.dz);
+        it.z = z;
+        it.stop = -z;
+        let w: number, h: number, ry = 0, rz = 0;
+        if (it.wide) {
+          w = phone ? W * 0.96 : Math.min(W * 0.84, H * 0.84 * it.ratio);
+          h = w / it.ratio;
+          it.x = 0;
+          it.y = -H * (phone ? 0.02 : 0.03);
+        } else {
+          // the one in front of you is big: on a computer about 86% of the screen tall, more or less with its place;
+          // it never runs off the screen's side by more than a sliver
+          h = Math.min(phone ? H * 0.6 * slot.s : H * 0.86 * slot.s, H * (phone ? 0.68 : 0.92));
+          w = h * it.ratio;
+          const room = (1 - 2 * Math.abs(slot.x) + (phone ? 0.1 : 0.06)) * W;
+          const maxW = Math.min((phone ? W * 0.8 : W * 0.56) * slot.s, room);
+          if (w > maxW) { w = maxW; h = w / it.ratio; }
+          it.x = slot.x * W;
+          it.y = slot.y * H;
+          ry = slot.ry;
+          rz = slot.rz;
+          n++;
+        }
+        it.w = w;
+        it.h = h;
+        it.el.style.width = `${w.toFixed(1)}px`;
+        it.el.style.height = `${h.toFixed(1)}px`;
+        it.el.style.transform = `translate3d(${(ox + it.x - w / 2).toFixed(1)}px, ${(oy + it.y - h / 2).toFixed(1)}px, ${z.toFixed(1)}px) rotateY(${ry}deg) rotateZ(${rz}deg)`;
+      });
+      // the camera's way once the stage stays: a stop at every picture, a pause on the last
+      wts = [];
+      for (let i = 1; i < N; i++) wts.push(its[i].wide || its[i - 1].wide ? 1.45 : 1);
+      wts.push(0.6);
+      cum = [0];
+      wts.forEach((w, k) => cum.push(cum[k] + w));
+      total = cum[cum.length - 1];
+      // label sizes, for keeping them on the stage
+      its.forEach((it) => { it.lab.style.display = 'block'; it.lab.style.visibility = 'hidden'; });
+      its.forEach((it) => { it.lw = it.lab.offsetWidth; it.lh = it.lab.offsetHeight; });
+      its.forEach((it) => { it.lab.style.display = ''; it.lab.style.visibility = ''; it.lop = -1; });
+      its.forEach((it) => { it.op = -1; it.bl = -1; });
+      force = true;
+    }
+
+    /* ---------- scroll → camera ---------- */
+    // each step lingers a little at its picture and moves faster in between
+    const ease = (t: number) => t - (0.55 * Math.sin(2 * Math.PI * t)) / (2 * Math.PI);
+    // Before the stage reaches the top (the first `lead` pixels of scroll) the camera walks up to the first
+    // picture, so the walk starts with the first scroll; it stands in front of it exactly when the stage
+    // stays. From there every step is a share of the scroll the section adds (`run`).
+    let secTop = 0, lead = 0, run = 1;
+    function measure() {
+      const r = sec.getBoundingClientRect();
+      secTop = r.top + scrollY;
+      lead = Math.min(secTop, H);
+      run = Math.max(1, sec.offsetHeight - H);
+    }
+    function camAt(y: number) {
+      const s0 = its[0].stop;
+      if (y < secTop) return s0 - 0.5 * D * (1 - ease(lead > 0 ? clamp(1 - (secTop - y) / lead, 0, 1) : 1));
+      const u = clamp((y - secTop) / run, 0, 1) * total;
+      let k = 0;
+      while (k < wts.length - 1 && u > cum[k + 1]) k++;
+      const a = its[k].stop;
+      const b = k + 1 < N ? its[k + 1].stop : its[N - 1].stop + 0.18 * D;
+      return a + (b - a) * ease(clamp((u - cum[k]) / wts[k], 0, 1));
+    }
+    /** Where the camera is, in pictures: 3.5 is half way from the fourth to the fifth. */
+    function indexAt(c: number) {
+      if (c <= its[0].stop) return (c - its[0].stop) / D;
+      if (c >= its[N - 1].stop) return N - 1 + (c - its[N - 1].stop) / D;
+      let k = 0;
+      while (k < N - 2 && c > its[k + 1].stop) k++;
+      return k + (c - its[k].stop) / (its[k + 1].stop - its[k].stop);
+    }
+    const scrollFor = (i: number) => secTop + (cum[i] / total) * run;
+
+    /* ---------- how far pictures look ---------- */
+    // the next few stay bright, so the room never looks empty; the one you pass leaves quickly
+    function alpha(z: number) {
+      const far = phone ? 4.2 * D : 6.8 * D;
+      if (z <= -far) return 0;
+      const a = z < -0.15 * D ? Math.pow(smooth((z + far) / (far - 0.15 * D)), phone ? 1.35 : 0.8) : 1;
+      const b = z > 0.04 * P ? 1 - smooth((z - 0.04 * P) / (0.26 * P)) : 1;
+      return a * b;
+    }
+    /** Out of focus, in the picture's own pixels (the screen shows it smaller when it's far). */
+    function blurAt(z: number, s: number) {
+      const screen = z < 0 ? smooth((-z - 0.35 * D) / (2.6 * D)) * 3 : smooth((z - 0.16 * P) / (0.4 * P)) * 2.4;
+      return Math.min(12, screen / s);
+    }
+
+    /* ---------- drawing ---------- */
+    let c = 0, cT = 0, fi = 0, active = -1, lo = 0, hi = -1, force = true, lastCam = NaN, running = true;
+    const st = { intro: 0 };
+    function setActive(a: number) {
+      if (active >= 0) ticks[active]?.classList.remove('now');
+      ticks.forEach((t, i) => t.classList.toggle('past', i < a));
+      ticks[a]?.classList.add('now');
+      num.textContent = pad2(a + 1);
+      if (bar) {
+        bar.setAttribute('aria-valuenow', String(a + 1));
+        bar.setAttribute('aria-valuetext', `${a + 1} ${root.lang === 'ru' ? 'из' : 'of'} ${N}`);
+      }
+      active = a;
+      // only the pictures around this one are drawn (and only they load)
+      lo = Math.max(0, a - (phone ? 2 : 3));
+      hi = Math.min(N - 1, a + (phone ? 4 : 7));
+      its.forEach((it, i) => {
+        const on = i >= lo && i <= hi;
+        if (on === it.on) return;
+        it.on = on;
+        it.el.classList.toggle('on', on);
+        if (on) load(it);
+        else {
+          it.el.style.opacity = '0';
+          it.op = 0;
+          it.bl = -1;
+          if (it.pe) { it.el.classList.remove('live'); it.pe = false; }
+          it.lab.classList.remove('show');
+          it.lop = -1;
+        }
+      });
+    }
+    function render(cam: number) {
+      fi = indexAt(cam);
+      const a = clamp(Math.round(fi), 0, N - 1);
+      if (a !== active) setActive(a);
+      // the camera drifts a little towards the picture it is passing
+      const k0 = clamp(Math.floor(fi), 0, N - 1);
+      const k1 = Math.min(N - 1, k0 + 1);
+      const t = smooth(fi - k0);
+      const camX = (its[k0].x + (its[k1].x - its[k0].x) * t) * 0.28;
+      const camY = (its[k0].y + (its[k1].y - its[k0].y) * t) * 0.2;
+      world.style.transform = `translate3d(${(-camX).toFixed(2)}px, ${(-camY).toFixed(2)}px, ${cam.toFixed(2)}px)`;
+      for (let i = lo; i <= hi; i++) {
+        const it = its[i];
+        const zr = it.z + cam;
+        const s = P / Math.max(1, P - zr);
+        const d = Math.abs(fi - i);
+        // (phones: a neighbour is dimmed to a shadow, so two pictures never read as one double exposure)
+        const op = alpha(zr) * (phone ? 0.12 + 0.88 * (1 - smooth((d - 0.26) / 0.32)) : 1);
+        if (Math.abs(op - it.op) > 0.004 || (op === 0) !== (it.op === 0)) {
+          it.el.style.opacity = op.toFixed(3);
+          it.op = op;
+        }
+        const pe = op > 0.3;
+        if (pe !== it.pe) { it.el.classList.toggle('live', pe); it.pe = pe; }
+        if (!phone) {
+          // (a trace of blur is none at all, so the picture in front of you is always sharp)
+          const b0 = op > 0 ? blurAt(zr, s) : 0;
+          const bl = b0 < 0.15 ? 0 : b0;
+          if (Math.abs(bl - it.bl) > 0.15 || (bl === 0 && it.bl !== 0)) { it.el.style.filter = `blur(${bl.toFixed(2)}px)`; it.bl = bl; }
+        }
+        // the caption travels under its picture while it is in focus, and is gone soon after you move on
+        // (it waits for the first pictures to come out of the dark)
+        const near = st.intro < -0.3 * D ? 0 : 1 - smooth(Math.abs(fi - i) / 0.35);
+        const lop = near < 0.15 ? 0 : (near - 0.15) / 0.85;
+        if (lop > 0) {
+          // (the lowest part of a picture fades into the dark, so the caption tucks in a little)
+          const left = (it.x - it.w / 2 - camX) * s + ox;
+          const bottom = (it.y + it.h * 0.43 - camY) * s + oy;
+          const lx = clamp(left, padX, W - padX - it.lw);
+          const ly = Math.min(bottom + (phone ? 14 : 18), H - foot - it.lh);
+          it.lab.style.transform = `translate3d(${lx.toFixed(1)}px, ${ly.toFixed(1)}px, 0)`;
+          if (Math.abs(lop - it.lop) > 0.004) { it.lab.style.opacity = lop.toFixed(3); it.lop = lop; }
+          if (!it.lab.classList.contains('show')) it.lab.classList.add('show');
+        } else if (it.lop !== 0) {
+          it.lab.classList.remove('show');
+          it.lop = 0;
+        }
+      }
+    }
+
+    /* ---------- a picture with a film comes to life when you stop in front of it ---------- */
+    let still = 0, filmOf: It | null = null, film: HTMLVideoElement | null = null;
+    function stopFilm() {
+      const v = film;
+      film = null;
+      filmOf = null;
+      if (!v) return;
+      v.classList.remove('on');
+      setTimeout(() => { v.pause(); v.removeAttribute('src'); v.load(); v.remove(); }, 700);
+    }
+    function settle(dt: number) {
+      const it = its[active];
+      const near = Math.abs(fi - active) < 0.1 && Math.abs(cT - c) < 1.5 && st.intro === 0;
+      still = near ? still + dt : 0;
+      if (filmOf && (filmOf !== it || Math.abs(fi - active) > 0.22)) stopFilm();
+      if (!filmOf && it?.film && still > 450 && !saveData && running) {
+        const v = document.createElement('video');
+        v.className = 'gxd-film';
+        v.muted = true;
+        v.loop = true;
+        v.playsInline = true;
+        v.setAttribute('playsinline', '');
+        v.setAttribute('aria-hidden', 'true');
+        v.preload = 'auto';
+        v.src = it.film;
+        it.ph.append(v);
+        film = v;
+        filmOf = it;
+        v.play().then(() => { if (film === v) v.classList.add('on'); }).catch(() => {});
+      }
+    }
+    // an iPhone in Low Power Mode refuses to start a film without a touch: the next tap starts the one showing
+    addEventListener('touchend', () => {
+      const v = film;
+      if (v && v.paused && filmOf) v.play().then(() => { if (film === v) v.classList.add('on'); }).catch(() => {});
+    }, { passive: true });
+
+    let last = performance.now();
+    function tick() {
+      const now = performance.now();
+      const dt = Math.min(64, now - last);
+      last = now;
+      if (!running) return;
+      measure();
+      if (scrollY + innerHeight < secTop - 40 || scrollY > secTop + run + H + 40) { // off screen
+        if (film) stopFilm();
+        return;
+      }
+      cT = camAt(scrollY);
+      // a little inertia (the page itself already scrolls smoothly with a mouse)
+      c += (cT - c) * (1 - Math.exp(-dt / (mouse ? 60 : 110)));
+      if (Math.abs(cT - c) < 0.05) c = cT;
+      const cam = c + st.intro;
+      if (force || cam !== lastCam) {
+        force = false;
+        lastCam = cam;
+        render(cam);
+      }
+      settle(dt);
+    }
+
+    layout();
+    measure();
+    c = cT = camAt(scrollY);
+    st.intro = -2.2 * D; // the first pictures wait in the dark until the curtain is up
+    render(c + st.intro);
+    gsap.ticker.add(tick);
+
+    // the entrance: the pictures come out of the dark towards you
+    const start = () => gsap.to(st, { intro: 0, duration: 2.2, ease: 'expo.out', delay: 0.15, onUpdate: () => { force = true; } });
+    const gate = document.getElementById('gate');
+    if (!gate || root.classList.contains('age-ok') || gate.classList.contains('out')) start();
+    else addEventListener('hotland:gate', start, { once: true });
+
+    // Phones: once the first screen is in, the rest of the pictures come in the quiet moments, three at a
+    // time (the 720 px copies, about half a megabyte in all), so a fast flick never lands in front of an
+    // empty frame. (Without data saving only.)
+    if (phone && !saveData) {
+      const idle = (fn: () => void) => ('requestIdleCallback' in window ? requestIdleCallback(fn, { timeout: 1500 }) : setTimeout(fn, 250));
+      let q = 0;
+      const next = () => {
+        while (q < N && its[q].img?.dataset.src == null) q++;
+        if (q >= N) return;
+        const img = its[q].img!;
+        load(its[q]);
+        if (img.complete) idle(next);
+        else {
+          const on = () => { img.removeEventListener('load', on); img.removeEventListener('error', on); idle(next); };
+          img.addEventListener('load', on);
+          img.addEventListener('error', on);
+        }
+      };
+      const queue = () => { for (let k = 0; k < 3; k++) idle(next); };
+      if (document.readyState === 'complete') queue();
+      else addEventListener('load', queue, { once: true });
+    }
+
+    let rz = 0;
+    addEventListener('resize', () => {
+      clearTimeout(rz);
+      rz = window.setTimeout(() => { layout(); measure(); }, 120);
+    });
+    // the viewer covers the stage: rest until it closes
+    document.addEventListener('gx:viewer', (e) => {
+      running = !(e as CustomEvent<{ open: boolean }>).detail.open;
+      if (!running) stopFilm();
+      else { force = true; last = performance.now(); }
+    });
+    // the viewer was left on another photo: the walk is there already when it closes
+    document.addEventListener('gx:goto', (e) => {
+      const i = clamp((e as CustomEvent<{ i: number }>).detail.i, 0, N - 1);
+      measure();
+      window.scrollTo({ top: Math.round(scrollFor(i)), behavior: 'instant' as ScrollBehavior });
+      measure();
+      c = cT = camAt(scrollY);
+      force = true;
+      render(c + st.intro);
+    });
+    // hover: the caption of the picture under the pointer lights up
+    if (mouse) its.forEach((it) => {
+      it.el.addEventListener('pointerenter', () => it.lab.classList.add('hov'));
+      it.el.addEventListener('pointerleave', () => it.lab.classList.remove('hov'));
+    });
+
+    const go = (i: number) => window.scrollTo({ top: Math.round(scrollFor(i)), behavior: 'smooth' });
+
+    /* ---------- the ticks, a control as well (2026-11-13, the client: "use the progress indicator as a control,
+       especially on mobile", "I want to slide over them") ----------
+       Press anywhere along them and slide: the walk follows the finger (or the mouse) through the room, picture by
+       picture, and settles on the nearest one when you let go; a tap goes straight to one picture. The page's
+       scroll is what moves the walk, so this simply scrolls the page to the picture under the finger, and the
+       camera's own inertia keeps it smooth. The keyboard: the arrow keys, Home and End. */
+    if (bar && N > 1) {
+      /** The page's scroll for a place along the walk (0 to N - 1, in pictures, between them too). */
+      const scrollAt = (u: number) => {
+        const k = clamp(Math.floor(u), 0, N - 1);
+        const a = scrollFor(k);
+        return k + 1 < N ? a + (scrollFor(k + 1) - a) * (u - k) : a;
+      };
+      /** The place along the walk under the pointer: the first tick is the first picture, the last the last. */
+      const placeAt = (x: number) => {
+        const f = ticks[0].getBoundingClientRect();
+        const l = ticks[N - 1].getBoundingClientRect();
+        const x0 = f.left + f.width / 2;
+        const x1 = l.left + l.width / 2;
+        return clamp(((x - x0) / Math.max(1, x1 - x0)) * (N - 1), 0, N - 1);
+      };
+      const jump = (u: number) => {
+        measure();
+        window.scrollTo({ top: Math.round(scrollAt(u)), behavior: 'instant' as ScrollBehavior });
+      };
+      let held = -1;
+      bar.addEventListener('pointerdown', (e) => {
+        if (e.button) return;
+        e.preventDefault();
+        held = e.pointerId;
+        bar.classList.add('held');
+        try { bar.setPointerCapture(e.pointerId); } catch { /* the pointer is already gone */ }
+        jump(placeAt(e.clientX));
+      });
+      bar.addEventListener('pointermove', (e) => { if (e.pointerId === held) jump(placeAt(e.clientX)); });
+      const letGo = (e: PointerEvent) => {
+        if (e.pointerId !== held) return;
+        held = -1;
+        bar.classList.remove('held');
+        go(Math.round(placeAt(e.clientX)));
+      };
+      bar.addEventListener('pointerup', letGo);
+      bar.addEventListener('pointercancel', letGo);
+      bar.addEventListener('keydown', (e) => {
+        const step = ({ ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 } as Record<string, number>)[e.key];
+        const to = step ? active + step : e.key === 'Home' ? 0 : e.key === 'End' ? N - 1 : null;
+        if (to === null) return;
+        e.preventDefault();
+        go(clamp(to, 0, N - 1));
+      });
+    }
+
+    return {
+      click(i) {
+        if (Math.abs(fi - i) <= 0.6) return false; // in focus: open it
+        go(i); // further off: walk up to it
+        return true;
+      },
+      focus(i) { if (Math.abs(fi - i) > 0.3) go(i); },
+    };
+  }
+</script>

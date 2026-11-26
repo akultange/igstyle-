@@ -1,0 +1,138 @@
+---
+import Base from '../../layouts/Base.astro';
+import Hero from '../../components/Hero.astro';
+import HeroPreload from '../../components/HeroPreload.astro';
+import Parties from '../../components/Parties.astro';
+import PosterCard from '../../components/PosterCard.astro';
+import ShowTabs from '../../components/ShowTabs.astro';
+import Models from '../../components/Models.astro';
+import ModelsStage from '../../components/ModelsStage.astro';
+import VariantSwitch from '../../components/VariantSwitch.astro';
+import { choosing, show } from '../../data/variants';
+import MemberCards from '../../components/MemberCards.astro';
+import CastingCall from '../../components/CastingCall.astro';
+import GalleryPeek from '../../components/GalleryPeek.astro';
+import LineArt from '../../components/LineArt.astro';
+import { type Lang, tr, langPaths, ui } from '../../data/i18n';
+import { keepShort } from '../../data/format';
+import { site } from '../../data/site';
+import { events, vip, eventsLead } from '../../data/content';
+
+export const getStaticPaths = langPaths;
+const lang = Astro.params.lang as Lang;
+const t = ui[lang];
+const ru = lang === 'ru';
+const p = (s: string) => `/${lang}/${s}/`;
+// (the facts the copy quotes come from site.ts: the hours and the two shows)
+const hours = [site.hours[0].open, site.hours[0].close];
+const shows = site.showTimes;
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'NightClub',
+  name: site.name,
+  slogan: site.tagline,
+  address: site.address[lang],
+  url: new URL(`/${lang}/`, Astro.site).href,
+  openingHoursSpecification: site.hours.map((h, i) => ({
+    '@type': 'OpeningHoursSpecification',
+    dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][i],
+    opens: h.open,
+    closes: h.close,
+  })),
+};
+---
+<Base lang={lang} description={ru ? `HOTLAND, мужской клуб в Москве. Шоу-программа, ужин и бар каждую ночь с ${hours[0]} до ${hours[1]}. Стол в зале, ложа у сцены, отдельный кабинет. 18+` : `HOTLAND, a gentlemen’s club in Moscow. The show, dinner and the bar every night from ${hours[0]} to ${hours[1]}. A table in the main room, a booth by the stage, a private room. 18+`} schema={schema}>
+
+  <HeroPreload slot="head" />
+  <Hero lang={lang} />
+
+  <!-- WHAT'S ON: the weekend's three nights as large posters, full width under the heading. On phones the row
+       holds still while the page scrolls on and slides from one poster to the next (PosterCard.astro). Once every
+       night on the list has passed (scripts/site.ts), the row gives way to a quiet line (more nights soon, the show
+       every night) beside the cigar resting in its ashtray, its smoke rising (LineArt.astro) -->
+  <section class="sec" id="program">
+    <div class="wrap">
+      <div class="bighead bh-line">
+        <h2 class="t-l">{t.nav.program}</h2>
+        <div class="bighead-side">
+          <p class="body" set:html={keepShort(tr(eventsLead, lang), lang)} />
+          <a class="lnk" href={p('program')}>{ru ? 'Вся афиша' : 'All events'}</a>
+        </div>
+      </div>
+      <div class="prow" data-prow>
+        <div class="prow-pin">
+          <div class="posters in-wrap" data-events data-lenis-prevent-horizontal>
+            {events.map((e) => <PosterCard e={e} lang={lang} />)}
+          </div>
+          <div class="prow-quiet" data-events-empty hidden>
+            <LineArt name="cigar" class="prow-quiet-art" />
+            <p class="body" set:html={keepShort(ru ? `Новых особых вечеров пока нет. Шоу-программа каждую ночь в ${shows[0]} и ${shows[1]}.` : `No special nights on the list yet. The show runs every night at ${shows[0]} and ${shows[1]}.`, lang)} />
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- The page's first screens, in the client's order: the hero, the posters, the gallery, the artists; the rest after -->
+
+  <!-- THE GALLERY in brief: a strip of its pictures, and the way in (GalleryPeek; its end leads back to the artists) -->
+  <GalleryPeek lang={lang} />
+
+  <!-- ARTISTS: the faces of HOTLAND (stand-ins until the club sends photos and names). Two takes (data/variants.ts
+       'models'): v1 the row of portraits (Models.astro), v2 the spotlight stage (ModelsStage.astro), settled on v2.
+       The one shown is #models (the gallery's way back lands on it) -->
+  <div class:list={['mdl-takes', { 'vx-host': choosing('models') }]}>
+    <VariantSwitch name="models" />
+    {show('models', 'row') && <div class="vx-part" data-v="models:row"><Models lang={lang} /></div>}
+    {show('models', 'stage') && <div class="vx-part" data-v="models:stage"><ModelsStage lang={lang} id={show('models', 'row') ? 'models-stage' : 'models'} /></div>}
+  </div>
+
+  <!-- THE SHOW: what the artists do, the six kinds of number as tabs, the chosen one's film beside them (ShowTabs) -->
+  <ShowTabs lang={lang} />
+
+  <!-- MEMBERSHIP: the club's three cards -->
+  <section class="sec" id="vip">
+    <div class="wrap">
+      <MemberCards lang={lang}>
+        <div slot="head" class="bighead bh-line">
+          <h2 class="t-l" set:html={tr(vip.title, lang)} />
+          <div class="bighead-side">
+            <p class="body" set:html={keepShort(tr(vip.lead, lang), lang)} />
+            <a class="lnk" href={p('membership')}>{ru ? 'О членстве' : 'About membership'}</a>
+          </div>
+        </div>
+      </MemberCards>
+    </div>
+  </section>
+
+  {/* THE BAR at a glance (a short price list beside its picture) was taken off the home page at the club's request
+      (2026-11-19: nobody comes to the site to read a menu; the menu keeps its own page and its place in the
+      navigation) */}
+
+  {/* BOTTLE SETS (TableSets.astro) are hidden at the client's request (2026-11-13); the component stays: to bring
+      them back, import it and put <TableSets lang={lang} /> here */}
+
+  <Parties lang={lang} />
+
+  <!-- THE CASTING CALL: last, after the whole guests' part (the show, membership, parties): the way to
+       join the club's first company, just before the closing invitation. -->
+  <CastingCall lang={lang} />
+
+  {/* «Как нас найти» (Visit.astro) is off the home page at the client's request (2026-11-12); it stays on About
+      (#contacts). To bring it back here: import Visit from '../../components/Visit.astro' and put <Visit lang={lang} />
+      after the casting call. */}
+</Base>
+
+<style>
+  /* The Афиша with no nights left on it: the drawing beside the line, standing on the same floor as the words (on a
+     phone, the drawing over the line). Hairlines on black, no frame: the drawing is the picture. */
+  .prow-quiet { display: grid; grid-template-columns: minmax(170px, 320px) minmax(0, 46ch); align-items: end; gap: clamp(24px, 3vw, 48px); padding-top: clamp(8px, 1.4vw, 20px); }
+  .prow-quiet > p { padding-bottom: clamp(18px, 2.4vw, 34px); }
+  @media (max-width: 599px) {
+    .prow-quiet { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .prow-quiet :global(.prow-quiet-art) { width: min(58vw, 220px); }
+    .prow-quiet > p { padding-bottom: 0; }
+  }
+</style>
+

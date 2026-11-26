@@ -1,0 +1,72 @@
+---
+// Privacy, cookies and booking terms. PLACEHOLDER structure: the text must come from a lawyer. Each page says so under
+// its name, and each part says it is still to be written; nothing here makes a legal promise.
+import Base from '../../layouts/Base.astro';
+import PageTitle from '../../components/PageTitle.astro';
+import { type Lang, langs } from '../../data/i18n';
+import { site } from '../../data/site';
+
+const pages = {
+  privacy: {
+    ru: { title: 'Политика конфиденциальности', description: 'Какие данные собирает HOTLAND, зачем и как долго их хранит. Черновик: окончательный текст должен подготовить юрист.', parts: ['Какие данные мы собираем', 'Зачем мы их используем', 'Сколько мы их храним', 'Ваши права', 'Контакты'] },
+    en: { title: 'Privacy policy', description: 'What data HOTLAND collects, why, and how long it is kept. A draft: the final text must be written by a lawyer.', parts: ['What data we collect', 'Why we use it', 'How long we keep it', 'Your rights', 'Contact'] },
+  },
+  cookies: {
+    ru: { title: 'Политика cookies', description: 'Какие cookies использует сайт HOTLAND и как от них отказаться. Черновик: окончательный текст должен подготовить юрист.', parts: ['Что такое cookies', 'Какие cookies мы используем', 'Как отказаться'] },
+    en: { title: 'Cookie policy', description: 'Which cookies the HOTLAND site uses and how to opt out. A draft: the final text must be written by a lawyer.', parts: ['What cookies are', 'Which cookies we use', 'How to opt out'] },
+  },
+  terms: {
+    ru: { title: 'Условия брони', description: 'Условия брони в HOTLAND: подтверждение, отмена и неявка, депозит для групп, возраст и документы. Черновик: окончательный текст должен подготовить юрист.', parts: ['Подтверждение брони', 'Отмена и неявка', 'Депозит для групп', 'Возраст и документы', 'Право отказать во входе'] },
+    en: { title: 'Booking terms', description: 'HOTLAND booking terms: confirmation, cancellations and no-shows, group deposits, age and ID. A draft: the final text must be written by a lawyer.', parts: ['Booking confirmation', 'Cancellations and no-shows', 'Group deposits', 'Age and ID', 'Right to refuse entry'] },
+  },
+} as const;
+type Key = keyof typeof pages;
+
+export function getStaticPaths() {
+  // getStaticPaths can't see variables defined in this file, so the list is repeated here.
+  return langs.flatMap((lang) => ['privacy', 'cookies', 'terms'].map((legal) => ({ params: { lang, legal } })));
+}
+const lang = Astro.params.lang as Lang;
+const page = pages[Astro.params.legal as Key][lang];
+const ru = lang === 'ru';
+// The page's name is every page's (PageTitle.astro: the Dial, sized so its longest word fits the screen). The Dial's
+// letters are narrow enough that «конфиденциальности», the longest word on the site, stays whole at a size as large
+// as any page's on a phone (about 120px at 390px wide), so nothing here sets it smaller or breaks it.
+// (a document ends with its text: no closing «Ваш стол уже ждёт» under it; and it opens without the 18+ door, which
+// links to the privacy policy: the policy has to be readable before the question is answered)
+---
+<Base lang={lang} title={page.title} description={page.description} closing={false} gate={false}>
+  <PageTitle
+    crumbs={[{ href: `/${lang}/`, label: 'HOTLAND' }, { label: page.title }]}
+    title={page.title}
+    label={ru ? 'Документ' : 'Document'}
+    lead={ru ? 'Это черновик. Окончательный текст должен подготовить юрист.' : 'This is a draft. The final text must be written by a lawyer.'}
+  />
+  <section class="sec-t legal">
+    <div class="wrap">
+      <div class="prose">
+        {page.parts.map((h) => (
+          <Fragment>
+            <h2>{h}</h2>
+            <p>{ru ? 'Раздел заполнит юрист.' : 'To be completed by a lawyer.'}</p>
+          </Fragment>
+        ))}
+        <p class="label legal-sign">{site.name} · {site.email}</p>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style is:global>
+  /* (the name's two words stand a little apart, so the capitals of two lines never touch; and, on one line, the
+     Dial's narrow space is widened a touch, so «Политика конфиденциальности» never reads as one word) */
+  main:has(> .legal) .ptitle-name { line-height: .86; word-spacing: .1em; }
+  /* the first part's heading gets the air every part's heading has above it (the text's own 18px and the heading's
+     24px), not the closer gap a page's first line of content keeps under the page's name */
+  main:has(> .legal) .ptitle + .sec-t.legal { padding-top: 42px; }
+  /* the text starts on the name's own left edge and runs in lines of a reading width; a part's heading that takes
+     two lines breaks them evenly, never leaving one word alone */
+  .legal .prose { max-width: 640px; }
+  .legal .prose h2 { text-wrap: balance; }
+  .legal-sign { margin-top: 32px; font-size: 16px; }
+</style>

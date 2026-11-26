@@ -1,0 +1,39 @@
+---
+// The gallery: a short top (the name, big, its line under it, and how much there is to see, each half a way
+// straight to it), then a walk through the club past 31 photographs (GalleryDepth), the films of the night
+// (GalleryFilms) and the full-screen viewer both open into (GalleryViewer). The footer's invitation closes the
+// page; but someone who came in from another page's gallery block is taken on, at the end, to the part of the
+// page they came from that comes next (GalleryNext).
+import Base from '../../layouts/Base.astro';
+import GalleryDepth from '../../components/GalleryDepth.astro';
+import GalleryFilms from '../../components/GalleryFilms.astro';
+import GalleryNext from '../../components/GalleryNext.astro';
+import GalleryViewer from '../../components/GalleryViewer.astro';
+import { type Lang, tr, langPaths } from '../../data/i18n';
+import { galleryText, galleryCount } from '../../data/gallery';
+import '../../styles/gallery.css';
+
+export const getStaticPaths = langPaths;
+const lang = Astro.params.lang as Lang;
+const count = galleryCount(lang);
+const bold = (s: string) => s.replace(/(\d+)/, '<b>$1</b>');
+const ru = lang === 'ru';
+const name = tr(galleryText.title, lang);
+// the page's name as big as every page's (PageTitle.astro): sized so its longest word fits the screen, at the Dial's
+// 0.16em a letter
+const fit = Math.max(0.6, Math.max(...name.split(/\s+/).map((w) => w.length)) * 0.16).toFixed(2);
+---
+<Base lang={lang} title={tr(galleryText.title, lang)} description={tr(galleryText.description, lang)}>
+  <section class="gx-top wrap">
+    <!-- the page's name and its line under it, as on every page (PageTitle.astro) -->
+    <h1 class="ptitle-h gx-title">
+      <span class="t-xl ptitle-name" style={`--fit:${fit}`}>{name}</span>
+      <span class="ptitle-sub" set:html={ru ? 'Клуб <em>изнутри</em>' : 'Inside <em>the club</em>'} />
+    </h1>
+    <p class="gx-count"><a href="#photos" set:html={bold(count.photos)} />{count.and}<a href="#films" set:html={bold(count.films)} /></p>
+  </section>
+  <GalleryDepth lang={lang} />
+  <GalleryFilms lang={lang} />
+  <GalleryNext lang={lang} />
+  <GalleryViewer lang={lang} />
+</Base>

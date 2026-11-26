@@ -1,0 +1,153 @@
+---
+// The bottle sets ("Сеты для стола"): the club's three sets from content.ts `sets`, exactly as the content
+// pack has them, on one lit stage. Each bottle stands big on the black in its own spotlight, all three on the
+// same floor line; the top set (Bordeaux, as the content names it) closes the row a size larger, in a brighter
+// light, and its film plays on hover (desktop) or when it is in view (phones) through data-loop (scripts/site.ts).
+// Under each bottle: its name and its price (the Dial), what is in it, what comes with it, and the order button
+// (the one rule for a row of cards: a small frame under the first sets and the main button under the top one).
+// (2026-11-21, «Между»: white light only, the photographs in black and white: styles/sets.css.)
+// Desktop: three in a row, their lines aligned across the row (subgrid); the light moves to the set under the
+// pointer or in keyboard focus. The title and the lead share one short row over the first two sets, and the
+// stage starts right under it, so the top set's sparkler rises beside the title: the whole section fits one
+// screen with the bottles at full size. Phones: a swipe row with snap; the set in front is the lit one.
+// A complete section, so it can stand on any page. Styles: styles/sets.css.
+import { type Lang, tr } from '../data/i18n';
+import { price } from '../data/site';
+import { sets, media } from '../data/content';
+import '../styles/sets.css';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+
+// How each photograph stands on the stage: its floor line (share of the picture's height, where the set
+// touches the table), the width of the set itself (share of the picture's width) and its size on the stage.
+// A picture that isn't listed stands in the middle at its natural size.
+const stand: Record<string, { floor: number; wide: number; size: number }> = {
+  'set-1-classic.webp': { floor: 0.8, wide: 0.6, size: 1.12 },
+  'set-2-premier.webp': { floor: 0.735, wide: 0.82, size: 1.04 },
+  'set-3-crimson.webp': { floor: 0.845, wide: 0.58, size: 1.28 },
+};
+const fallback = { floor: 0.8, wide: 0.7, size: 1 };
+const last = sets.items.length - 1; // the dearest set closes the row, in the brighter light
+
+// Typesetting: a short preposition or conjunction, and a number, stay on the line of the word after them
+// ("с огнём", "0,7 л", "10 купюр", "a fruit platter"). These texts aren't split by the headline animation,
+// so a no-break space holds. The words themselves are content.ts's, unchanged.
+const tie = (s: string) =>
+  s
+    .replace(/(?<=^|[\s«(])(в|во|на|за|до|по|с|со|к|ко|и|а|о|об|у|не|из|от|для|без|a|an|the|of|to|in|on|at|by|and) /giu, '$1\u00A0')
+    .replace(/(\d[\d,.]*) (?=\S)/g, '$1\u00A0');
+// The lead in two lines beside the title (desktop): a short word that opens a sentence stays with the next
+// one, so the first line doesn't end on it ("шоу. Сет выносят"). Only there (.ts-keep, sets.css): on a phone
+// the lead fills the width and may break anywhere. Even parts are text, odd parts the pairs kept together.
+const leadParts = tie(tr(sets.lead, lang)).split(/(?<=[.!?] )(\p{L}{1,3} \p{L}+)/u);
+
+// Stage geometry, in stage units: the stage is 100 wide and 74 tall, the floor line 58 from its top, and
+// each spotlight hangs 74 above the stage (sets.css works in the same units, as percentages). The stage is
+// cut close: little air over the first two bottles, and the top set rises above it.
+const STAGE_H = 74;
+const FLOOR = 58;
+const RIG = 74;
+const PHOTO = 821 / 1100; // the photographs' height per width
+// where the photograph's top goes so that its floor line sits on the stage's (share of the stage height)
+const figTop = (floor: number, size: number) => `${(((FLOOR - floor * size * PHOTO * 100) / STAGE_H) * 100).toFixed(2)}%`;
+// the spotlight's half-angle: at the floor the cone is a little wider than the set
+const beam = (wide: number, size: number) => `${((Math.atan((wide * size * 62) / (FLOOR + RIG)) * 180) / Math.PI).toFixed(1)}deg`;
+---
+<section class="sec ts" id="sets" aria-labelledby="sets-h" data-ts>
+  <div class="wrap">
+    <div class="bighead bh-line">
+      <h2 class="t-l" id="sets-h" set:html={tr(sets.title, lang)} />
+      <div class="bighead-side"><p class="body">{leadParts.map((part, i) => (i % 2 ? <span class="ts-keep">{part}</span> : part))}</p></div>
+    </div>
+
+    <div class="ts-row" data-lenis-prevent-horizontal>
+      {sets.items.map((s, i) => {
+        const st = stand[s.img] || fallback;
+        const name = tr(s.name, lang);
+        return (
+          <article class:list={['ts-item', { 'ts-top': i === last, on: i === 0 }]} style={`--i:${i};--f:${st.floor};--w:${st.wide};--s:${st.size};--top:${figTop(st.floor, st.size)};--ba:${beam(st.wide, st.size)}`}>
+            <div class="ts-stage">
+              <span class="ts-beam" aria-hidden="true"></span>
+              <span class="ts-pool" aria-hidden="true"></span>
+              <figure class="fig ts-fig">
+                <div class="ts-shot" data-loop={s.loop ? media(s.loop) : undefined}>
+                  <img src={media(s.img)} alt={tr(s.alt, lang)} width="1100" height="821" loading="lazy" decoding="async" />
+                </div>
+              </figure>
+            </div>
+            <div class="ts-title">
+              <h3 class="ts-name">{name}</h3>
+              <p class="ts-price">{price(s.price, lang)}</p>
+            </div>
+            <p class="ts-what">{tie(tr(s.what, lang))}</p>
+            <ul class="lily-list ts-perks">{s.perks.map((x) => <li>{tie(tr(x, lang))}</li>)}</ul>
+            <div class="ts-foot">
+              <!-- (a set comes to a table: the booking opens with the table chosen, on its second step; the booking has
+                   no kind of its own for a set) -->
+              <a class:list={['btn btn-sm', i === last ? 'btn-crimson' : 'btn-line']} href={`/${lang}/booking/?type=table`}>{tr(sets.cta, lang)}<span class="sr-only">: {name}</span></a>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+    <div class="ts-dots" aria-hidden="true">{sets.items.map((_, i) => <i class:list={{ on: i === 0 }}></i>)}</div>
+  </div>
+</section>
+
+<script>
+  // 1. The stage lights come up one set after another when the bottles come into view. Only with motion: the
+  //    head script (Base.astro) adds html.motion when the visitor hasn't asked for less, and the CSS keeps
+  //    the stage dark only while html.motion and .ts-dark are both there.
+  // 2. Phones: the set in front of the swipe row is the lit one, and the dots under the row follow it.
+  const root = document.documentElement;
+  const afterGate = (fn: () => void) => {
+    const gate = document.getElementById('gate');
+    if (!gate || root.classList.contains('age-ok') || gate.classList.contains('out')) fn();
+    else addEventListener('hotland:gate', fn, { once: true });
+  };
+
+  document.querySelectorAll<HTMLElement>('[data-ts]').forEach((sec) => {
+    const row = sec.querySelector<HTMLElement>('.ts-row');
+    const stage = sec.querySelector<HTMLElement>('.ts-stage');
+    const items = Array.from(sec.querySelectorAll<HTMLElement>('.ts-item'));
+    const dots = Array.from(sec.querySelectorAll<HTMLElement>('.ts-dots i'));
+    if (!row || !stage || !('IntersectionObserver' in window)) return;
+
+    // (a stage already on screen when the page opens, say from a link to #sets, simply stays lit)
+    if (root.classList.contains('motion') && stage.getBoundingClientRect().top > innerHeight * 0.9) {
+      sec.classList.add('ts-dark');
+      afterGate(() => {
+        const io = new IntersectionObserver((entries) => {
+          if (!entries.some((e) => e.isIntersecting)) return;
+          io.disconnect();
+          sec.classList.add('ts-cue'); // the staggered delays, only for the entrance
+          requestAnimationFrame(() => requestAnimationFrame(() => sec.classList.remove('ts-dark')));
+          setTimeout(() => sec.classList.remove('ts-cue'), 2600);
+        }, { threshold: 0.35 });
+        io.observe(stage);
+      });
+    }
+
+    // the set that shows most inside the row is the one in front (on desktop all three show; only phones use it)
+    const seen = new Map<Element, number>();
+    const front = () => {
+      let best = items[0];
+      let most = -1;
+      items.forEach((it) => {
+        const r = seen.get(it) ?? 0;
+        if (r > most + 0.01) { most = r; best = it; }
+      });
+      items.forEach((it, i) => {
+        it.classList.toggle('on', it === best);
+        dots[i]?.classList.toggle('on', it === best);
+      });
+    };
+    const fio = new IntersectionObserver((entries) => {
+      entries.forEach((e) => seen.set(e.target, e.intersectionRatio));
+      front();
+    }, { root: row, threshold: [0, 0.25, 0.5, 0.75, 1] });
+    items.forEach((it) => fio.observe(it));
+    sec.classList.add('ts-follow');
+  });
+</script>

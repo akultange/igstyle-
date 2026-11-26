@@ -1,0 +1,7 @@
+# Only index.php answers here (through the site's .htaccess). Its settings may be here (secrets.php) when the site
+# can't reach hotland-private next to public_html, and what it keeps may be in private/ for the same reason: neither is
+# ever handed out (and every kept file is a PHP file that shows nothing even if run).
+<FilesMatch "^secrets(\.example)?\.php$">
+  Require all denied
+</FilesMatch>
+RedirectMatch 404 ^/api/(logs|private)(/|$)

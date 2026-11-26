@@ -1,0 +1,61 @@
+/* =====================================================================
+   The club's rooms (Zones.astro, membership page): a plain list beside one photograph of the hall.
+   «Между», 2026-11-21. One room to a row, between hairlines: the room's number in the Dial (large, hairline, like the
+   figures on a watch), its name and under it its one line in the text face, and the way to book it in the Label at the
+   row's end. The whole row is the link; under the pointer (or the keyboard) a line of light runs along its rule, red,
+   amber after four, as every line of light does.
+   Where things stand: a wide screen has the list on the left and the hall's photograph on the right (4:5, torn like
+   every picture: cut.css), its top level with the list's; a phone has the photograph first, wider (4:3), then the
+   list, the number on the left and the name, the line and the link under one another beside it.
+   (The doorway, its films, the colour washing the wall and the stage held while the page scrolled are gone.)
+   ===================================================================== */
+
+.zones-in { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); column-gap: clamp(32px, 5vw, 96px); align-items: start; }
+.zones-pic .photo { aspect-ratio: 4 / 5; }
+.zones-list { list-style: none; margin: 0; padding: 0; }
+/* (the number's column is as narrow as its compressed figures allow, so each number stays with its name) */
+.zone.row {
+  position: relative;
+  grid-template-columns: clamp(48px, 4.4vw, 64px) minmax(0, 1fr) auto;
+  grid-template-areas: "no name go" "no text go";
+  align-items: baseline; gap: 6px clamp(16px, 2.2vw, 36px);
+  padding: clamp(20px, 2.1vw, 28px) 0;
+}
+.zone-no {
+  grid-area: no;
+  font: var(--dial-num-s-wght) var(--dial-num-s)/.8 var(--f-flex); font-stretch: var(--dial-wdth); /* (a number in a row, as the times and the prices) */
+  font-variant-numeric: tabular-nums lining-nums; color: var(--fg);
+}
+.zone-name { grid-area: name; font: 500 var(--item)/1.15 var(--f-text); letter-spacing: -.012em; color: var(--fg); transition: color .3s ease; }
+.zone-text { grid-area: text; font: 400 16px/1.6 var(--f-text); color: var(--fg-2); max-width: 40ch; text-wrap: pretty; }
+.zone-go { grid-area: go; justify-self: end; align-self: center; white-space: nowrap; }
+/* the link answers for its whole row (its touch area is the row, on any pointer) */
+.zones .zone .zone-go { position: static; }
+.zones .zone .zone-go::before { content: ''; position: absolute; inset: 0; z-index: 1; }
+/* the line of light along the row's rule */
+.zone::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: var(--seam); pointer-events: none;
+  background: var(--lit-core); box-shadow: var(--seam-glow);
+  scale: 0 1; transform-origin: 0 50%; transition: scale .7s var(--ease-out);
+}
+@media (hover: hover) {
+  .zone:hover::after { scale: 1 1; }
+  .zone:hover .zone-name { color: #fff; }
+  .zone:hover .zone-go { background-size: 100% 1px, 100% 1px; }
+  .zone:hover .zone-go::after { translate: 5px 0; }
+}
+.zone:focus-within::after { scale: 1 1; }
+@media (prefers-reduced-motion: reduce) { .zone::after { transition: none; } }
+
+/* narrower than a laptop: the photograph first, wider, then the list */
+@media (max-width: 899px) {
+  .zones-in { grid-template-columns: minmax(0, 1fr); row-gap: clamp(28px, 5vw, 40px); }
+  .zones-pic { order: -1; }
+  .zones-pic .photo { aspect-ratio: 4 / 3; }
+}
+/* a phone: the number on the left; the name, its line and the link under one another beside it */
+@media (max-width: 599px) {
+  .zone.row { grid-template-columns: 40px minmax(0, 1fr); grid-template-areas: "no name" "no text" "no go"; align-items: start; column-gap: 14px; }
+  .zone-name { padding-top: 2px; }
+  .zone-go { justify-self: start; align-self: start; margin-top: 8px; }
+}

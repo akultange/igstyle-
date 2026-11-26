@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.astro/
+.DS_Store
+.env*
+# media from earlier design rounds, kept locally, not published
+_unused/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
+
+# the forms' settings and the counts' logs on regular PHP hosting (Timeweb): on the server only
+public/api/secrets.php
+public/api/logs/
+tools/door3d/out/
+__pycache__/

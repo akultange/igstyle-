@@ -1,0 +1,129 @@
+/* ---------- «Шоу» on the home page (ShowTabs.astro) ----------
+   A programme to choose from, one screen tall, in two parts on the page's twelve columns (as .g12: the same columns,
+   the same gap). Desktop: the heading row (.bh-line), then on the left the six kinds of number as a list of names,
+   each with its serial number in the Label, and the chosen one's words under the list; on the right, the larger
+   part, its picture, a torn print (cut.css) in the colour its own light gives it (colour.css), its film playing.
+   From 1024px the list takes four columns, one column of air, the picture the last seven; under that the list five,
+   the air one, the picture six. The list runs from the picture's top and the words end at its foot. The
+   chosen name is shirt white over a line of light (red, amber after four); the others wait in ash and come up
+   under the mouse. (Until 2026-11-23 the guest under the laser, the line art, stood in a third column between the
+   list and the picture: too much, the client said, and a strange layout.)
+   Phones: the six as a row of framed tabs to swipe, then the picture, then the words. Square, 1px lines. */
+.shw { --shw-rest: 300px; }
+.shw-body {
+  --shw-h: clamp(400px, calc(100svh - var(--shw-rest)), 680px);
+  display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr) auto;
+  column-gap: var(--gap); height: var(--shw-h);
+}
+.shw-list { grid-column: 1 / span 5; grid-row: 1; }
+.shw-panels { grid-column: 1 / span 5; grid-row: 2; }
+.shw-stage { grid-column: 7 / -1; grid-row: 1 / -1; }
+@media (min-width: 1024px) {
+  .shw-list, .shw-panels { grid-column: 1 / span 4; }
+  .shw-stage { grid-column: 6 / -1; }
+}
+/* the list runs from the top of the picture, the words end at its foot */
+.shw-list { display: grid; grid-auto-rows: 1fr; border-top: 1px solid var(--rule-2); }
+.shw-tab {
+  position: relative; display: flex; align-items: center; gap: clamp(14px, 1.4vw, 22px); width: 100%;
+  padding: clamp(8px, 1vh, 12px) 0; border: 0; border-bottom: 1px solid var(--rule); background: none;
+  color: var(--ash); text-align: left; cursor: pointer;
+  transition: color .35s ease;
+}
+/* the chosen one's line of light, along its lower rule (red; amber after four, as every line is) */
+.shw-tab::before {
+  content: ''; position: absolute; left: 0; bottom: -1px; width: 100%; height: var(--seam);
+  background: var(--lit-core); box-shadow: var(--seam-glow);
+  transform: scaleX(0); transform-origin: 0 50%; transition: transform .6s var(--ease-out);
+}
+/* the serial number: the Label, steel */
+.shw-no {
+  flex: none; min-width: 2.2em;
+  font: var(--label-wght) 12px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track);
+  font-variant-numeric: tabular-nums lining-nums; color: var(--steel-hi);
+}
+.shw-name { font: 500 var(--item)/1.1 var(--f-text); letter-spacing: -.012em; }
+.shw-tab[aria-selected="true"] { color: var(--fg); }
+.shw-tab[aria-selected="true"] .shw-no { color: var(--fg); }
+.shw-tab[aria-selected="true"]::before { transform: scaleX(1); }
+@media (hover: hover) {
+  .shw-tab:not([aria-selected="true"]):hover { color: var(--fg-2); }
+}
+.shw-tab:focus-visible { outline: var(--seam) solid var(--lit); outline-offset: 4px; }
+/* Taking turns (ShowTabs.astro adds .auto, and .run while the section is on screen): the chosen number's line of
+   light fills from the left in --shw-dur, and when it is full the next number comes up. It waits, half filled,
+   while the section is off screen. Once the visitor presses a tab the classes go and the line simply marks the
+   chosen number again. */
+.shw { --shw-dur: 7s; }
+.shw.auto .shw-tab[aria-selected="true"]::before { transition: none; animation: shw-fill var(--shw-dur) linear both paused; }
+.shw.auto.run .shw-tab[aria-selected="true"]::before { animation-play-state: running; }
+@keyframes shw-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* the six texts share one cell, so the block is as tall as the longest of them whichever one shows: the section
+   keeps its height when the tabs take their turns */
+.shw-panels { align-self: end; display: grid; padding-top: clamp(16px, 2vh, 24px); }
+.shw-panel { grid-area: 1 / 1; }
+.shw-panel[hidden] { display: block; visibility: hidden; }
+.shw-panel .body { margin: 0; font-size: var(--lead); max-width: 34em; color: var(--fg-2); text-wrap: pretty; }
+.shw-panel:focus-visible { outline: var(--seam) solid var(--lit); outline-offset: 6px; }
+.shw-panel:not([hidden]) { animation: shw-in .5s var(--ease-out) both; }
+@keyframes shw-in { from { opacity: 0; translate: 0 8px; } }
+
+.shw-stage { min-width: 0; }
+.shw-photo { width: 100%; height: var(--shw-h); aspect-ratio: auto; }
+/* (each number's shot holds its photo and film itself, so each takes its own picture's treatment, colour.css: the
+   frame grades nothing over them, or its black and white would take the red out of the ones that keep it) */
+.shw .shw-photo { filter: none; }
+.shw-shot { position: absolute; inset: 0; opacity: 0; transition: opacity .6s ease; }
+.shw-shot.on { opacity: 1; }
+/* Every girl's face at one height, whatever the frame's shape (wide on a desktop, about square on a phone, wider on
+   a tablet): each number's photo and film keep their 3:4 shape, as wide as the frame (the narrowest desktop frame
+   shows some of them closer, --zoom; from 1024px the frame is wide enough to show them whole), and slide up until
+   her face (--face, where it is in her photo, from ShowTabs.astro) is a quarter of the way down, but never so far
+   that the frame shows past the photo's top or bottom. */
+.shw-photo { container-type: size; }
+.shw-shot { --at: .25; --z: 1; }
+@media (min-width: 900px) { .shw-shot { --at: .26; } }
+@media (min-width: 900px) and (max-width: 1023px) { .shw-shot { --z: var(--zoom, 1); } }
+.shw-photo .shw-shot :is(img, video) {
+  --h: calc(133.333cqw * var(--z));
+  position: absolute; inset: auto; left: calc(50% - 50% * var(--z)); width: calc(100% * var(--z)); max-width: none; height: var(--h);
+  top: clamp(100cqh - var(--h), var(--at) * 100cqh - var(--face, .3) * var(--h), 0px);
+  object-fit: cover;
+}
+.shw-shot video { opacity: 0; transition: opacity .5s ease; }
+.shw-shot.looping video { opacity: 1; }
+.shw-shot img { transition: scale 1.2s var(--ease-out); }
+.shw-shot:not(.on) img { scale: 1.04; }
+@media (min-width: 900px) and (max-height: 820px) { .shw { --shw-rest: 262px; } }
+@media (prefers-reduced-motion: reduce) { .shw-panel:not([hidden]) { animation: none; } }
+
+@media (max-width: 899px) {
+  .shw-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; height: auto; }
+  .shw-list, .shw-panels, .shw-stage { grid-column: 1; }
+  .shw-list { grid-row: 1; }
+  .shw-stage { grid-row: 2; }
+  .shw-panels { grid-row: 3; }
+  /* the six as a row of framed tabs, running to the screen's edges */
+  .shw-list {
+    display: flex; gap: 8px; margin: 0 calc(-1 * var(--pad)); padding: 2px var(--pad) 14px; border: 0;
+    overflow-x: auto; scrollbar-width: none; scroll-padding-inline: var(--pad);
+    /* (the row's end padding lets the last tab come clear of the fade at the screen's edge) */
+    padding-inline-end: calc(var(--pad) + 60px);
+    -webkit-mask-image: var(--peek-fade); mask-image: var(--peek-fade);
+  }
+  .shw-list::-webkit-scrollbar { display: none; }
+  .shw-tab {
+    flex: none; width: auto; min-height: 44px; gap: 10px; padding: 6px 16px 6px 12px; border: 1px solid var(--rule-2);
+    background: var(--lacquer); color: var(--fg-2);
+  }
+  /* the chosen tab: framed in shirt white over its lit seam, as every chosen thing on the site; while they take
+     turns, its seam fills along its foot */
+  .shw-tab::before { left: 0; bottom: 0; }
+  .shw-tab[aria-selected="true"] { border-color: var(--shirt); color: var(--fg); }
+  .shw-no { min-width: 0; font-size: 11px; }
+  .shw-name { font: 500 16px/1.2 var(--f-text); letter-spacing: 0; white-space: nowrap; }
+  .shw-photo { height: auto; width: 100%; aspect-ratio: 1 / 1; max-height: 42svh; }
+  .shw-panels { padding-top: 14px; }
+}
+@media (min-width: 700px) and (max-width: 899px) { .shw-photo { aspect-ratio: 16 / 11; max-height: none; } }

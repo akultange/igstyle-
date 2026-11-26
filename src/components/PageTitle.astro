@@ -1,0 +1,67 @@
+---
+// Inner-page header, short and to the point: the page's own name, big (so you always know where you are),
+// an optional second line under it (the slogan, e.g. "Город остаётся за дверью"), then the lead and the
+// actions in one row. No breadcrumbs, no labels above the title, no photo filling the screen.
+// The name is the Dial (global.css, .t-xl): very large, hairline and compressed, in capitals, flat shirt white:
+// quiet and expensive, the way a watch's dial is. The second line is the text face, said as a sentence.
+// Detail pages (an event night, a party) can pass `band`: their photo or film then runs as a wide band
+// under the header, fading into the black (graded as its picture is: styles/colour.css).
+// `crumbs` and `label` are accepted but not shown.
+import { keepShort } from '../data/format';
+interface Props {
+  crumbs?: { href?: string; label: string }[];
+  title: string;
+  /** A second line under the page name (may contain <em>). */
+  sub?: string;
+  label?: string;
+  lead?: string;
+  img?: string;
+  /** A short film shown in place of the photo (muted, looping, plays while on screen); `img` is its poster. */
+  film?: string;
+  imgAlt?: string;
+  imgPos?: string;
+  /** Show `img` / `film` as a wide band under the header (detail pages only). */
+  band?: boolean;
+  cap?: string;
+  capR?: string;
+}
+const { title, sub, lead, img, film, imgAlt = '', imgPos, band = false } = Astro.props;
+const hasActions = Astro.slots.has('default');
+// Size the name so its longest word always fits the screen. The Dial's capitals (Roboto Flex at width 25) run
+// 0.12 to 0.14em a letter, the widest (Ш, Щ) 0.2em: 0.16 a letter leaves room for a word full of wide ones
+// ("конфиденциальности", the longest on the site, is 2.4em). The CSS keeps the name under its own size otherwise.
+// (a no-break space joins its words into one that never breaks, "и&nbsp;контакты", so it counts as one word)
+const plain = title.replace(/<[^>]+>/g, ' ').replace(/&nbsp;|&#160;/gi, ' ').replace(/&[a-z#0-9]+;/gi, ' ');
+const longest = Math.max(...plain.split(/[ \t\n\r\f\v–-]+/).map((w) => w.length));
+// A name of two or three words stands on one line, never a word to a line (the client, 2026-11-23): the whole name is
+// fitted too, at 0.135em a letter or space (the Dial at a phone's weight, 170, runs 0.12 to 0.135). So on a phone
+// «Политика конфиденциальности» stands a little smaller, on one line.
+const whole = plain.trim().split(/\s+/).length <= 3 ? plain.trim().replace(/\s+/g, ' ').length * 0.135 : 0;
+const fit = Math.max(0.6, longest * 0.16, whole).toFixed(2);
+const showBand = band && img;
+// The lead is plain text. In Russian a short word stays on the line of the word after it ("не обязательно").
+const leadHtml = lead && keepShort(lead.replace(/&/g, '&amp;').replace(/</g, '&lt;'), /[а-яё]/i.test(lead) ? 'ru' : 'en');
+---
+<section class:list={['ptitle', { 'has-band': showBand }]}>
+  <div class="wrap ptitle-in">
+    <h1 class="ptitle-h">
+      <span class="t-xl ptitle-name" style={`--fit:${fit}`} set:html={title} />
+      {sub && <span class="ptitle-sub" set:html={sub} />}
+    </h1>
+    {(lead || hasActions) && (
+      <div class="ptitle-foot">
+        {leadHtml && <p class="lead" set:html={leadHtml} />}
+        {hasActions && <div class="ptitle-act"><slot /></div>}
+      </div>
+    )}
+  </div>
+  {showBand && (
+    <figure class="ptitle-media ptitle-band">
+      {film ? (
+        <video muted loop playsinline preload="metadata" poster={img} data-autoplay aria-label={imgAlt || undefined} style={imgPos ? `object-position:${imgPos}` : undefined}><source src={film} type="video/mp4" /></video>
+      ) : (
+        <img src={img} alt={imgAlt} decoding="async" fetchpriority="high" style={imgPos ? `object-position:${imgPos}` : undefined} />
+      )}
+    </figure>
+  )}
+</section>

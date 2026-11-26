@@ -1,0 +1,39 @@
+---
+// An artist's story, full screen: her profile, shared by both takes of the artists (Models.astro, the row;
+// ModelsStage.astro, the spotlight stage). The markup and her words here; the behaviour in scripts/story.ts, the
+// styles in styles/models.css ("Her profile"). Desktop: the portrait stands tall, her name huge behind it in the
+// Dial's hairline, her number, name, two lines and the booking button beside it. Phone: a story, the portrait full
+// screen, bars at the top, the words at the bottom; her second photograph comes in a moment after she arrives.
+import { type Lang, ui } from '../data/i18n';
+import { artists, artistFrames } from '../data/artists';
+import '../styles/models.css';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const ru = lang === 'ru';
+const n2 = (i: number) => String(i).padStart(2, '0');
+const total = artists.length;
+/** What the story needs, in the page's language (scripts/story.ts reads it). */
+const items = artists.map((m, i) => ({ src: `/media/${m.photo}.webp`, hot: m.hot ? `/media/${m.hot}.webp` : undefined, name: m.name[lang], alt: m.alt[lang], lines: m[lang], no: n2(i + 1), frame: artistFrames[i] }));
+---
+<div class="mdv" role="dialog" aria-modal="true" aria-label={ru ? 'Артистка' : 'Artist'} hidden data-lenis-prevent data-mdv>
+  <div class="mdv-veil"></div>
+  <p class="mdv-big" aria-hidden="true"></p>
+  <div class="mdv-stage"></div>
+  <div class="mdv-ui">
+    <div class="mdv-bars" aria-hidden="true">{artists.map(() => <i></i>)}</div>
+    <p class="mdv-n" aria-hidden="true"><b>01</b><span>/&nbsp;{n2(total)}</span></p>
+    <button type="button" class="mdv-btn mdv-close" aria-label={ru ? 'Закрыть' : 'Close'}><i aria-hidden="true"></i></button>
+    <button type="button" class="mdv-btn mdv-nav mdv-prev" aria-label={ru ? 'Предыдущая артистка' : 'Previous artist'}>
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 12H5M11 6l-6 6 6 6" /></svg>
+    </button>
+    <button type="button" class="mdv-btn mdv-nav mdv-next" aria-label={ru ? 'Следующая артистка' : 'Next artist'}>
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 12h15M13 6l6 6-6 6" /></svg>
+    </button>
+    <div class="mdv-info" aria-live="polite">
+      <h3 class="mdv-name"></h3>
+      <p class="mdv-text"></p>
+      <a class="btn btn-crimson mdv-book" href={`/${lang}/booking/`}>{ui[lang].bookTable}</a>
+    </div>
+  </div>
+</div>
+<script type="application/json" data-mdv-data is:inline set:html={JSON.stringify(items)} />

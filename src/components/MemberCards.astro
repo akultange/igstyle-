@@ -1,0 +1,217 @@
+---
+// The club's three cards (membership; styles in styles/vip.css). (LUKA LATEST, 2026-11-23: Luka's three cards side
+// by side are back in place of the «Выдержка» stage, on Gio's steel field instead of the burgundy panel, with the
+// tiers' names and words as Gio's copy has them.) Each is set as a real club card: the club's logo across its middle, whole, the sign through the L
+// from near the card's top edge to just above its foot line, the card's name in small capitals at the foot and a
+// member's number beside it. Three finishes: brushed steel, black concrete and bordeaux lacquer, each carrying
+// the logo as the club drew it for that ground (Logo.astro: the one for light ground on steel, graphite letters
+// and a soft red falloff; the one for dark ground on the other two, pale letters and the sign's own light). Under each
+// card: its name, what it is, what comes with it, a request button and the price. The buttons follow the one rule
+// for a row of cards (the bottle sets in TableSets.astro too): steel-edged under the first cards and bordeaux
+// under the last, the top one.
+// From 1024px: the cards are dealt out of one stack as the field arrives, then tilt under the pointer and
+// catch the light. Tablets and phones: a row to swipe, with a meter under it; only the card in front shows its
+// words, the next one is a clean edge of its plate. Nothing moves for reduced motion.
+// A page can set a heading for the cards; it stands inside the field, over the cards, on their left edge:
+//   <MemberCards lang={lang}><div slot="head" class="bighead bh-line">…</div></MemberCards>
+import { type Lang, ui, tr } from '../data/i18n';
+import { keepShort } from '../data/format';
+import { tiers, vip } from '../data/content';
+import { logoDark } from '../data/art';
+import Logo from './Logo.astro';
+import '../styles/vip.css';
+const { lang } = Astro.props as { lang: Lang };
+const finish = ['silver', 'black', 'bordeaux'];
+const hasHead = Astro.slots.has('head');
+const pad2 = (n: number) => String(n).padStart(2, '0');
+/** The tiers' names: under the section's own heading when it has one, else straight under the page's title. */
+const Title = hasHead ? 'h3' : 'h2';
+---
+<div class="vfield">
+  {/* (the gradients of the logo for light ground, for the steel card: Logo.astro) */}
+  <svg class="svg-defs" aria-hidden="true" focusable="false"><defs set:html={logoDark.defs} /></svg>
+  {hasHead && <slot name="head" />}
+  <div class="vdeck" data-deal data-lenis-prevent-horizontal>
+    {tiers.map((p, i) => (
+      <article class:list={['vtier', `vtier-${finish[i % finish.length]}`]}>
+        <div class="vcard" aria-hidden="true">
+          <div class="vcard-in">
+            <Logo class="vcard-logo" tone={finish[i % finish.length] === 'silver' ? 'dark' : 'light'} />
+            <span class="vcard-foot"><span class="vcard-tier">{tr(p.name, lang)}</span><span class="vcard-no">№&nbsp;0001</span></span>
+            <span class="vcard-glint"></span>
+            <span class="vcard-glare"></span>
+          </div>
+        </div>
+        <div class="vtier-body">
+          <Title class="card-title">{tr(p.name, lang)}</Title>
+          <p class="vtier-sub" set:html={keepShort(tr(p.sub, lang), lang)} />
+          <ul class="lily-list">{p.items.map((x) => <li><span set:html={keepShort(tr(x, lang), lang)} /></li>)}</ul>
+          <div class="vtier-foot">
+            <a class:list={['btn btn-sm', i === tiers.length - 1 ? 'btn-crimson' : 'btn-silver']} href={`/${lang}/booking/?type=card`} aria-label={`${tr(vip.request, lang)}: ${tr(p.name, lang)}`}>{tr(vip.request, lang)}</a>
+            <span class="vtier-price">{ui[lang].priceOnRequest}</span>
+          </div>
+        </div>
+      </article>
+    ))}
+  </div>
+  <div class="vmeter" aria-hidden="true"><span class="vmeter-bar"><i></i></span><span class="vmeter-n">{pad2(1)} / {pad2(tiers.length)}</span></div>
+</div>
+
+<script>
+  import { gsap } from 'gsap';
+
+  const root = document.documentElement;
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const mouse = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const pad2 = (n: number) => String(n).padStart(2, '0');
+
+  /** After the 18+ question, once the page has loaded and its web fonts are in (never waiting long for either),
+   *  so the cards are dealt where they end up and never behind the curtain. */
+  function whenSettled(fn: () => void) {
+    const wait = (p: Promise<unknown>, ms: number) => Promise.race([p, new Promise((r) => setTimeout(r, ms))]);
+    const loaded = new Promise((r) => (document.readyState === 'complete' ? r(0) : addEventListener('load', r, { once: true })));
+    const go = () =>
+      wait(loaded, 1500)
+        .then(() => wait(document.fonts ? document.fonts.ready : Promise.resolve(), 900))
+        .then(() => requestAnimationFrame(() => fn()));
+    const gate = document.getElementById('gate');
+    if (!gate || root.classList.contains('age-ok') || gate.classList.contains('out')) go();
+    else addEventListener('hotland:gate', go, { once: true });
+  }
+
+  /** Phones: the meter under the row says how far along it is and which card is in front. When a swipe comes
+   *  to rest on another card, `settle` gets its number (a band of light then crosses that card). */
+  function meter(field: HTMLElement, deck: HTMLElement, tiers: HTMLElement[], settle?: (i: number) => void) {
+    const thumb = field.querySelector<HTMLElement>('.vmeter i');
+    const count = field.querySelector<HTMLElement>('.vmeter-n');
+    if (!thumb || !count) return;
+    let queued = 0;
+    let front = 0;
+    let rest = 0;
+    const frontNow = () => {
+      const step = tiers.length > 1 ? tiers[1].offsetLeft - tiers[0].offsetLeft : 0;
+      return step > 0 ? Math.max(0, Math.min(tiers.length - 1, Math.round(deck.scrollLeft / step))) : 0;
+    };
+    const measure = () => {
+      queued = 0;
+      const max = deck.scrollWidth - deck.clientWidth;
+      const seen = Math.min(1, deck.clientWidth / Math.max(1, deck.scrollWidth));
+      const p = max > 0 ? deck.scrollLeft / max : 0;
+      thumb.style.setProperty('--w', `${(seen * 100).toFixed(2)}%`);
+      thumb.style.setProperty('--x', `${(seen < 1 ? ((1 - seen) / seen) * p * 100 : 0).toFixed(2)}%`);
+      const now = frontNow();
+      count.textContent = `${pad2(now + 1)} / ${pad2(tiers.length)}`;
+      // (only the card in front shows its words: vip.css)
+      tiers.forEach((t, i) => t.classList.toggle('is-front', i === now));
+    };
+    const queue = () => { if (!queued) queued = requestAnimationFrame(measure); };
+    deck.addEventListener('scroll', () => {
+      queue();
+      clearTimeout(rest);
+      rest = window.setTimeout(() => {
+        const i = frontNow();
+        if (i !== front) { front = i; settle?.(i); }
+      }, 160);
+    }, { passive: true });
+    addEventListener('resize', queue);
+    measure();
+  }
+
+  /** A mouse: the card tilts under the pointer and the light follows it. */
+  function tilt(cards: HTMLElement[]) {
+    cards.forEach((card) => {
+      const metal = card.querySelector<HTMLElement>('.vcard-in');
+      if (!metal) return;
+      card.addEventListener('pointermove', (e) => {
+        if (e.pointerType === 'touch') return;
+        const r = card.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width;
+        const y = (e.clientY - r.top) / r.height;
+        card.classList.add('tilting');
+        metal.style.setProperty('--ry', `${((x - 0.5) * 16).toFixed(2)}deg`);
+        metal.style.setProperty('--rx', `${((0.5 - y) * 12).toFixed(2)}deg`);
+        metal.style.setProperty('--gx', `${(x * 100).toFixed(1)}%`);
+        metal.style.setProperty('--gy', `${(y * 100).toFixed(1)}%`);
+      });
+      card.addEventListener('pointerleave', () => {
+        card.classList.remove('tilting');
+        metal.style.removeProperty('--rx');
+        metal.style.removeProperty('--ry');
+      });
+    });
+  }
+
+  /** The entrance, once, as the field arrives. Desktop: the cards are dealt out of one fanned stack on the
+   *  middle card. Phones: they rise into the row. Then the words follow and a band of light crosses the metal.
+   *  Until this runs, CSS keeps the cards out of sight (html.motion, vip.css); `.vf-ready` hands them over.
+   *  The start is watched with an IntersectionObserver, so pictures loading above can't make it late. */
+  function entrance(deck: HTMLElement, cards: HTMLElement[], bodies: HTMLElement[], glints: HTMLElement[]) {
+    gsap.matchMedia().add({ wide: '(min-width: 1024px)', narrow: '(max-width: 1023px)' }, (ctx) => {
+      if (deck.getBoundingClientRect().bottom < 0) return; // already scrolled past: leave them in place
+      const wide = Boolean(ctx.conditions?.wide);
+      gsap.set(cards, { opacity: 0 });
+      gsap.set(bodies, { opacity: 0, y: 26 });
+      // recorded in the context (so a change of layout reverts it) but run only when the field arrives
+      const play = ctx.add('deal', () => {
+        const tl = gsap.timeline({ onComplete: () => gsap.set([...cards, ...bodies], { clearProps: 'all' }) });
+        if (wide) {
+          const mid = Math.floor(cards.length / 2);
+          const centre = (el: HTMLElement) => { const r = el.getBoundingClientRect(); return r.left + r.width / 2; };
+          const xs = cards.map(centre);
+          gsap.set(cards, {
+            x: (i: number) => xs[mid] - xs[i],
+            y: 44,
+            rotation: (i: number) => (i - mid) * 6,
+            scale: 0.94,
+            zIndex: (i: number) => (i === mid ? 3 : 1),
+            transformOrigin: '50% 85%',
+          });
+          // the hand rises into the middle, then the outer cards are dealt to their places
+          tl.to(cards, { opacity: 1, y: 0, duration: 0.35, ease: 'power3.out' }, 0)
+            .to(cards, { x: 0, rotation: 0, scale: 1, duration: 0.8, ease: 'expo.out', stagger: { each: 0.04, from: 'center' } }, 0.14)
+            .to(bodies, { opacity: 1, y: 0, duration: 0.6, ease: 'expo.out', stagger: 0.06 }, 0.3);
+        } else {
+          // (the row to swipe: only the card in front has words to bring in; the others' wait unseen, vip.css)
+          gsap.set(cards, { y: 34 });
+          tl.to(cards, { opacity: 1, y: 0, duration: 0.7, ease: 'expo.out', stagger: 0.06 }, 0)
+            .to(bodies.slice(0, 1), { opacity: 1, y: 0, duration: 0.6, ease: 'expo.out' }, 0.12);
+        }
+        tl.fromTo(glints, { backgroundPosition: '105% 0%' }, { backgroundPosition: '-5% 0%', duration: 1.05, ease: 'power2.inOut', stagger: 0.08 }, wide ? 0.45 : 0.3);
+      });
+      // (as soon as a sliver of the row is on screen: a reader who stops with the field just in view must not
+      // look at an empty one)
+      const io = new IntersectionObserver((entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        play();
+      }, { rootMargin: '0px 0px -6% 0px' });
+      let live = true;
+      whenSettled(() => live && io.observe(deck));
+      return () => { live = false; io.disconnect(); };
+    });
+  }
+
+  document.querySelectorAll<HTMLElement>('.vfield').forEach((field) => {
+    try {
+      const deck = field.querySelector<HTMLElement>('[data-deal]');
+      if (!deck) return;
+      const tiers = Array.from(deck.querySelectorAll<HTMLElement>('.vtier'));
+      const pick = (s: string) => tiers.map((t) => t.querySelector<HTMLElement>(s)).filter((el): el is HTMLElement => Boolean(el));
+      const cards = pick('.vcard');
+      const glints = pick('.vcard-glint');
+      const shine = (i: number) => {
+        if (still || !glints[i]) return;
+        gsap.fromTo(glints[i], { backgroundPosition: '105% 0%' }, { backgroundPosition: '-5% 0%', duration: 1.05, ease: 'power2.inOut', overwrite: true });
+      };
+      meter(field, deck, tiers, shine);
+      if (still) return;
+      if (mouse) tilt(cards);
+      if (root.classList.contains('motion')) entrance(deck, cards, pick('.vtier-body'), glints);
+    } catch (err) {
+      console.error(err);
+      field.querySelectorAll('.vcard, .vtier-body').forEach((el) => el.removeAttribute('style'));
+    } finally {
+      field.classList.add('vf-ready');
+    }
+  });
+</script>

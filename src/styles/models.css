@@ -1,0 +1,264 @@
+/* Models (Models.astro). Loaded after global.css (Base.astro).
+   A row of tall portraits to slide through, each with a name and two lines. STAND-INS until the club sends
+   photos and names (Models.astro).
+   The row runs from the page margin out to the edge of the screen (desktop: three portraits and a fifth of the
+   next; tablets about two and a quarter; phones about one and a quarter). Every portrait shows in full: the one in
+   the light (the counter and the line of light under the row follow her) breathes, the others simply wait.
+   (This take is out of the page since 2026-11-13: the stage won, ModelsStage.astro. Her profile, at the end of this
+   file, is both takes'. 2026-11-21, «Между»: square and matte, the counters the Dial and the Label, no metal letters,
+   no burgundy light, no blurred glass.) */
+
+/* big portraits, three and a bit across on a desktop, as big as one screen allows: the section's words (the heading
+   row, the names and lines, the counter: --mdl-rest) and a little air above and below (--mdl-air) still fit
+   with them on one screen */
+.mdl { --mdl-gap: var(--gap); --mdl-per: 3.2; --mdl-air: clamp(20px, 3.4svh, 36px); --mdl-rest: 335px; }
+
+/* ---------- The heading row: every section's .bighead.bh-line (the title, its line). The two square buttons that
+   turn the row are in the bar under it, after the line and the count ---------- */
+.mdl-lead { text-wrap: pretty; }
+.mdl-nav { display: flex; gap: 10px; flex: none; }
+/* square framed buttons (.btn-line), the arrow in the middle */
+.mdl-arrow { flex: none; width: 54px; height: 54px; padding: 0; }
+.mdl-arrow svg { position: relative; z-index: 2; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: square; stroke-linejoin: miter; }
+.mdl-arrow[aria-disabled="true"] { opacity: .32; cursor: default; filter: none; }
+.mdl-arrow[aria-disabled="true"]::after { display: none; }
+.mdl-arrow[aria-disabled="true"]:active { scale: 1; }
+
+/* ---------- The row ---------- */
+.mdl-track {
+  container-type: inline-size;
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  /* the portraits come to rest on the page margin (percentages here: of the row's own width) */
+  scroll-padding-inline: max(var(--pad), calc((100% - var(--max)) / 2 + var(--pad)));
+  scrollbar-width: none;
+}
+.mdl-track::-webkit-scrollbar { display: none; }
+/* every portrait shows whole and at full strength, edge to edge in its square card: none of the soft fade into the
+   page that the site's other pictures have, and on phones the next one peeks in at the right undimmed */
+.mdl-card .photo:not(.ph) { -webkit-mask-image: none; mask-image: none; }
+/* the list's 14px above the portraits is the focus ring's room, not air: taken back, so the portraits start the
+   heading gap under the heading row, as every section's content does */
+.mdl-track { margin-top: -14px; }
+.mdl-track.is-free { scroll-snap-type: none; }
+.mdl-track:focus-visible { outline: none; }
+.mdl-list {
+  --edge: max(var(--pad), calc((100cqw - var(--max)) / 2 + var(--pad)));
+  position: relative; display: flex; gap: var(--mdl-gap); width: max-content;
+  padding: 14px var(--edge);
+}
+.mdl-card {
+  flex: none; position: relative; min-width: 0;
+  /* --mdl-per portraits across, the last one cut by the edge of the screen */
+  width: calc((100cqw - var(--edge) - (var(--mdl-per) - .5) * var(--mdl-gap)) / var(--mdl-per));
+  scroll-snap-align: start;
+}
+/* until the photos arrive: an empty spot on a dark stage, matte lacquer inside one hairline */
+.mdl-card .photo.ph { background: var(--lacquer); box-shadow: inset 0 0 0 1px var(--rule); }
+.mdl-card .ph-label { max-width: 18ch; color: var(--muted); }
+/* the keyboard is on the row: the model in the light shows it */
+.mdl-track:focus-visible .mdl-card.is-active { outline: var(--seam) solid var(--lit); outline-offset: 6px; }
+
+@media (hover: hover) and (pointer: fine) {
+  .mdl-track.can-drag { cursor: grab; user-select: none; -webkit-user-select: none; }
+  .mdl-track.is-drag { cursor: grabbing; }
+  .mdl-track.is-drag .mdl-card { pointer-events: none; }
+}
+
+/* ---------- Every portrait framed on her eyes (Models.astro `frameOf`) ----------
+   A photograph is shown a little closer (--az), zoomed in around the point between her eyes (--aex, --aey: shares of
+   the photo), and that point lands at --ox, --oy of the card. --oy is the same on every card, so across the row the
+   girls' eyes are on one line. Her second photograph (--bz, --bex, --bey) puts her eyes at the very same point, her
+   face as big, so nothing jumps when it shows. The pointer's zoom and the slow breathing grow from her eyes too: they
+   stay where they are while the picture comes closer around them. The zoom never leaves a gap in the card. */
+.mdl-shot .photo > img {
+  transform-origin: calc(var(--ox, .5) * 100%) calc(var(--oy, .5) * 100%);
+  transform: scale(var(--az, 1)) translate(calc((var(--ox, .5) - var(--aex, .5)) * 100%), calc((var(--oy, .5) - var(--aey, .5)) * 100%));
+}
+.mdl-shot .photo > img.mdl-hot {
+  transform: scale(var(--bz, 1)) translate(calc((var(--ox, .5) - var(--bex, .5)) * 100%), calc((var(--oy, .5) - var(--bey, .5)) * 100%));
+}
+
+/* the site-wide curtain on photographs is not for a row that scrolls sideways (the row has its own entrance) */
+html.motion .mdl-card .photo { clip-path: none; }
+html.motion .mdl-card .photo.is-in, html.motion .mdl-card .photo.is-in > img { animation: none; }
+
+/* ---------- Name, number, two lines ---------- */
+.mdl-cap { display: grid; gap: 10px; padding-top: 16px; }
+.mdl-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.mdl-name { min-width: 0; font: 500 clamp(20px, 1.64vw, 25px)/1.05 var(--f-text); letter-spacing: -.01em; color: var(--fg); }
+.mdl-text {
+  font: 400 16px/1.55 var(--f-text); color: var(--fg-2); min-height: 3.1em;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+}
+
+/* ---------- Under the row: the line and the counter ---------- */
+.mdl-foot { display: flex; align-items: center; gap: clamp(16px, 1.6vw, 24px); margin-top: clamp(14px, 1.6vw, 24px); }
+.mdl-line { position: relative; flex: 1; height: 1px; background: var(--rule-2); }
+.mdl-line i { position: absolute; left: 0; right: 0; top: -.5px; height: var(--seam); background: var(--lit-core); box-shadow: var(--seam-glow); transform-origin: 0 50%; transform: scaleX(.125); transition: transform .7s var(--ease-out); }
+.mdl-count { display: inline-flex; align-items: baseline; gap: 8px; font: var(--label-wght) 13px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); color: var(--ash); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mdl-now { display: inline-block; overflow: hidden; padding: .12em .04em; margin: -.12em -.04em; }
+.mdl-now b { display: inline-block; font: 340 44px/.8 var(--f-flex); font-stretch: var(--dial-wdth); font-variant-numeric: tabular-nums lining-nums; letter-spacing: .05em; color: var(--fg); }
+/* without scripts the row still scrolls; there is nothing for the buttons and the counter to do */
+html:not(.js) :is(.mdl-nav, .mdl-foot) { display: none; }
+
+/* ---------- Short screens (a 1366x768 or 1280x720 laptop): the section breathes a little less and the portraits
+   give up a little width, so it still fits one screen; at 1440x900 and taller this changes nothing ---------- */
+@media (min-width: 900px) {
+  .mdl-card { width: max(180px, min(calc((100cqw - var(--edge) - (var(--mdl-per) - .5) * var(--mdl-gap)) / var(--mdl-per)), calc((100svh - 2 * var(--mdl-air) - var(--mdl-rest)) * .75))); }
+}
+@media (min-width: 900px) and (max-height: 820px) { .mdl { --mdl-rest: 341px; } }
+
+/* ---------- Narrower screens ---------- */
+@media (max-width: 1199px) { .mdl { --mdl-per: 2.25; } }
+@media (max-width: 1099px) { .mdl { --mdl-rest: 354px; } }
+@media (max-width: 899px) { .mdl { --mdl-per: 1.45; } }
+@media (max-width: 599px) {
+  .mdl { --mdl-gap: 14px; }
+  .mdl-card { width: min(80cqw, 400px); }
+  .mdl-arrow { width: 44px; height: 44px; }
+  .mdl-arrow svg { width: 18px; height: 18px; }
+  .mdl-cap { gap: 8px; padding-top: 14px; }
+  .mdl-name { font-size: 26px; }
+  .mdl-now b { font-size: 36px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mdl-line i { transition: none; }
+}
+
+/* ---------- The portrait steps into the light under the pointer (Models.astro) ----------
+   It lifts and grows a little and leans toward the pointer, and the photograph zooms; the name comes up to white.
+   The model in the light breathes: a slow zoom in and out. */
+.mdl-shot {
+  position: relative;
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform .9s var(--ease-out), translate .7s var(--ease-out), scale .7s var(--ease-out);
+}
+.mdl-card.is-tilting .mdl-shot { transition: transform .15s linear, translate .7s var(--ease-out), scale .7s var(--ease-out); }
+.mdl-card.is-hover .mdl-shot { translate: 0 -4px; scale: 1.03; }
+.mdl-card.is-hover .photo img { scale: 1.06; }
+.mdl-card.is-hover .mdl-name { color: #fff; }
+@keyframes mdl-breathe { from { scale: 1; } to { scale: 1.05; } }
+html.motion .mdl.is-live .mdl-card.is-active .photo img { animation: mdl-breathe 9s ease-in-out infinite alternate; }
+
+/* ---------- The second photograph (Models.astro: `hot`, scripts/hot.ts) ----------
+   A second picture in the photograph's frame, so it has the same contrast, zoom and breathing; it shows while the
+   pointer is on her, and on a phone while her portrait is held (then no "save image" menu over it). */
+.mdl-card .photo .mdl-hot { opacity: 0; pointer-events: none; transition: scale 1.2s cubic-bezier(.2, .7, .2, 1), opacity .3s ease; }
+.mdl-card:is(.is-hover, .is-peek) .photo .mdl-hot { opacity: 1; }
+.mdl-card[data-hot] { -webkit-touch-callout: none; }
+
+/* the open button: shown on the model in the light where there is no pointer (a phone), and to the keyboard; a
+   square plate, smoked and solid, inside one hairline */
+.mdl-open {
+  position: absolute; right: 12px; bottom: 12px; z-index: 4; width: 44px; height: 44px; padding: 0;
+  display: grid; place-items: center; color: #fff; cursor: pointer;
+  background: var(--smoke); box-shadow: inset 0 0 0 1px var(--rule-2);
+  opacity: 0; scale: .7; transition: opacity .4s ease, scale .5s var(--ease-out);
+}
+.mdl-open svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: square; }
+.mdl-open:focus-visible { opacity: 1; scale: 1; }
+@media (hover: none), (pointer: coarse) { .mdl.is-live .mdl-card.is-active .mdl-open { opacity: 1; scale: 1; } }
+
+/* ---------- Her profile: full screen ----------
+   Desktop: the portrait stands tall on the left, her name huge behind it as a hairline in the Dial, and beside it
+   the name, her two lines and the booking button; square smoked buttons at the edges, the count at the top (the
+   number in the Dial, how many in the Label). On lacquer, the deepest black, with a faint white light where she
+   stands. (2026-11-21, «Между»: the burgundy light behind her, the burgundy shadow under her, the name in metal and
+   the round blurred glass buttons are gone.)
+   Phone: a story. The portrait fills the screen, the words sit at the bottom over a shade, bars at the top
+   count the models, and a tap on the left third goes back, the rest goes on. */
+html.mdv-lock { overflow: hidden; }
+.mdv { position: fixed; inset: 0; z-index: 96; color: var(--fg); overscroll-behavior: contain; }
+.mdv[hidden] { display: none; }
+.mdv-veil {
+  position: absolute; inset: 0;
+  background: radial-gradient(50% 64% at var(--vx, 36%) 54%, rgba(236, 236, 232, .045) 0%, rgba(236, 236, 232, 0) 70%), var(--lacquer);
+}
+.mdv-big {
+  /* her name in the Dial, light (never hairline: 2026-11-23) in capitals, as big as the space above the words allows
+     (the script fits it: --bs), faint: the page's own name for her, behind her */
+  position: absolute; left: var(--ix, 60%); top: var(--bt, 80px); z-index: 0; margin: 0; white-space: nowrap; pointer-events: none;
+  font: 280 var(--bs, 163px)/.8 var(--f-flex); font-stretch: var(--dial-wdth); text-transform: uppercase; letter-spacing: 0;
+  color: rgba(236, 236, 232, .16);
+}
+.mdv-stage { position: absolute; inset: 0; z-index: 1; touch-action: none; user-select: none; -webkit-user-select: none; }
+.mdv-media { position: absolute; overflow: hidden; background: var(--lacquer); will-change: transform; }
+.mdv-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* a phone's story: her second photograph over the first, brought in by the script a moment after she arrives */
+.mdv-media img.mdv-hot { opacity: 0; }
+/* her portrait's own frame: on a desktop framed as on her card (zoomed in around her eyes, which stand where they
+   stood on the card: Models.astro `frameOf`), so the portrait flies out of the row without a jump; a phone shows her
+   whole photo, full screen (the script eases the card's framing away). Her slow breathing grows from her eyes. */
+.mdv-frame { position: absolute; inset: 0; }
+.mdv-frame img { transform-origin: calc(var(--ex, .5) * 100%) calc(var(--ey, .5) * 100%); }
+@media (min-width: 900px) {
+  .mdv-frame {
+    transform-origin: calc(var(--ox, .5) * 100%) calc(var(--oy, .5) * 100%);
+    transform: scale(var(--z, 1)) translate(calc((var(--ox, .5) - var(--ex, .5)) * 100%), calc((var(--oy, .5) - var(--ey, .5)) * 100%));
+  }
+}
+.mdv-ui { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.mdv-ui > * { pointer-events: auto; }
+.mdv-n {
+  position: absolute; left: var(--pad); top: calc(20px + env(safe-area-inset-top)); margin: 0; pointer-events: none;
+  display: flex; align-items: baseline; gap: 8px;
+  font: var(--label-wght) 13px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); color: var(--ash); font-variant-numeric: tabular-nums;
+}
+/* (the number at 48px and a touch apart: at 40px the Dial's narrow 0 and 1 ran together into two bars) */
+.mdv-n b { font: 340 48px/.8 var(--f-flex); font-stretch: var(--dial-wdth); font-variant-numeric: tabular-nums lining-nums; letter-spacing: .05em; color: var(--fg); }
+/* the buttons: square plates, smoked and solid, inside one hairline; under the pointer the hairline comes up to
+   shirt white */
+.mdv-btn {
+  position: absolute; display: grid; place-items: center; padding: 0; color: #fff; cursor: pointer;
+  background: var(--smoke); box-shadow: inset 0 0 0 1px var(--rule-2);
+  transition: box-shadow .3s ease, scale .3s var(--ease-out);
+}
+.mdv-btn:active { scale: .94; }
+@media (hover: hover) { .mdv-btn:hover { box-shadow: inset 0 0 0 1px var(--shirt); } }
+.mdv-close { right: var(--pad); top: calc(18px + env(safe-area-inset-top)); width: 52px; height: 52px; }
+.mdv-close i { position: relative; width: 16px; height: 16px; }
+.mdv-close i::before, .mdv-close i::after { content: ''; position: absolute; left: -1px; right: -1px; top: 50%; height: 1.6px; margin-top: -.8px; background: currentColor; rotate: 45deg; }
+.mdv-close i::after { rotate: -45deg; }
+.mdv-nav { top: 50%; width: 58px; height: 58px; margin-top: -29px; }
+.mdv-nav svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: square; stroke-linejoin: miter; }
+.mdv-prev { left: var(--pad); }
+.mdv-next { right: var(--pad); }
+.mdv-bars { display: none; }
+.mdv-info { position: absolute; left: var(--ix, 60%); bottom: var(--ib, 80px); width: min(440px, calc(100vw - var(--ix, 60%) - 120px)); }
+/* her name: the text face at its heavier weight, large, in shirt white (the box as wide as the name;
+   scripts/story.ts sets a long name smaller when the room is short) */
+.mdv-name {
+  width: max-content;
+  margin: 0; font: 500 clamp(44px, 4.4vw, 76px)/1.05 var(--f-text); letter-spacing: -.024em; color: var(--fg);
+  padding-bottom: .06em;
+}
+.mdv-text { margin: 14px 0 28px; font: 400 clamp(17px, 1.3vw, 20px)/1.55 var(--f-text); color: var(--fg-2); }
+
+@media (max-width: 899px) {
+  .mdv-big, .mdv-nav, .mdv-n { display: none; }
+  .mdv-media { box-shadow: none; }
+  .mdv-media::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(0deg, rgba(0, 0, 0, .92) 0%, rgba(0, 0, 0, .6) 28%, rgba(0, 0, 0, 0) 55%), linear-gradient(180deg, rgba(0, 0, 0, .55) 0%, rgba(0, 0, 0, 0) 18%);
+  }
+  .mdv-bars { position: absolute; left: 12px; right: 12px; top: calc(10px + env(safe-area-inset-top)); display: flex; gap: 4px; pointer-events: none; }
+  .mdv-bars i { flex: 1; height: 2px; background: rgba(236, 236, 232, .3); transition: background-color .4s ease; }
+  .mdv-bars i.on { background: var(--shirt); }
+  .mdv-close { right: 12px; top: calc(24px + env(safe-area-inset-top)); width: 44px; height: 44px; }
+  .mdv-info { left: 20px; right: 20px; bottom: calc(22px + env(safe-area-inset-bottom)); width: auto; }
+  .mdv-name { font-size: clamp(48px, 14vw, 68px); }
+  .mdv-text { margin: 10px 0 20px; font-size: 16px; }
+  .mdv-book { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mdl-shot, .mdl-open { transition: none; }
+  .mdl-card.is-hover .mdl-shot { translate: none; scale: none; }
+}
+
+/* ---------- A phone held sideways (or any screen as short): see landscape.css ---------- */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* ---------- The models: portraits as tall as the screen allows, with their names under them ---------- */
+  .mdl-card { width: min(calc((100cqw - var(--edge) - (var(--mdl-per) - .5) * var(--mdl-gap)) / var(--mdl-per)), calc((100svh - 120px) * .75)); }
+}

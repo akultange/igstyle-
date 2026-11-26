@@ -1,0 +1,468 @@
+---
+// The home hero (styles in styles/hero.css). Three takes while we choose:
+//   v1  the club's film across the screen, falling into black; the line, the lead and the two buttons on the left
+//       where it darkens; HOTLAND in steel across the foot of the screen, where the page goes on;
+//   v2  a black screen where the film plays only inside the giant HOTLAND letters, the words centred beneath;
+//       on a computer, scrolling opens the letters until the film fills the screen, then the page goes on;
+//   v3  the film across the whole screen behind frosted glass (blurred and dimmed), with HOTLAND cut clear out of
+//       the frost and edged in a hairline, so the word is a window onto the night. The pointer, or a finger, wipes
+//       the fog away where it passes. It opens frosted, the word already clear, the film coming up out of the black.
+//       On a phone held upright (2026-11-19: the club didn't want the name split over two lines) the clear part is
+//       the door's line of light grown into a gap: a tall slit down the middle of the frost with the red light
+//       along its edges, the film sharp inside it, and the name on one line across it in fine steel capitals,
+//       HOT before it and LAND growing out of its far edge, as on the wall. The 18+ door (AgeGate.astro) stands
+//       on the same skeleton (styles/first-screen.css), so it opens straight into this.
+// The dev server and preview builds (PUBLIC_NOINDEX=1) render all three, plus a small switch at the top left
+// (also ?hero=v1, v2 or v3; the choice is remembered in localStorage 'hl-hero'). A production build renders
+// only DEFAULT and no switch. Settled on v3 (2026-11-12): the client asked to keep v1 and v2 in the code but
+// hidden, so with SETTLED the dev server and preview builds render only DEFAULT too, with no switch (turn
+// SETTLED off to compare them again).
+import { type Lang, ui } from '../data/i18n';
+import { HERO_PHONE } from '../data/hero';
+import { place, line, nameHalves } from '../data/wordmark';
+import '../styles/first-screen.css';
+import '../styles/hero.css';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const t = ui[lang];
+const ru = lang === 'ru';
+const p = (s: string) => `/${lang}/${s}/`;
+
+type Take = 'v1' | 'v2' | 'v3';
+const DEFAULT: Take = 'v3';
+const SETTLED = true;
+const TEST = import.meta.env.DEV || import.meta.env.PUBLIC_NOINDEX === '1';
+/** Still choosing between the takes (dev and preview, until settled): all three, the chooser and the switch. */
+const CHOOSING = TEST && !SETTLED;
+const takes: Take[] = CHOOSING ? ['v1', 'v2', 'v3'] : [DEFAULT];
+
+// HOTLAND as outlines (data/wordmark.ts): sharp at any size, no web font to wait for, and cut out of black for v2.
+// the word on one line (the O reaches 11 above the capitals and 10 below the baseline)
+const word = line('HOTLAND');
+const W = word.width;
+const box = `0 -725 ${W} 735`;
+// v2 opens around the middle of the L's stem (x 80 to 265 of the letter, y -710 to -150)
+const stemX = (word.at[3] + (80 + 265) / 2) / W;
+const stemY = (725 - 430) / 735;
+// v2 on phones: HOT over LAND, both lines the full width (HOT drawn larger), 0.12 em apart
+const hot = line('HOT');
+const land = line('LAND');
+const sHot = land.width / hot.width;
+const GAP = 86;
+const stackH = Math.round(725 * sHot + GAP + 714);
+const stack = [...hot.paths.map((d) => place(d, sHot, 0, 0)), ...land.paths.map((d) => place(d, 1, 0, GAP + 714))];
+const stackBox = `0 ${-Math.round(725 * sHot)} ${land.width} ${stackH}`;
+/** Black everywhere around the letters (a huge square with the letters cut out of it). */
+const B = 20000;
+const cut = (paths: string[], w: number) => `M${-B} ${-B}H${w + B}V${B}H${-B}Z` + paths.join('');
+// v3: the word cut clear out of the frost (the letters' outlines, a mask) and its chrome edge (the same outlines
+// as a line, in a box E units larger on every side so the line's outer half isn't cut off; --ex --ey say by how
+// much, as a share). One line on a wide screen; on a phone held upright, the HOT-over-LAND stack above.
+const svgUrl = (vb: string, body: string) =>
+  `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='${vb}'>${body}</svg>`)}")`;
+const E = 6;
+const grown = (vb: string) => {
+  const [x, y, w, h] = vb.split(' ').map(Number);
+  return `${x - E} ${y - E} ${w + 2 * E} ${h + 2 * E}`;
+};
+const maskOf = (vb: string, paths: string[]) => svgUrl(vb, `<path d='${paths.join('')}'/>`);
+const edgeOf = (vb: string, sw: number, paths: string[]) =>
+  svgUrl(grown(vb), `<path d='${paths.join('')}' fill='none' stroke='black' stroke-width='${sw}' stroke-linejoin='round'/>`);
+// v3 on a phone held upright: the gap. Its mask is one rectangle that takes whatever box it is given (the gap's
+// width and height are set in hero.css), clear down its length and frosting over again along its last fifth.
+const gapMask = `url("data:image/svg+xml,${encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 100' preserveAspectRatio='none'><defs><linearGradient id='f' x1='0' y1='0' x2='0' y2='1'><stop offset='0'/><stop offset='.78'/><stop offset='1' stop-opacity='0'/></linearGradient></defs><rect width='10' height='100' fill='url(#f)'/></svg>")}")`;
+// the name across the gap, as the wall carries it (data/wordmark.ts, nameHalves): the same lockup as on the 18+ door
+const nm = nameHalves();
+const glass = [
+  `--word:${maskOf(box, word.paths)}`, `--word-m:${gapMask}`,
+  `--edge:${edgeOf(box, 4.5, word.paths)}`, `--edge-m:${edgeOf(stackBox, 8, stack)}`,
+  `--ex:${(E / W).toFixed(5)}`, `--ey:${(E / 735).toFixed(5)}`, `--ex-m:${(E / land.width).toFixed(5)}`, `--ey-m:${(E / stackH).toFixed(5)}`,
+].join(';');
+
+const film = {
+  label: ru ? 'Видео: вечер в HOTLAND, артистка у пилона на круглой сцене, лучи света' : 'Video: an evening at HOTLAND, an artist at the pole on the round stage, beams of light',
+  pause: ru ? 'Пауза' : 'Pause',
+  play: ru ? 'Смотреть' : 'Play',
+};
+const copy = {
+  // (2026-11-20: the club asked for the motto, «Только между нами», to go from the header: the name, one line that
+  // says what the place is, and the two buttons. The motto stays in the page's title and on the footer's card.)
+  // (no-break spaces keep a short word with the one after it, so no line ends on "в", "с" or "The")
+  // (2026-11-19: the club found the second sentence, «Шоу, ужин и бар каждую ночь с 22:00 до 06:00», one too many: the
+  // line under the motto only says what the place is; the hours are in the menu sheet, the footer and «О нас»)
+  // (2026-11-22: «премиальный» went: the line says what the place is; the black, the steel and the cuff say the rest)
+  lead: ru ? 'Мужской клуб в Москве' : 'A gentlemen’s club in Moscow',
+  book: t.bookTable,
+};
+// Before the first paint: which take shows (dev and preview builds only).
+const chooser = `(function (r) { var v = ${JSON.stringify(DEFAULT)}; try { var q = new URLSearchParams(location.search).get('hero'); if (q === 'v1' || q === 'v2' || q === 'v3') { v = q; localStorage.setItem('hl-hero', q); } else { var s = localStorage.getItem('hl-hero'); if (s === 'v1' || s === 'v2' || s === 'v3') v = s; } } catch (e) {} r.dataset.hero = v; })(document.documentElement);`;
+// The upright cut (and its poster) is for phones held upright; a phone turned sideways gets the wide one. The poster
+// shows at once (preloaded in the page's head, HeroPreload.astro: it's what the page is first judged by), and only
+// the one this screen needs: the tiny script after the film picks it, so a phone never fetches the wide one. The film
+// itself is fetched only once the page has loaded and the 18+ question is answered (the script below), so its
+// megabytes never hold up the first screen, and only the one cut the screen needs.
+const PHONE = HERO_PHONE;
+const starter = `(function (v) { v.poster = matchMedia('${PHONE}').matches ? v.dataset.posterPhone : v.dataset.poster; })(document.currentScript.previousElementSibling);`;
+---
+{CHOOSING && <script is:inline set:html={chooser} />}
+<section class:list={['hero', { 'hv-test': CHOOSING }]} style={`--wl:${nm.land.width};--ngu:${nm.gap};--nsu:${nm.axis};--wr:${(735 / W).toFixed(5)};--wr-m:${(stackH / land.width).toFixed(5)};--ax:${(stemX * 100).toFixed(2)}%;--ay:${(stemY * 100).toFixed(2)}%;--axn:${stemX.toFixed(4)};--ayn:${stemY.toFixed(4)}`}>
+  <h1 class="sr-only">{ru ? 'HOTLAND, мужской клуб в Москве' : 'HOTLAND, a gentlemen’s club in Moscow'}</h1>
+  {takes.map((take) => (
+    <div class:list={['hv', `h${take}`]} data-take={take} style={take === 'v3' ? glass : undefined}>
+      <div class:list={['hv-film', `h${take}-film`]}>
+        <video muted loop playsinline preload="none" data-poster="/video/hero-d.webp" data-poster-phone="/video/hero-m.webp" data-src="/video/hero-d.mp4" data-src-phone="/video/hero-m.mp4" data-take={take} aria-label={film.label}></video>
+        <script is:inline set:html={starter} />
+      </div>
+      {take === 'v2' && <div class="hv2-shade" aria-hidden="true"></div>}
+      {take === 'v3' && (
+        /* v3: the frost over the film with the word cut clear out of it, the hairline edge of the letters, a band
+           of light along it now and then, and the dimming as the page moves on */
+        <Fragment>
+          <div class="hv3-frost" aria-hidden="true"><div class="hv3-tint"></div></div>
+          <div class="hv3-edge" aria-hidden="true"></div>
+          <div class="hv3-shine" aria-hidden="true"><i></i></div>
+          <div class="hv3-dim" aria-hidden="true"></div>
+          {/* a phone held upright: the red light along the gap's two edges, and the name across it */}
+          <div class="hv3-gap" aria-hidden="true"><i></i><i></i></div>
+          <div class="wall-name hv3-name" aria-hidden="true">
+            <svg viewBox={nm.box(nm.hot.width)} focusable="false">{nm.hot.paths.map((d) => <path d={d} />)}</svg>
+            <svg viewBox={nm.box(nm.land.width)} focusable="false">{nm.land.paths.map((d) => <path d={d} />)}</svg>
+          </div>
+        </Fragment>
+      )}
+      <div class="hv-stage">
+        {take === 'v2' && (
+          /* v2: black everywhere but the letters, so the film shows only through them */
+          <div class="hv2-word" aria-hidden="true">
+            <svg class="hv2-cut hv2-line" viewBox={box} focusable="false">
+              <path class="hv2-black" fill-rule="evenodd" d={cut(word.paths, W)} />
+              <path class="hv2-edge" d={word.paths.join('')} />
+            </svg>
+            <svg class="hv2-cut hv2-stack" viewBox={stackBox} focusable="false">
+              <path class="hv2-black" fill-rule="evenodd" d={cut(stack, land.width)} />
+              <path class="hv2-edge" d={stack.join('')} />
+            </svg>
+          </div>
+        )}
+        <div class="hv-copy">
+          <p class="lead hv-lead">{copy.lead}</p>
+          <div class="hv-act">
+            <a class="btn btn-crimson" href={p('booking')}>{copy.book}</a>
+            <a class="btn btn-line" href={p('program')}>{t.nav.program}</a>
+          </div>
+        </div>
+        {take === 'v1' && (
+          /* v1: the name in steel across the foot of the screen */
+          <svg class="hv1-name" viewBox={box} aria-hidden="true" focusable="false">
+            <defs>
+              <linearGradient id="hv1-sheen" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#fff" stop-opacity=".95" />
+                <stop offset=".26" stop-color="#ffffff" stop-opacity=".55" />
+                <stop offset=".46" stop-color="#28221e" stop-opacity=".2" />
+                <stop offset=".52" stop-color="#1e1a16" stop-opacity=".36" />
+                <stop offset=".63" stop-color="#ffffff" stop-opacity=".72" />
+                <stop offset=".8" stop-color="#ffffff" stop-opacity=".36" />
+                <stop offset="1" stop-color="#28221e" stop-opacity=".24" />
+              </linearGradient>
+              <pattern id="hv1-steel" patternUnits="userSpaceOnUse" x="0" y="-725" width={W} height="735">
+                <rect width={W} height="735" fill="#c4c6ca" />
+                <image href="/img/metal/brushed.webp" width={W} height="735" preserveAspectRatio="none" />
+                <rect width={W} height="735" fill="url(#hv1-sheen)" />
+              </pattern>
+              <clipPath id="hv1-clip"><path d={word.paths.join('')} /></clipPath>
+              <linearGradient id="hv1-glint" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#fff" stop-opacity="0" />
+                <stop offset=".5" stop-color="#fff" stop-opacity=".75" />
+                <stop offset="1" stop-color="#fff" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <g class="hv1-letters" fill="url(#hv1-steel)" stroke="rgba(255,255,255,.3)" stroke-width="2">
+              {word.paths.map((d, i) => <path d={d} style={`--i:${i}`} />)}
+            </g>
+            <g clip-path="url(#hv1-clip)"><g transform="skewX(-24)"><rect class="hv1-glint" x="-900" y="-800" width="560" height="900" fill="url(#hv1-glint)" /></g></g>
+          </svg>
+        )}
+      </div>
+      <button class="vid-toggle" type="button" data-video-toggle data-pause={film.pause} data-play={film.play}><i aria-hidden="true"></i><span>{film.pause}</span></button>
+    </div>
+  ))}
+  {CHOOSING && (
+    <div class="hx-switch" role="group" aria-label="Hero (testing)">
+      <span>Hero:</span>
+      <button type="button" data-hero-set="v1">v1</button>
+      <button type="button" data-hero-set="v2">v2</button>
+      <button type="button" data-hero-set="v3">v3</button>
+    </div>
+  )}
+</section>
+
+<script>
+  // The hero's films and scroll, wiping v3's fog, and the test switch between the takes.
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  gsap.registerPlugin(ScrollTrigger);
+
+  const root = document.documentElement;
+  const hero = document.querySelector<HTMLElement>('.hero');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  type Part = { el: HTMLElement; video: HTMLVideoElement | null; btn: HTMLButtonElement | null };
+  const parts = new Map<string, Part>();
+  hero?.querySelectorAll<HTMLElement>('.hv[data-take]').forEach((el) => {
+    parts.set(el.dataset.take!, { el, video: el.querySelector('video'), btn: el.querySelector('[data-video-toggle]') });
+  });
+  /** The take on screen. */
+  const shown = () => {
+    const v = root.dataset.hero;
+    return v && parts.has(v) ? v : [...parts.keys()][0];
+  };
+
+  /* ---------- Films: only the take on screen plays, and only while the hero is in view. A visitor can pause
+     it (WCAG 2.2.2); with reduced motion it stays still until they press play. ---------- */
+  let inView = true;
+  // An iPhone in Low Power Mode starts no film by itself, muted or not, and a page can't ask whether that mode is on:
+  // play() is refused. Then the visitor's next tap anywhere (the 18+ answer, the menu, a link) starts the film, not
+  // only the «Смотреть» switch.
+  let refused = false;
+  // Nothing plays behind the 18+ question (it covers the whole screen): the film starts at the answer.
+  const gateEl = document.getElementById('gate');
+  const answered = () => !gateEl || root.classList.contains('age-ok') || gateEl.classList.contains('out');
+  const wants = (take: string, v: HTMLVideoElement) =>
+    answered() && take === shown() && inView && (v.dataset.user === 'play' || (!reduce && v.dataset.user !== 'pause'));
+  // after every click handler of the answer has run (the gate's own adds .out)
+  document.querySelector('[data-gate-yes]')?.addEventListener('click', () => setTimeout(run, 0));
+  // (the door as a place opens over three seconds and only then lets the page go: the film starts when it does, or it
+  // stood waiting for «Смотреть» after the 3D door, 2026-11-23)
+  addEventListener('hotland:gate', () => setTimeout(run, 0));
+  // The film is fetched only once the page has loaded (its poster stands in until then), and only the cut this screen
+  // needs: the upright one on a phone held upright, the wide one anywhere else.
+  const phoneCut = matchMedia('(max-width: 899px) and (orientation: portrait)');
+  let loaded = document.readyState === 'complete';
+  if (!loaded) addEventListener('load', () => { loaded = true; setTimeout(run, 0); setTimeout(warm, 300); }, { once: true });
+  else setTimeout(warm, 300);
+  // While the 18+ door stands shut the film is made ready behind it (fetched, not played), so that it is already
+  // moving when the door opens. Not on a metered or slow line, where the answer fetches it as before.
+  function warm() {
+    if (answered() || reduce) return;
+    const net = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    if (net && (net.saveData || /2g|3g/.test(net.effectiveType || ''))) return;
+    const video = parts.get(shown())?.video;
+    if (video && ready(video)) { video.preload = 'auto'; video.load(); }
+  }
+  function ready(v: HTMLVideoElement) {
+    if (v.getAttribute('src')) return true;
+    if (!loaded) return false;
+    v.src = (phoneCut.matches && v.dataset.srcPhone) || v.dataset.src || '';
+    return true;
+  }
+  function run() {
+    parts.forEach(({ video }, take) => {
+      if (!video) return;
+      if (wants(take, video)) {
+        if (video.paused) {
+          if (!ready(video)) return;
+          video.preload = 'auto';
+          video.play()
+            .then(() => { refused = false; })
+            .catch((err: DOMException) => { if (err?.name === 'NotAllowedError') refused = true; });
+        }
+      } else if (!video.paused) video.pause();
+    });
+  }
+  addEventListener('touchend', () => { if (refused) run(); }, { passive: true });
+  addEventListener('click', () => { if (refused) run(); });
+  parts.forEach(({ video, btn }) => {
+    if (!video) return;
+    const label = btn?.querySelector('span');
+    const sync = () => {
+      if (!btn) return;
+      btn.classList.toggle('paused', video.paused);
+      if (label) label.textContent = video.paused ? btn.dataset.play! : btn.dataset.pause!;
+    };
+    video.addEventListener('play', sync);
+    video.addEventListener('pause', sync);
+    btn?.addEventListener('click', () => {
+      video.dataset.user = video.paused ? 'play' : 'pause';
+      run();
+    });
+    sync();
+  });
+  if (hero && 'IntersectionObserver' in window) {
+    new IntersectionObserver(([e]) => {
+      inView = e.isIntersecting;
+      run();
+    }).observe(hero);
+  }
+  run();
+
+  /* ---------- Scroll (with motion only) ----------
+     v1: the film sinks a little and dims as the page moves on; the words and the name move with the page.
+     v2 (computer): the hero holds for a moment while the letters open around the L's stem until the film fills
+     the screen, then the page goes on.
+     v3: the film sinks a little behind the glass, and the glass and the word dim as the page moves on. */
+  const motion = root.classList.contains('motion');
+  let mm: gsap.MatchMedia | null = null;
+  function effects() {
+    mm?.revert();
+    mm = null;
+    if (!motion || !hero) return;
+    const take = shown();
+    const part = parts.get(take);
+    if (!part) return;
+    mm = gsap.matchMedia();
+    if (take === 'v1') {
+      mm.add('(min-width: 0px)', () => {
+        const film = part.el.querySelector<HTMLElement>('.hv1-film');
+        const video = film?.querySelector('video');
+        if (!film || !video) return;
+        const away = () => ({ trigger: part.el, start: 'top top', end: 'bottom top', scrub: true });
+        // from its resting size: read mid-entrance (hero.css, hv-settle), the film would keep the entrance's zoom
+        gsap.fromTo(video, { yPercent: 0, scale: 1 }, { yPercent: 8, scale: 1, ease: 'none', scrollTrigger: away() });
+        gsap.fromTo(film, { '--dim': 0 }, { '--dim': 0.55, ease: 'none', scrollTrigger: away() });
+      });
+    } else if (take === 'v2') {
+      mm.add('(min-width: 900px) and (hover: hover) and (pointer: fine)', () => {
+        const film = part.el.querySelector<HTMLElement>('.hv2-film');
+        const word = part.el.querySelector<HTMLElement>('.hv2-word');
+        const shade = part.el.querySelector<HTMLElement>('.hv2-shade');
+        const edges = part.el.querySelectorAll<SVGPathElement>('.hv2-edge');
+        // (the pause switch stays: the film keeps playing while it fills the screen)
+        const words = part.el.querySelectorAll<HTMLElement>('.hv-copy');
+        if (!film || !word) return;
+        gsap.timeline({
+          defaults: { ease: 'none' },
+          scrollTrigger: { trigger: hero, start: 'top top', end: '+=65%', pin: true, scrub: 0.6, anticipatePin: 1, refreshPriority: 10 },
+        })
+          // (explicit start values: while the entrance runs, the computed opacity is still 0)
+          .fromTo(words, { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: 30, duration: 0.18, ease: 'power1.in' }, 0)
+          // the L's stem grows until it covers the screen (about 26 times its size), so the film opens like a door
+          .fromTo(word, { scale: 1 }, { scale: 30, duration: 1, ease: 'power3.in' }, 0)
+          .fromTo(edges, { opacity: 1 }, { opacity: 0, duration: 0.2 }, 0.05)
+          .fromTo(word, { opacity: 1 }, { opacity: 0, duration: 0.08 }, 0.92)
+          .fromTo(film, { '--lift': 1 }, { '--lift': 0, duration: 0.45 }, 0.5)
+          .fromTo(shade, { opacity: 0 }, { opacity: 1, duration: 0.25 }, 0.75);
+      });
+    } else {
+      // v3 on a computer opens the way v2 does: the hero holds while the clear letters grow around the L's stem
+      // (the frost, its chrome edge and the band of light, all from the same point) until the film fills the
+      // screen, then the page goes on. The same timing and easing as v2's.
+      mm.add('(min-width: 900px) and (hover: hover) and (pointer: fine)', () => {
+        const el = part.el;
+        const edges = el.querySelectorAll<HTMLElement>('.hv3-edge, .hv3-shine');
+        const frost = el.querySelector<HTMLElement>('.hv3-frost');
+        const words = el.querySelectorAll<HTMLElement>('.hv-copy');
+        if (!frost) return;
+        // --z grows the clear letters (the frost's cut-out and the chrome edge, hero.css) around the L's stem; the
+        // glass itself never grows, so there is no size limit to run into
+        gsap.timeline({
+          defaults: { ease: 'none' },
+          scrollTrigger: { trigger: hero, start: 'top top', end: '+=65%', pin: true, scrub: 0.6, anticipatePin: 1, refreshPriority: 10 },
+        })
+          .fromTo(words, { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: 30, duration: 0.18, ease: 'power1.in' }, 0)
+          // the L's stem grows until it covers the screen, so the film opens like a door (as v2)
+          .fromTo(el, { '--z': 1 }, { '--z': 30, duration: 1, ease: 'power3.in' }, 0)
+          // (the chrome edge stays on the letters until they are several times their size: gone at the start, it
+          // left a murky blob on the glass for the first stretch of the scroll)
+          .fromTo(edges, { opacity: 1 }, { opacity: 0, duration: 0.25 }, 0.45)
+          .fromTo(frost, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.08 }, 0.92);
+      });
+      // phones and tablets: as before, the film sinks a little behind the glass, and the glass dims
+      mm.add('not all and (min-width: 900px) and (hover: hover) and (pointer: fine)', () => {
+        const video = part.el.querySelector<HTMLElement>('.hv3-film video');
+        const dim = part.el.querySelector<HTMLElement>('.hv3-dim');
+        if (!video || !dim) return;
+        const away = () => ({ trigger: part.el, start: 'top top', end: 'bottom top', scrub: true });
+        // from its resting size: read mid-entrance (hero.css, hv-settle), the film would keep the entrance's zoom
+        gsap.fromTo(video, { yPercent: 0, scale: 1 }, { yPercent: 10, scale: 1, ease: 'none', scrollTrigger: away() });
+        gsap.fromTo(dim, { opacity: 0 }, { opacity: 0.7, ease: 'none', scrollTrigger: away() });
+      });
+    }
+  }
+  effects();
+
+  /* ---------- v3: wiping the fog (with motion only) ----------
+     Where the pointer passes, or a finger, the frost clears in a soft round, and the clearing trails behind it
+     and closes up as it catches up; it fogs over again when the pointer leaves or the finger lifts. Four rounds,
+     each following the one before (--l0 … --l3 on .hv3-frost: x, y and radius). */
+  function fog() {
+    const part = parts.get('v3');
+    const frost = part?.el.querySelector<HTMLElement>('.hv3-frost');
+    if (!part || !frost || !motion) return;
+    const el = part.el;
+    const SIZE = [1, 0.8, 0.62, 0.46];
+    const FOLLOW = [0.32, 0.2, 0.15, 0.11];
+    const pts = SIZE.map(() => ({ x: 0, y: 0 }));
+    let tx = 0, ty = 0, on = 0, want = 0, R = 160, raf = 0;
+    let box = el.getBoundingClientRect();
+    const measure = () => {
+      box = el.getBoundingClientRect();
+      R = Math.min(Math.max(box.width * 0.12, 92), 210);
+    };
+    const draw = () => {
+      on += (want - on) * 0.12;
+      if (Math.abs(want - on) < 0.003) on = want;
+      let px = tx, py = ty, busy = on !== want;
+      pts.forEach((p, i) => {
+        p.x += (px - p.x) * FOLLOW[i];
+        p.y += (py - p.y) * FOLLOW[i];
+        if (Math.abs(px - p.x) + Math.abs(py - p.y) > 0.6) busy = true;
+        px = p.x;
+        py = p.y;
+        frost.style.setProperty(`--l${i}x`, `${p.x.toFixed(1)}px`);
+        frost.style.setProperty(`--l${i}y`, `${p.y.toFixed(1)}px`);
+        frost.style.setProperty(`--l${i}r`, `${(R * SIZE[i] * on).toFixed(1)}px`);
+      });
+      raf = busy ? requestAnimationFrame(draw) : 0;
+    };
+    const wake = () => { if (!raf) raf = requestAnimationFrame(draw); };
+    const at = (x: number, y: number) => {
+      measure();
+      tx = x - box.left;
+      ty = y - box.top;
+      // a fresh start: the rounds begin where the pointer is, not where they last were
+      if (on < 0.02) pts.forEach((p) => { p.x = tx; p.y = ty; });
+      want = 1;
+      wake();
+    };
+    const off = () => { want = 0; wake(); };
+    el.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') at(e.clientX, e.clientY); });
+    el.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') off(); });
+    // fingers: the page keeps scrolling as usual (passive listeners), the glass clears under the finger
+    const touch = (e: TouchEvent) => { const t = e.touches[0]; if (t) at(t.clientX, t.clientY); };
+    el.addEventListener('touchstart', touch, { passive: true });
+    el.addEventListener('touchmove', touch, { passive: true });
+    el.addEventListener('touchend', off, { passive: true });
+    el.addEventListener('touchcancel', off, { passive: true });
+    addEventListener('resize', measure, { passive: true });
+  }
+  fog();
+
+
+  /* ---------- The test switch (dev and preview builds only; a production build leaves this block out) ---------- */
+  if (import.meta.env.DEV || import.meta.env.PUBLIC_NOINDEX === '1') {
+  const switches = document.querySelectorAll<HTMLButtonElement>('[data-hero-set]');
+  const mark = () => switches.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.heroSet === shown())));
+  switches.forEach((b) =>
+    b.addEventListener('click', () => {
+      const take = b.dataset.heroSet!;
+      if (take === shown()) return;
+      try {
+        localStorage.setItem('hl-hero', take);
+      } catch {
+        /* private mode */
+      }
+      const url = new URL(location.href);
+      if (url.searchParams.has('hero')) {
+        url.searchParams.set('hero', take);
+        history.replaceState(history.state, '', url);
+      }
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      root.dataset.hero = take;
+      mark();
+      run();
+      effects();
+      ScrollTrigger.refresh();
+    }),
+  );
+  mark();
+  }
+</script>

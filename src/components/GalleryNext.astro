@@ -1,0 +1,51 @@
+---
+// The way back (gallery page, the last thing before the footer; styles in styles/tune.css). Someone who came into
+// the gallery from another page's gallery block (the home page's prints, GalleryPeek.astro) finds, at the end of
+// the gallery, one quiet line and a button that takes them straight on to where they were going on that page
+// ("Дальше на главной" · «Артистки»). No ring, no waiting, no passage: a plain link, and the page opens at that
+// part. Someone who opened the gallery any other way never sees it: it stays hidden. Where they came from is the
+// note the block left in sessionStorage, moved into this page's own history entry, so a reload or coming back to
+// this page keeps it.
+import { type Lang } from '../data/i18n';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+---
+<section class="gnext" data-gnext hidden aria-labelledby="gnext-kick">
+  <div class="wrap gnext-in">
+    <p class="gnext-kick" id="gnext-kick"></p>
+    <a class="btn btn-silver gnext-go" href={`/${lang}/`} data-gnext-go>
+      <span class="gnext-name"></span>
+      <svg class="gnext-arrow" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h13m0 0-5.5-5.5M18 12l-5.5 5.5" /></svg>
+    </a>
+  </div>
+</section>
+
+<script>
+  type From = { path: string; next: string; label: string; kick: string; t: number };
+  const sec = document.querySelector<HTMLElement>('[data-gnext]');
+  if (sec) back(sec);
+
+  function back(sec: HTMLElement) {
+    // this page's own note first (a reload, or back here later); else the one the block has just left
+    let from: From | null = (history.state && history.state.hlFrom) || null;
+    if (!from) {
+      try {
+        const note = JSON.parse(sessionStorage.getItem('hl-from') || 'null');
+        sessionStorage.removeItem('hl-from');
+        if (note && Date.now() - note.t < 15000) from = note;
+      } catch { from = null; }
+      if (from) history.replaceState({ ...(history.state || {}), hlFrom: from }, '');
+    }
+    // the button's own address is this language's home page (/ru/, or /hotlandbeta/ru/ on GitHub Pages): only a page
+    // under it counts
+    const link = sec.querySelector<HTMLAnchorElement>('[data-gnext-go]')!;
+    const home = new URL(link.getAttribute('href')!, location.href).pathname;
+    if (!from || typeof from.path !== 'string' || !from.path.startsWith(home) || !/^[a-z0-9-]*$/.test(from.next || '')) return;
+
+    link.href = from.path + (from.next ? `#${from.next}` : '');
+    sec.querySelector('.gnext-kick')!.textContent = from.kick;
+    sec.querySelector('.gnext-name')!.textContent = from.label;
+    sec.hidden = false;
+  }
+</script>

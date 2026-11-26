@@ -1,0 +1,264 @@
+/* =====================================================================
+   The windows that open over the site. This file is the job application's (Apply.astro) and the booking's
+   (Book.astro; book.css has the little the booking adds): a full-screen page of its own. Desktop: a picture on the
+   left (shown whole, no fade), the three steps on the right: the step's number and the cross at the top, a line of
+   red light filling as you go, the step under it, its buttons at the foot. Phones: the steps fill the screen, the
+   buttons at its foot (above the keyboard, when it is up).
+   The controls here are the windows' one language, the call-back window's too (ask.css), and the booking's (book.css
+   repeats them for its own window): every control square and drawn in 1px lines, never filled (the cross, a pill,
+   the minus and the plus are frames; the kinds are rows over hairlines, the chosen one lit along its left edge, a
+   steel arrow at the end); what is chosen is framed in shirt white over its lit seam, as everywhere on the site;
+   the cuff only for the one main button; the consent's square frame; how a field shows it is wrong; the line of
+   light that says "sent". The steps stand on the site's own black (leather and its concrete); the count is a serial
+   number in the Label.
+   (2026-11-21, «Между»: the burgundy light at the top of the page, the steel pills for what is chosen, the round
+   cross and the metal count are gone. 2026-11-22: the application dressed as the booking is, so the two windows
+   read as one: rows for the kinds, frames for the controls, the Label for the count, the leather under the steps.)
+   ===================================================================== */
+
+/* While a window is open the page behind is held still. (Its ground then is the window's own black: where a
+   computer keeps a strip at the right for the page's scrollbar, the strip no longer shows a lighter black.) */
+html.apl-lock { overflow: hidden; background: var(--lacquer); }
+/* a control at rest: a frame of one hairline, nothing filled; under the pointer the hairline comes up. What is
+   chosen is framed in shirt white over a seam of the light (--chosen). (--plate stays for the parts that name it:
+   it is no fill now.) */
+.apl, .ask {
+  --plate: transparent; --plate-lit: transparent;
+  --plate-edge: inset 0 0 0 1px var(--rule-2); --plate-edge-lit: inset 0 0 0 1px color-mix(in srgb, var(--shirt) 55%, transparent);
+  --chosen: inset 0 0 0 1px var(--shirt), inset 0 calc(-1 * var(--seam)) 0 var(--lit);
+}
+
+.apl {
+  position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0;
+  border: 0; background: var(--lacquer); color: var(--fg); overflow: hidden;
+}
+/* (the screen's height as it is now: when a phone's keyboard comes up, the window ends above it, buttons and all) */
+@supports (height: 100dvh) { .apl { height: 100dvh; } }
+/* The window covers the screen, so it is its own ground and nothing stands behind it: it comes over the page in
+   one fade and leaves it in one (a black backdrop cut the page to black at once, and let it pop back at the end).
+   The step inside rises as it comes (apl-step, below). */
+.apl::backdrop { background: transparent; }
+.apl[open] { animation: apl-in .28s var(--ease-out); }
+.apl.apl-out { animation: apl-out .2s ease-in forwards; }
+@keyframes apl-in { from { opacity: 0; } }
+@keyframes apl-out { to { opacity: 0; } }
+
+.apl-in { display: grid; height: 100%; grid-template-columns: minmax(0, 1fr); }
+.apl-pic { display: none; margin: 0; position: relative; overflow: hidden; background: var(--lacquer); }
+.apl-pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; }
+/* (one hairline where the picture ends and the steps begin, as the booking's panel has) */
+.apl-pic { box-shadow: inset -1px 0 0 var(--rule); }
+/* (the application's dressing room: the mirror and its bulbs stand in the picture's right half, the free chair to
+   their left; a tall cut holds both) */
+.apl-room img { object-position: 74% 50%; }
+
+/* the steps' page: the top bar, the line, the step, the buttons (one column that never grows past the screen,
+   however long a button's words are) */
+.apl-box {
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto; height: 100%; min-height: 0;
+  padding: clamp(18px, 2.6vw, 40px) clamp(20px, 5vw, 88px) clamp(18px, 2.6vw, 36px);
+  background-color: var(--leather); background-image: var(--stone); background-size: var(--stone-size); background-blend-mode: overlay, overlay;
+}
+.apl-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+/* the count: a serial number in the Label, the step in shirt white and «/ 03» in ash (at this size the Dial's 0 and
+   1 are two hairlines) */
+.apl-count { display: flex; align-items: baseline; gap: 8px; margin: 0; font: var(--label-wght) 13px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); color: var(--ash); font-variant-numeric: tabular-nums lining-nums; }
+.apl-count b { font: inherit; font-stretch: inherit; letter-spacing: inherit; color: var(--fg); }
+/* the cross: a square frame */
+.apl-x {
+  display: grid; place-items: center; flex: none; width: 48px; height: 48px; color: var(--fg-2);
+  background: none; box-shadow: var(--plate-edge); transition: box-shadow .2s ease, color .2s ease;
+}
+@media (hover: hover) { .apl-x:hover { color: var(--fg); box-shadow: inset 0 0 0 1px var(--shirt); } }
+.apl-x svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.25; }
+/* the line: a hairline, and on it a seam of the light that fills a third a step (red; amber after 04:00) */
+.apl-line { position: relative; display: block; height: var(--seam); margin-top: clamp(14px, 1.8vw, 22px); background: linear-gradient(var(--rule-2), var(--rule-2)) 0 100% / 100% 1px no-repeat; }
+.apl-line i { position: absolute; left: 0; right: 0; top: 0; height: var(--seam); background: var(--lit-core); box-shadow: var(--seam-glow); transform-origin: 0 50%; transform: scaleX(var(--apl-p, .3333)); transition: transform .6s var(--ease-out); }
+/* at the end the count and the line have done their work and go: the one light left is the sign that it is sent */
+.apl-line { transition: opacity .3s ease; }
+.apl-ending .apl-count { visibility: hidden; }
+.apl-ending .apl-line { opacity: 0; }
+
+/* The step, at a comfortable reading width, from the top of its space: its title stands at one height from step to
+   step (set in the middle, it jumped with each step's length). The space scrolls if a step is ever taller than the
+   screen; the room either side is for a focus ring, or the sent sign's glow, at the step's own edge. */
+.apl-steps {
+  display: grid; align-items: start; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  margin-inline: -16px; padding: clamp(28px, calc((100vh - 700px) * .45), 108px) 16px 24px;
+  scrollbar-width: thin; scrollbar-color: rgba(230, 231, 233, .2) transparent;
+}
+.apl-step { display: grid; gap: clamp(16px, 1.8vw, 24px); width: 100%; max-width: 720px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.apl-step:not([hidden]) { animation: apl-step .5s var(--ease-out) both; }
+@keyframes apl-step { from { opacity: 0; translate: 0 12px; } }
+.apl-h {
+  float: none; width: 100%; margin: 0; padding: 0;
+  font: 500 clamp(30px, 3.61vw, 56px)/1.05 var(--f-text); letter-spacing: -.02em; text-wrap: balance;
+}
+.apl-h:focus { outline: none; }
+.apl-lead { margin: 0; max-width: 46ch; font: 400 17px/1.55 var(--f-text); color: var(--fg-2); text-wrap: pretty; }
+
+/* 1: the kinds (the roles), one to a row over hairlines, their names in the text face and a steel arrow at the end;
+   a tap chooses one and moves on. The chosen one lights its seam along its left edge, and its name turns shirt
+   white. (The booking's kinds, book.css, are the same rows.) */
+.apl-roles { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; margin-top: 4px; border-top: 1px solid var(--rule-2); }
+.apl-roles label { position: relative; display: grid; -webkit-tap-highlight-color: transparent; }
+.apl-roles input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.apl-roles span {
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 68px; padding: 12px 6px 12px 22px;
+  border-bottom: 1px solid var(--rule);
+  font: 400 clamp(19px, 1.45vw, 22px)/1.2 var(--f-text); letter-spacing: -.01em; color: var(--fg-2);
+  transition: color .25s ease;
+}
+.apl-roles span::before {
+  content: ''; position: absolute; left: 0; top: 14px; bottom: 14px; width: var(--seam);
+  background: var(--lit-core); box-shadow: var(--seam-glow);
+  transform: scaleY(0); transition: transform .4s var(--ease-io);
+}
+.apl-roles span::after { content: ''; display: inline-block; vertical-align: middle; flex: none; width: 22px; height: 11px; background: var(--steel-hi); -webkit-mask: var(--arrow) center / 100% 100% no-repeat; mask: var(--arrow) center / 100% 100% no-repeat; transition: translate .45s var(--ease-out); }
+@media (hover: hover) {
+  .apl-roles label:hover input:not(:checked) + span { color: var(--fg); }
+  .apl-roles label:hover span::after { translate: 5px 0; }
+}
+.apl-roles input:checked + span { color: var(--fg); }
+.apl-roles input:checked + span::before { transform: scaleY(1); }
+.apl-roles input:focus-visible + span { outline: var(--seam) solid var(--lit); outline-offset: 2px; }
+
+/* 2: the chosen role, the two fields, where to reply */
+.apl-chosen { margin: 0; font: 400 16px/1.4 var(--f-text); color: var(--ash); }
+.apl-chosen b { font-weight: 500; color: var(--fg); }
+/* («изменить» is a word in a line, but a finger's height to tap: the extra is unseen, takes no room, and leaves the
+   focus ring round the word itself; the same for the two links in a sentence, below) */
+.apl-change { position: relative; margin-left: 6px; padding: 0; font: inherit; color: var(--fg-2); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .28em; text-decoration-color: var(--rule-2); cursor: pointer; transition: text-decoration-color .2s, color .2s; }
+.apl-change:is(:hover, :focus-visible) { color: var(--fg); text-decoration-color: var(--lit); }
+:is(.apl-change, .apl-hint a)::before { content: ''; position: absolute; inset: -13px -6px; }
+.apl-fields { margin-top: 8px; gap: 28px var(--gap); }
+.apl-fields .field input { font-size: 20px; }
+.apl-via { display: grid; gap: 12px; margin-top: 6px; }
+.apl-via-l { margin: 0; font: 400 16px/1.4 var(--f-text); color: var(--ash); }
+.apl .field label { font: 400 16px/1.4 var(--f-text); color: var(--ash); }
+.apl-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.apl-pill { position: relative; -webkit-tap-highlight-color: transparent; }
+.apl-pill input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.apl-pill span {
+  display: flex; align-items: center; justify-content: center; height: 48px; padding: 0 20px;
+  font: 400 16px/1 var(--f-text); color: var(--fg-2); white-space: nowrap; background: none; box-shadow: var(--plate-edge);
+  transition: color .25s ease, box-shadow .25s ease;
+}
+@media (hover: hover) { .apl-pill:hover input:not(:checked) + span { color: var(--fg); box-shadow: var(--plate-edge-lit); } }
+/* the chosen one: framed in shirt white over its lit seam, as every chosen thing on the site */
+.apl-pill input:checked + span { color: #fff; box-shadow: var(--chosen); }
+.apl-pill input:focus-visible + span { outline: var(--seam) solid var(--lit); outline-offset: 3px; }
+
+/* 3: a few words, the pointer to Telegram, the consent */
+.apl-step .field textarea { min-height: calc(4 * 1.4em + 18px); font-size: 18px; }
+.apl-hint { margin: 0; font: 400 16px/1.5 var(--f-text); color: var(--ash); }
+.apl-hint a { position: relative; color: var(--fg-2); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .28em; text-decoration-color: var(--rule-2); transition: text-decoration-color .2s, color .2s; }
+.apl-hint a:is(:hover, :focus-visible) { color: var(--fg); text-decoration-color: var(--lit); }
+
+/* ---------- The fields, in every window ----------
+   What is typed stands in shirt white, so what is only suggested is ash; the caret is the light. A box for a few
+   words keeps its size (no corner to drag) and grows with what is written where the browser can. */
+:is(.apl, .ask) .field :is(input, textarea) { caret-color: var(--lit); }
+:is(.apl, .ask) .field ::placeholder { color: var(--ash); opacity: 1; }
+:is(.apl, .ask) .field textarea { resize: none; field-sizing: content; max-height: 40vh; }
+/* a field that is wrong says so itself: its own line turns to light and its name to the colour of the message at
+   the window's foot (the scripts add .is-bad and aria-invalid, and take them away once it is put right) */
+:is(.apl, .ask) .field.is-bad label { color: var(--error); }
+:is(.apl, .ask) .field.is-bad :is(input, textarea) { border-bottom-color: var(--light); box-shadow: 0 1px 0 0 var(--light); }
+
+/* ---------- The consent, in every window ----------
+   A square box and the sentence. A tap anywhere on the sentence ticks the box (only the policy's name is a link,
+   kept whole on one line); ticked, the box is framed in shirt white with a shirt-white tick in it, never filled.
+   A finger's height all along. */
+:is(.apl, .ask) .consent {
+  align-items: flex-start; gap: 12px; padding-block: 11px; margin-block: -11px;
+  font-size: 16px; line-height: 22px; color: var(--ash); cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+:is(.apl, .ask) .consent input {
+  appearance: none; -webkit-appearance: none; flex: none; width: 22px; height: 22px; margin: 0; border: 0; border-radius: 0;
+  background: transparent; box-shadow: inset 0 0 0 1px var(--rule-2); cursor: pointer;
+}
+@media (hover: hover) { :is(.apl, .ask) .consent:hover input:not(:checked) { box-shadow: var(--plate-edge-lit); } }
+:is(.apl, .ask) .consent input:checked {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M5.8 11.4l3.5 3.5 7-7.9' fill='none' stroke='%23ecece8' stroke-width='1.5' stroke-linecap='square'/%3E%3C/svg%3E") 50% 50% / 22px 22px no-repeat;
+  box-shadow: inset 0 0 0 1px var(--shirt);
+}
+:is(.apl, .ask) .consent input:focus-visible { outline: var(--seam) solid var(--lit); outline-offset: 3px; }
+:is(.apl, .ask) .consent.is-bad input { box-shadow: inset 0 0 0 1px var(--light); }
+/* (the link answers to a finger a little above and well below its words: under it there is nothing else to hit,
+   above it is the sentence that ticks the box) */
+:is(.apl, .ask) .consent a { position: relative; white-space: nowrap; }
+:is(.apl, .ask) .consent a::before { content: ''; position: absolute; inset: -5px 0 -22px; }
+
+/* the end: sent (the brand's own sign, a short seam of the light, as the door's, over the words), or not sent
+   (WhatsApp) */
+.apl-end { justify-items: start; }
+.apl-mark {
+  display: block; width: var(--seam); height: 56px; margin-bottom: 4px;
+  background: linear-gradient(180deg, transparent, var(--lit-core) 26%, var(--lit-core) 74%, transparent);
+  filter: drop-shadow(0 0 3px var(--lit)) drop-shadow(0 0 8px color-mix(in srgb, var(--lit) 55%, transparent));
+}
+/* (the light comes on from its middle, as the door's seam opens) */
+:is(.apl-step, .ask-done):not([hidden]) .apl-mark { animation: apl-mark .7s var(--ease-out) .12s both; }
+@keyframes apl-mark { from { opacity: 0; scale: 1 0; } }
+
+/* the foot: what is wrong, said in a row of its own under the rule; then back on the left, on (or send) on the
+   right. The first step has no buttons (a tap on a kind moves on), so it has no foot. */
+.apl-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding-top: 16px; border-top: 1px solid var(--rule); }
+.apl-foot .apl-next, .apl-foot .apl-send { margin-left: auto; }
+/* (what is wrong: white words beside a line of the red light, as a form's error is everywhere, .form-error) */
+.apl-err { flex: 1 0 100%; margin: 0; padding-left: 12px; border-left: var(--seam) solid var(--light); font: 400 16px/1.4 var(--f-text); color: var(--error); }
+.apl-box[data-step="1"] .apl-foot, .apl-ending .apl-foot { display: none; }
+
+/* ---------- Desktop: the picture on the left ---------- */
+@media (min-width: 900px) {
+  .apl-in { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+  .apl-pic { display: block; }
+}
+/* a low screen (a laptop): the bars draw in and the rows stand closer, so the longest step is whole without a scroll */
+@media (min-width: 600px) and (max-height: 860px) {
+  .apl-box { padding-block: 20px 22px; }
+  .apl-line { margin-top: 16px; }
+  .apl-step { gap: 18px; }
+}
+
+/* ---------- Phones: the steps fill the screen, the buttons at its foot ---------- */
+@media (max-width: 599px) {
+  .apl-box { padding: calc(12px + env(safe-area-inset-top)) 20px calc(14px + env(safe-area-inset-bottom)); }
+  .apl-x { width: 44px; height: 44px; }
+  .apl-steps { padding-block: 26px 22px; }
+  /* the kinds, each a row a thumb can't miss (taller on a taller phone) */
+  .apl-roles span { min-height: clamp(56px, 8svh, 64px); }
+  .apl-fields { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  /* the pills share the row's width in equal plates: three ways to reply on one row, the occasions two by two */
+  .apl-pills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .apl-pills:has(> :nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .apl-pill span { padding: 0 6px; font-size: 16px; }
+  /* not sent: the three ways on, one under another at the row's full width (side by side they wrapped as their
+     words fell); sent: the one button keeps its own width */
+  .apl-end .btns { display: grid; width: 100%; gap: 10px; }
+  .apl-end .btns > :only-child { justify-self: start; }
+  /* the buttons: back keeps its width, on (or send) takes the rest; their sides draw in on a narrow phone, so
+     «Отправляем…» still fits beside «Назад» at 320px */
+  .apl-foot .btn { flex: 1; min-width: 0; padding-inline: clamp(14px, 5.5vw, 26px); }
+  .apl-foot:has(.apl-back:not([hidden])) .apl-back { flex: 0 0 auto; }
+}
+/* the smallest phones: a little less air, so the five kinds still stand whole on a 320x568 screen, and the three
+   ways to reply keep clear of their plates' edges */
+@media (max-width: 599px) and (max-height: 600px) {
+  .apl-steps { padding-block: 20px 10px; }
+  .apl-step { gap: 14px; }
+  .apl-roles span { min-height: 50px; }
+}
+@media (max-width: 339px) {
+  .apl-lead { font-size: 16px; line-height: 1.5; }
+  .apl-pill span { font-size: 14px; }
+}
+
+/* less motion: the window still comes and goes in a short fade, but nothing moves */
+@media (prefers-reduced-motion: reduce) {
+  .apl[open], .apl.apl-out { animation-duration: .15s; }
+  .apl-step:not([hidden]), :is(.apl-step, .ask-done):not([hidden]) .apl-mark { animation: none; }
+  .apl-line i { transition: none; }
+  .apl-roles span, .apl-roles span::before, .apl-roles span::after { transition: none; }
+}

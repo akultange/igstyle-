@@ -1,0 +1,7 @@
+---
+// The home page's poster (Hero.astro), fetched with the page instead of after its stylesheet: it is what the first
+// screen is judged by. In the page's head (Base.astro's "head" slot), and only the one this screen needs.
+import { HERO_PHONE } from '../data/hero';
+---
+<link rel="preload" as="image" href="/video/hero-m.webp" media={HERO_PHONE} fetchpriority="high" />
+<link rel="preload" as="image" href="/video/hero-d.webp" media="(min-width: 900px), (orientation: landscape)" fetchpriority="high" />

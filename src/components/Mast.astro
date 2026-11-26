@@ -1,0 +1,105 @@
+---
+// The HOTLAND sign at the foot of every page: the club's own wordmark as halo-lit channel letters, the way a
+// club's name hangs on the wall at night.
+//   the letters  rendered in 3D (public/img/sign: three.js, offline): solid letters with black lacquer faces,
+//                polished steel edges and real depth, seen from a little below. Two renders of the same frame:
+//                unlit, and lit by the crimson light behind them (the sides and edges catch it).
+//   the light    crimson LED light on the wall behind the letters, hot and pale right at their edges, deep red
+//                as it spreads; drawn here, smooth, from the wordmark's own outline.
+// When the footer comes into view the letters' lights start up one by one, each with its own stutter (a mask
+// with one band per letter, --l1 … --l7, on the light and on the lit render), then the light breathes. On a
+// computer a soft sheen on the letters follows the pointer and the letters shift a little against their light,
+// as if they stood off the wall; every few seconds a band of light crosses them.
+// Purely decorative (aria-hidden); pages put the readable name in an sr-only heading. Styles: global.css (Footer).
+import { WORDMARK } from '../data/brand';
+const id = 'sg' + Math.random().toString(36).slice(2, 8);
+const pct = (n: number) => `${+(n * 100).toFixed(4)}%`;
+// the renders' frame, in the wordmark's own units (the word itself is 16…1052 across, 16…180 down)
+const FX = 4, FY = 4, FW = 1060, FH = 212;
+// the light's box: the word with P units of room for the glow all round
+const P = 72;
+const LX = 16 - P, LY = 16 - P, LW = 1036 + 2 * P, LH = 164 + 2 * P;
+const lightBox = `left:${pct((LX - FX) / FW)};top:${pct((LY - FY) / FH)};width:${pct(LW / FW)};height:${pct(LH / FH)}`;
+// one band per letter, soft where letters meet (H | O | T | L | A | N | D)
+const SEP = [190, 331, 455, 605, 752, 898];
+const F = 9;
+const bands = (x: number, w: number) => {
+  const at = (u: number) => pct((u - x) / w);
+  const lv = (k: number) => `rgb(0 0 0 / var(--l${k}))`;
+  const stops = [`${lv(1)} 0%`, ...SEP.flatMap((s, i) => [`${lv(i + 1)} ${at(s - F)}`, `${lv(i + 2)} ${at(s + F)}`]), `${lv(7)} 100%`];
+  return `linear-gradient(90deg, ${stops.join(', ')})`;
+};
+const lightMask = bands(LX, LW);
+const litMask = bands(FX, FW);
+const src = (mode: 'off' | 'on') => ({
+  src: `/img/sign/hotland-${mode}-1600.webp`,
+  srcset: [1000, 1600, 3200].map((w) => `/img/sign/hotland-${mode}-${w}.webp ${w}w`).join(', '),
+});
+const off = src('off');
+const on = src('on');
+const sizes = '(max-width: 1440px) 94vw, 1344px';
+---
+<div class="sign" data-sign aria-hidden="true">
+  <div class="sign-in">
+    <svg class="sign-light" viewBox={`${LX} ${LY} ${LW} ${LH}`} style={`${lightBox};-webkit-mask-image:${lightMask};mask-image:${lightMask}`} focusable="false">
+      <defs>
+        <filter id={`${id}-glow`} x="-12%" y="-60%" width="124%" height="220%" color-interpolation-filters="sRGB">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2.4" result="b1" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="b2" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="24" result="b3" />
+          <feFlood flood-color="#ffb8c4" />
+          <feComposite in2="b1" operator="in" result="g1" />
+          <feFlood flood-color="#a3233b" />
+          <feComposite in2="b2" operator="in" result="g2" />
+          <feFlood flood-color="#74101f" />
+          <feComposite in2="b3" operator="in" result="g3" />
+          <feMerge><feMergeNode in="g3" /><feMergeNode in="g3" /><feMergeNode in="g3" /><feMergeNode in="g2" /><feMergeNode in="g2" /><feMergeNode in="g1" /></feMerge>
+        </filter>
+      </defs>
+      <path fill-rule="evenodd" d={WORDMARK} filter={`url(#${id}-glow)`} />
+    </svg>
+    <div class="sign-body">
+      <img class="sign-off" src={off.src} srcset={off.srcset} sizes={sizes} width="3200" height="640" alt="" loading="lazy" decoding="async" />
+      <img class="sign-on" src={on.src} srcset={on.srcset} sizes={sizes} width="3200" height="640" alt="" loading="lazy" decoding="async" style={`-webkit-mask-image:${litMask};mask-image:${litMask}`} />
+      <span class="sign-sheen"></span>
+      <span class="sign-glint"><i></i></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  // The light comes on once, when the sign is well in view (straight away with reduced motion). On a computer
+  // the pointer, anywhere over the footer, moves the sheen and shifts the letters against their light.
+  document.querySelectorAll<HTMLElement>('[data-sign]').forEach((sign) => {
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const lit = () => sign.classList.add('lit');
+    if (reduce || !('IntersectionObserver' in window)) lit();
+    else {
+      const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { lit(); io.disconnect(); } }, { threshold: 0.6 });
+      io.observe(sign);
+    }
+    if (reduce || !matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    const area = sign.closest<HTMLElement>('footer') ?? sign;
+    const clamp = (v: number) => Math.min(1.25, Math.max(-0.25, v));
+    let tx = 0.5, ty = 0.5, x = 0.5, y = 0.5, on = 0, want = 0, raf = 0;
+    const step = () => {
+      x += (tx - x) * 0.1;
+      y += (ty - y) * 0.1;
+      on += (want - on) * 0.08;
+      sign.style.setProperty('--px', x.toFixed(4));
+      sign.style.setProperty('--py', y.toFixed(4));
+      sign.style.setProperty('--on', on.toFixed(3));
+      raf = Math.abs(tx - x) + Math.abs(ty - y) + Math.abs(want - on) > 0.001 ? requestAnimationFrame(step) : 0;
+    };
+    const wake = () => { if (!raf) raf = requestAnimationFrame(step); };
+    area.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      const r = sign.getBoundingClientRect();
+      tx = clamp((e.clientX - r.left) / r.width);
+      ty = clamp((e.clientY - r.top) / r.height);
+      want = 1;
+      wake();
+    });
+    area.addEventListener('pointerleave', () => { tx = 0.5; ty = 0.5; want = 0; wake(); });
+  });
+</script>

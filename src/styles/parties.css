@@ -1,0 +1,116 @@
+/* Parties (Parties.astro): the same section on the home page and on the VIP page. Loaded after global.css
+   (Base.astro). The .occ-list base rules in global.css (Plate lists) are no longer used here.
+
+   Desktop: the heading row (every section's .bighead.bh-line: the title, its note), then the four occasions as
+   tall photo panels side by side, and the request button after them. One is open wide and the others are narrow strips; pointing at a strip (or tapping it, or tabbing to
+   it) opens it. A picture keeps its size while its panel opens, so the panel reveals more of it, like a
+   curtain drawing back, instead of zooming. Under each panel: a faint rule and the name; under the open one
+   the rule lights (a line of the light: red, amber after four), "Подробнее" appears at the end of its row and its
+   words below. The panels take the height the screen has left, so the whole section fits one laptop screen.
+   («Между», 2026-11-21: square, every picture in black and white until the new shoot, the names in the text face.)
+   Phones: a row of cards to swipe, every card with its words. */
+
+/* ---------- The heading row: every section's (the title, its line under it) ---------- */
+.pty-title em { white-space: nowrap; }
+/* the request, after the occasions */
+/* (well clear of the first card's own "more" link, so it reads as the section's button, not that card's) */
+.pty-cta { margin-top: clamp(36px, 3vw, 44px); }
+
+/* ---------- The panels (shared) ---------- */
+/* (a strip is a seventh of the row wide, and «Клуб целиком» must fit it: a step under the site's --sub) */
+.pa { --nf: var(--item); }
+.pa-item { position: relative; min-width: 0; }
+.pa-btn { display: block; width: 100%; text-align: left; -webkit-tap-highlight-color: transparent; }
+.photo.pa-shot { display: block; }
+.pa-name {
+  position: relative; display: block; margin-top: 12px; padding-top: 14px;
+  font: 500 var(--nf)/1.15 var(--f-text); letter-spacing: -.012em;
+  color: var(--fg); overflow: hidden; text-overflow: ellipsis;
+}
+.pa-name::before, .pa-name::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: var(--rule-2); }
+.pa-name::after { display: none; }
+.pa-cap { display: grid; justify-items: start; }
+.pa-cap .body { max-width: 62ch; text-wrap: pretty; } /* (never one word alone on the last line: «…выбираете вы.») */
+/* the picture of an open panel (every card on a phone) leads where "Подробнее" leads; it wakes a moment
+   after the panel opens, so the click that opened it doesn't also follow it */
+.pa-more::before { content: ''; position: absolute; z-index: 2; left: 0; top: 0; width: 100%; visibility: hidden; }
+
+/* ---------- Desktop: one panel open wide, the others narrow strips ---------- */
+@media (min-width: 900px) {
+  .pa {
+    --k: 4;                                                  /* the open panel is as wide as this many strips */
+    --g: clamp(8px, .9vw, 14px);                             /* the black between the panels */
+    /* the height the screen has left once the heading, the names, the words and the section's padding are in */
+    --h: clamp(300px, calc(100svh - min(112px + 23.75vw, 500px)), 600px);
+  }
+  /* a short screen (a 720px laptop): the panels a step shorter, so the heading, the row and the button fit it */
+  @media (max-height: 760px) { .pa { --h: clamp(260px, calc(100svh - min(152px + 23.75vw, 540px)), 600px); } }
+  .pa {
+    --open-w: calc((100cqw - 3 * var(--g)) * var(--k) / (var(--k) + 3));
+    container-type: inline-size;
+    display: flex; gap: var(--g);
+  }
+  .pa-item { flex: 1 1 0; transition: flex-grow .5s var(--ease-out); }
+  .pa-item.is-open { flex-grow: var(--k); }
+
+  /* the picture: as wide as an open panel and centred, so a strip shows its middle */
+  .photo.pa-shot { aspect-ratio: auto; height: var(--h); }
+  .pa .pa-shot img {
+    left: 50%; right: auto; width: var(--open-w); max-width: none; translate: -50% 0;
+    filter: brightness(.42); scale: 1.08;
+    transition: filter .9s ease, scale 1.6s var(--ease-out);
+  }
+  .pa .is-open .pa-shot img { filter: none; scale: 1; }
+
+  /* the name, under a faint rule that lights under the open panel */
+  .pa-name { white-space: nowrap; color: var(--muted); transition: color .5s ease; }
+  .pa-name::after { display: block; height: var(--seam); background: var(--lit-core); box-shadow: var(--seam-glow); scale: 0 1; transform-origin: 0 50%; transition: scale .5s var(--ease-out); }
+  .is-open .pa-name { color: var(--fg); }
+  .is-open .pa-name::after { scale: 1 1; transition-duration: 1.1s; transition-delay: .2s; }
+
+  /* the words, and "Подробнее" at the end of their last line, as wide as an open panel so they never re-wrap
+     while it opens. Under a strip they wait unseen, pinned to whichever edge keeps them in the row. */
+  .pa-cap {
+    grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "text more"; align-items: end; column-gap: 32px;
+    width: var(--open-w); padding-top: 8px;
+    visibility: hidden; opacity: 0; transition: opacity .22s ease, visibility 0s linear .22s;
+  }
+  .pa-cap .body { grid-area: text; }
+  .pa-more { grid-area: more; margin-bottom: 3px; }
+  .pa-item.is-open ~ .pa-item .pa-cap,
+  .pa-item.is-open.from-l .pa-cap,
+  .pa.is-idle .pa-item:nth-child(n + 3) .pa-cap { margin-left: calc(100% - var(--open-w)); }
+  .is-open .pa-cap { visibility: visible; opacity: 1; transition: opacity .7s ease .38s, visibility 0s linear 0s; }
+  .pa-more::before { height: var(--h); }
+  .is-open .pa-more::before { visibility: visible; transition: visibility 0s linear .4s; }
+}
+@media (min-width: 900px) and (hover: hover) {
+  .pa-item:not(.is-open):hover .pa-shot img { filter: brightness(.68); }
+  .pa-item:not(.is-open):hover .pa-name { color: var(--fg-2); }
+}
+@media (min-width: 900px) and (max-width: 1199px) { .pa { --k: 3.4; } }
+
+/* ---------- Phones: a row of cards to swipe, each with its words ---------- */
+@media (max-width: 899px) {
+  .pa {
+    display: grid; grid-auto-flow: column; grid-auto-columns: min(80vw, 340px); gap: 14px;
+    /* room above and below for the focus ring, which the scrolling row would otherwise cut (taken back by the
+       margins, so the cards start the heading gap under the heading row, as every section's content does) */
+    margin: -8px calc(-1 * var(--pad)); padding: 8px calc(var(--pad) + 60px) 8px var(--pad);
+    scroll-padding-inline: var(--pad); scroll-snap-type: x mandatory;
+    overflow: auto hidden; overscroll-behavior-x: contain; scrollbar-width: none;
+    /* the next card fades into the black at the screen's edge (its words never end sliced mid-word) */
+    -webkit-mask-image: var(--peek-fade); mask-image: var(--peek-fade);
+  }
+  .pa::-webkit-scrollbar { display: none; }
+  .pa-item { scroll-snap-align: start; }
+  .photo.pa-shot { aspect-ratio: 4 / 5; }
+  .pa-name { margin-top: 14px; }
+  .pa-cap { gap: 12px; padding-top: 8px; }
+  .pa-more::before { aspect-ratio: 4 / 5; visibility: visible; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pa-item, .pa .pa-shot img, .pa-name, .pa-name::after, .pa-cap, .is-open .pa-cap, .is-open .pa-more::before { transition: none !important; }
+  .pa .pa-shot img { scale: 1; }
+}

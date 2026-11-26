@@ -1,0 +1,263 @@
+/* =====================================================================
+   Event posters (the Афиша). Loaded after global.css (Base.astro); the card is PosterCard.astro.
+   (2026-11-23, the client: "The Афиша needs to have a real image/video like we had before.") Each night is a poster
+   torn from the newspaper (cut.css) with the night's own photograph for its ground, edge to edge: black and white, or
+   with its red kept, by the picture's own light (colour.css); its short film takes over from it (scripts/site.ts).
+   Every one of these photographs keeps its black above the figure, so the type stands there, one block at the top
+   left, and the figure below it stays clear: the day, a big hairline numeral in the Dial (the one display voice, as
+   «Ваш стол уже ждёт»); beside it the month and the weekday small in the Label, and the night's name in the Dial on
+   the day's baseline. A shade under the block keeps it legible on any picture. Under the poster, in the Label: the
+   weekday and doors time, and the entry; then one short line in the text face. Three in a row (the weekend), one
+   swipe row on phones. The whole card is one link; under the mouse the film plays, the picture comes a little closer
+   and the poster straightens (cut.css).
+   (Until 2026-11-23 the poster was set in type alone: the day and the name in the Poster voice, retired, and a beam
+   of light across black stock.)
+   ===================================================================== */
+
+/* ---------- The row: the weekend's three nights, large, across the page ---------- */
+.posters {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px clamp(16px, 2vw, 28px);
+  /* as wide as the page, with the first poster in line with the text above it (.wrap) */
+  padding: 0 max(var(--pad), calc((100% - var(--max)) / 2 + var(--pad)));
+}
+.posters.in-wrap { padding: 0; }
+@media (max-width: 699px) {
+  /* phones: one swipe row, a poster and the edge of the next; the poster on screen plays its film */
+  .posters, .posters.three {
+    grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 78vw; gap: 12px;
+    /* room above and below for the focus line, which the scrolling row would otherwise cut */
+    margin: -8px 0; padding: 8px calc(var(--pad) + 60px) 8px var(--pad); scroll-padding-inline: var(--pad);
+    overflow: auto hidden; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none;
+    /* the next poster and its words fade into the black at the screen's edge (never sliced mid-word); the row's
+       end padding lets the last poster come clear of the fade */
+    -webkit-mask-image: var(--peek-fade); mask-image: var(--peek-fade);
+  }
+  .posters::-webkit-scrollbar { display: none; }
+  .poster { scroll-snap-align: start; }
+  .posters.in-wrap { margin: -8px calc(-1 * var(--pad)); padding: 8px calc(var(--pad) + 60px) 8px var(--pad); }
+  /* the home page's weekend: the row holds still on the screen (above the dock) while the page scrolls on,
+     sliding from one poster to the next and resting on each; PosterCard.astro switches it on and makes .prow as
+     tall as the screen plus the slide. The posters are sized so one, with its lines, fits. The row sits in the
+     middle of the held screen, but never further down it than just under the header, so it stays close under
+     its heading; the room left under it (--pin-free, measured by PosterCard.astro, less what is above the row)
+     is taken back after the hold, so the next section comes as close as every section does. (Switched off since
+     2026-11-13: PosterCard.astro, holdRow.) */
+  .prow.on .prow-pin {
+    --pin-top: min(calc(var(--hdr) + 8px), var(--pin-free, 0px) / 2);
+    position: sticky; top: 0; height: calc(100svh - var(--dock)); display: flex; flex-direction: column; justify-content: flex-start;
+    padding-top: var(--pin-top);
+    margin-top: calc(-1 * var(--pin-top)); pointer-events: none;
+  }
+  .prow.on .prow-pin > * { pointer-events: auto; }
+  .prow.on { margin-bottom: calc(min(calc(var(--hdr) + 8px), var(--pin-free, 0px) / 2) - var(--pin-free, 0px)); }
+  .prow.on .posters { position: relative; overflow: hidden; scroll-snap-type: none; grid-auto-columns: min(78vw, (100svh - var(--dock) - 190px) * .8); }
+}
+
+/* ---------- One poster ---------- */
+.poster { min-width: 0; container: poster / inline-size; }
+.poster-link { display: grid; align-content: start; color: var(--fg); -webkit-tap-highlight-color: transparent; }
+.poster-frame {
+  /* the type's sizes, in the poster's own width: the day, and the night's name a step under it */
+  --day: 50cqw; --name: 28cqw;
+  position: relative; display: block; aspect-ratio: 4 / 5; overflow: hidden; isolation: isolate;
+  container-type: inline-size;
+  background-color: var(--lacquer);
+}
+
+/* The picture: the photograph and its film, edge to edge. global.css grades .poster-shot with --grade, which
+   colour.css sets by the picture's name (Velvet's and Ritual's red kept, the rest black and white), so the film,
+   playing over its photograph inside it, takes the same treatment. Both show the top of the shot, where every
+   figure's head stands clear of the date, unless content.ts says otherwise (`pos`, set by PosterCard.astro as
+   --ppos); the film's first frame matches its photograph, so the figure stays where she stood when it takes over. */
+.poster-shot { position: absolute; inset: 0; z-index: 0; transition: scale 1.2s var(--ease-out); }
+.poster-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.poster-shot :is(img, video) { object-position: var(--ppos, 50% 0%); }
+/* printed, as every photograph on the site is: the fine dot screen of the newspaper (cut.css, --print) */
+.poster-shot > :is(img, video) { -webkit-mask: var(--print); mask: var(--print); }
+/* a night whose shot is framed wider than the rest comes closer and lower (content.ts, `zoom` and `drop`), photo and
+   film alike; the top of the shot, black like the poster, fades into it */
+.poster-shot[style*="--pz"] {
+  transform: translateY(var(--pdy)) scale(var(--pz)); transform-origin: 50% 0;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 12%); mask-image: linear-gradient(180deg, transparent 0, #000 12%);
+}
+/* the shade: the black of the night deepened under the type, so the hairline reads on any picture (the snow in
+   Courchevel's). Black, never light; it is gone before the figure. (The tear's white fibre is the frame's ::before,
+   cut.css, above it all.) */
+.poster-frame::after {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(180deg, rgb(0 0 0 / .6) 0, rgb(0 0 0 / .32) 22%, rgb(0 0 0 / 0) 44%);
+}
+
+/* The type: one block at the top left. The day, a big hairline numeral in the Dial; beside it, level with the top of
+   the figures, the month and the weekday in the Label, and at the block's foot the night's name in the Dial, on the
+   day's baseline. (A line of the Dial .684em high ends on its baseline at any size: Roboto Flex's ascent, .928, less
+   its descent, .244. So the two baselines meet at the block's foot. The figures rise .037em above that line, so the
+   block is set that much lower, and the month that much higher, to keep the poster's 7% margin.) */
+.poster-top {
+  position: absolute; z-index: 2; left: 7cqw; right: 7cqw; top: calc(7cqw + .037 * var(--day));
+  display: flex; align-items: flex-end; gap: 4.5cqw;
+}
+.poster-day {
+  font-family: var(--f-flex); font-weight: var(--dial-wght); font-stretch: var(--dial-wdth);
+  font-size: var(--day); line-height: .684; letter-spacing: 0; font-variant-numeric: tabular-nums lining-nums;
+  margin-left: -.02em; color: var(--shirt);
+}
+.poster-head { flex: 1; min-width: 0; align-self: stretch; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; gap: 2cqw; }
+.poster-mw {
+  margin-top: calc(-.037 * var(--day));
+  font: var(--label-wght) 13px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); text-transform: uppercase;
+  color: var(--shirt); white-space: nowrap;
+}
+/* (in capitals by style: the words stay as written for a screen reader. One line, one size on every poster; only a
+   name too long for the room beside the day comes down to fit it: --len, its length in em, from PosterCard.astro) */
+.poster-name {
+  font-family: var(--f-flex); font-weight: var(--dial-wght); font-stretch: var(--dial-wdth);
+  font-size: min(var(--name), 66cqw / var(--len, 1)); line-height: .684; letter-spacing: 0; text-transform: uppercase;
+  color: var(--shirt); white-space: nowrap; transition: color .3s ease;
+}
+
+/* ---------- Under the poster: the facts in the Label, then one line ---------- */
+.poster-row {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; margin-top: 16px;
+  font: var(--label-wght) 12px/1.2 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); text-transform: uppercase;
+  font-variant-numeric: tabular-nums lining-nums; color: var(--fg);
+}
+.poster-when, .poster-price, .poster-past, .poster-here { white-space: nowrap; }
+.poster-line {
+  margin-top: 10px; max-width: 40ch; font: 400 16px/1.5 var(--f-text); color: var(--fg-2); text-wrap: pretty;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+}
+/* A narrow poster (four across on a small laptop, a small phone) has no room for the price beside the time: the
+   price moves to the foot of every card, under a two-line slot, so a row of cards still lines up. So do a past
+   night's «Прошёл» and «Вы здесь». */
+@container poster (width < 272px) {
+  .poster-row { display: contents; }
+  .poster-when { justify-self: start; margin-top: 16px; }
+  .poster-line { min-height: 3em; }
+  :is(.poster-price, .poster-past, .poster-here) { order: 1; margin-top: 12px; }
+}
+
+/* ---------- Response: the film plays (scripts/site.ts), the picture comes a little closer, the name brightens;
+   the poster straightens (cut.css) ---------- */
+@media (hover: hover) {
+  .poster-link:hover .poster-shot { scale: 1.035; }
+  .poster-link:hover .poster-name { color: #fff; }
+}
+/* (the keyboard: the red line round the whole card, amber after four, is cut.css's: a line on the torn frame itself
+   would be cut away with the tear) */
+
+/* Entrance (only under html.motion, so never for reduced motion): the poster rises with the rest of the page
+   (global.css), its picture settles from a slight zoom and the date comes up a beat later. */
+@keyframes poster-settle { from { scale: 1.08; } }
+@keyframes poster-date-in { from { opacity: 0; translate: 0 10%; } }
+html.motion .poster.is-in .poster-shot img { animation: poster-settle 1.8s var(--ease-out) var(--d, 0s) backwards; }
+html.motion .poster.is-in .poster-top { animation: poster-date-in 1s var(--ease-out) calc(var(--d, 0s) + .25s) backwards; }
+@media (prefers-reduced-motion: reduce) {
+  .poster-shot, .poster-name { transition: none; }
+  .poster-link:hover .poster-shot { scale: none; }
+}
+
+/* the night whose page you are on: «Вы здесь» in place of the price */
+.poster-here { color: var(--fg); }
+
+/* ---------- With a mouse: over a poster a small plate beside the pointer says what a click does, "Бронь"
+   (PosterCard.astro): a smoked square in one hairline, solid, in the Label; the pointer itself stays as it is ---------- */
+/* the holder moves with the pointer (GSAP); the plate inside comes and goes (CSS), so neither undoes the other */
+.poster-cursor { position: fixed; left: 0; top: 0; z-index: 60; width: 0; height: 0; pointer-events: none; }
+.poster-cursor > span {
+  position: absolute; left: 16px; top: 18px; height: 30px; padding: 0 12px;
+  display: grid; place-items: center;
+  font: var(--label-wght) 11px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); text-transform: uppercase;
+  color: var(--fg); white-space: nowrap;
+  background: var(--smoke); box-shadow: inset 0 0 0 1px var(--rule-2);
+  opacity: 0; translate: 0 4px; transition: opacity .2s ease, translate .3s var(--ease-out);
+}
+.poster-cursor.on > span { opacity: 1; translate: 0 0; }
+@media (prefers-reduced-motion: reduce) { .poster-cursor > span { transition: opacity .2s ease; translate: none; } }
+
+/* ---------- Nights that have been ----------
+   The same posters, a size smaller (the row keeps the width of four), with their light off: the picture grey, dim
+   and still (no film: PosterCard.astro), brightening a little under the mouse; the day and the name in ash; «Прошёл»
+   where the price was. They lead to the gallery. */
+.posters.past { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.poster.is-past .poster-shot { filter: grayscale(1) brightness(.55) contrast(1.06); transition: filter .7s ease, scale 1.2s var(--ease-out); }
+@media (hover: hover) { .poster.is-past .poster-link:hover .poster-shot { filter: grayscale(1) brightness(.8) contrast(1.06); } }
+.poster.is-past :is(.poster-day, .poster-name, .poster-mw) { color: var(--ash); }
+.poster-past { color: var(--ash); }
+@media (max-width: 899px) { .posters.past { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 699px) { .posters.past { grid-template-columns: none; grid-auto-columns: 62vw; } }
+
+/* ---------- A phone held sideways (or any screen as short): see landscape.css ---------- */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* the posters cut wider, so a poster and its lines fit the screen; the type then answers to the poster's height
+     as well as its width, and the picture shows a lower band of its shot, where the figure is, not only the black
+     over her head */
+  .posters .poster-frame { aspect-ratio: auto; height: clamp(150px, calc(100svh - var(--hdr) - 150px), 300px); container-type: size; --day: min(50cqw, 40cqh); --name: min(28cqw, 22cqh); }
+  .posters .poster-shot :is(img, video) { object-position: 50% 30%; }
+  /* (a shot framed closer and lower, content.ts zoom and drop, has its figure high in the photograph: a higher band) */
+  .posters .poster-shot[style*="--pz"] :is(img, video) { object-position: 50% 16%; }
+  /* (the name comes down to 40px or under here: the Dial takes 200, or its hairline breaks up on a phone) */
+  .posters .poster-name { font-weight: 320; }
+}
+/* ---------- (and on the smallest phones (an SE): the posters a swipe row, two and a bit across ---------- */
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 699px) {
+  .posters, .posters.three { grid-auto-columns: min(46vw, 300px); }
+}
+
+/* ---------- The Афиша page: the nights month by month (program/index.astro) ----------
+   Each month's name stands over its row of posters in the Dial, as a printed programme has it, on a hairline the
+   width of the page's column, with the year at the line's far end in the Label. The month is the first thing under
+   the page's title: a breath of air under the title's button, not the double air of a new section that global.css
+   gives a section with a heading of its own, so the dates still reach the first screen. */
+.ptitle + .sec.afisha { padding-top: clamp(40px, 4vw, 64px); }
+.afisha-month + .afisha-month { margin-top: clamp(56px, 6vw, 96px); }
+/* (the Dial is narrow: the longest month, "сентябрь", takes under an em, so the name always fits beside the year) */
+.afisha-mname {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+  margin-bottom: clamp(20px, 2.2vw, 32px); padding-bottom: clamp(14px, 1.4vw, 20px); border-bottom: 1px solid var(--rule-2);
+  font-family: var(--f-flex); font-weight: var(--dial-head-wght); font-stretch: var(--dial-wdth); /* (the size and weight of a section heading) */
+  font-size: var(--dial-head); line-height: .86; letter-spacing: 0;
+  text-transform: uppercase; color: var(--shirt); white-space: nowrap;
+}
+.afisha-mname span {
+  font: var(--label-wght) 13px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track);
+  font-variant-numeric: tabular-nums lining-nums; color: var(--ash);
+}
+
+/* ---------- The Афиша page: when every night on the list has passed (program/index.astro) ----------
+   A quiet line (no new nights yet, the show every night) beside the rocks glass in chalk (the line art, an accent),
+   as the home page's Афиша has it with the cigar. */
+.afisha-quiet { display: grid; grid-template-columns: minmax(140px, 220px) minmax(0, 46ch); align-items: end; gap: clamp(24px, 3vw, 48px); }
+.afisha-quiet > p { padding-bottom: clamp(18px, 2.4vw, 34px); }
+@media (max-width: 699px) {
+  .afisha-quiet { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .afisha-quiet-art { width: min(46vw, 180px); }
+  .afisha-quiet > p { padding-bottom: 0; }
+}
+
+/* ---------- The Афиша page: every night's programme, the four acts by the hour (program/index.astro) ----------
+   Desktop: a photograph of the show on the left (4:5, torn like every picture: cut.css), the acts on the right, one
+   to a row: the hour in the Dial, large and hairline, as a timetable has it; the act's name and its line in the text
+   face. The photograph and the list stand on one line: their tops meet, and the acts share the photograph's height
+   in equal rows, so the list's foot meets the photograph's too. (Until 2026-11-22 the guest under the laser stood
+   there, the line art in a plate of its own: the drawings are the site's accent, never its pictures.) Phones: the
+   photograph over the list. */
+.nightly-in { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); column-gap: clamp(32px, 4vw, 72px); }
+.nightly-pic { align-self: start; width: min(100%, 520px); }
+.nightly-pic .photo { aspect-ratio: 4 / 5; }
+.nightly-acts { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-rows: 1fr; }
+.nightly-act.row { grid-template-columns: clamp(84px, 7.4vw, 116px) minmax(0, 1fr); gap: 8px clamp(16px, 2.4vw, 40px); align-items: start; padding: clamp(20px, 2.2vw, 30px) 0; }
+.nightly-time {
+  font: var(--dial-wght) var(--dial-num)/.8 var(--f-flex); font-stretch: var(--dial-wdth); /* (a big number; a number in a row on a phone) */
+  font-variant-numeric: tabular-nums lining-nums; color: var(--fg); white-space: nowrap;
+}
+.nightly-words { display: grid; gap: 6px; padding-top: .1em; }
+.nightly-t { font: 500 var(--item)/1.15 var(--f-text); letter-spacing: -.012em; color: var(--fg); }
+.nightly-x { font: 400 16px/1.6 var(--f-text); color: var(--fg-2); max-width: 46ch; text-wrap: pretty; }
+@media (max-width: 899px) {
+  .nightly-in { grid-template-columns: minmax(0, 1fr); row-gap: 28px; }
+  .nightly-pic { width: 100%; }
+  .nightly-pic .photo { aspect-ratio: 1 / 1; }
+  .nightly-act.row { grid-template-columns: 72px minmax(0, 1fr); column-gap: 16px; }
+  .nightly-time { font-size: var(--dial-num-s); font-weight: var(--dial-num-s-wght); }
+}

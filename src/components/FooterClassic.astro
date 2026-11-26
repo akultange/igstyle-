@@ -1,0 +1,74 @@
+---
+// The footer's last screen as it was in Luka's and Gio's rounds (Footer.astro keeps them, hidden, beside v4 and v5):
+// four columns of links, the club's name across the page, and the small print, together never taller than the
+// screen. Styles: the "Footer" part of global.css, and footers.css for the name. The name is the club's logo now
+// (2026-11-21, «Между»: no chrome letters, no 3D sign): in Luka's take it hangs as a sign with its whole needle of
+// light, in Gio's it runs the page's width with the needle kept close. (Their signs were Mast.astro, 3D channel
+// letters of the old wordmark in crimson light, and MastSteel.astro, HOTLAND in polished chrome.)
+import { type Lang, ui } from '../data/i18n';
+import { site } from '../data/site';
+import { show } from '../data/variants';
+import Logo from './Logo.astro';
+interface Props { lang: Lang; sign: 'luka' | 'gio' }
+const { lang, sign } = Astro.props;
+const t = ui[lang];
+const f = t.footer;
+const ru = lang === 'ru';
+const p = (s: string) => `/${lang}/${s}/`;
+---
+<!-- the last screen: the links, the sign and the small print, together never taller than the screen -->
+<div class="ft-end">
+<div class="ft-cols">
+  <div>
+    <h4>{f.club}</h4>
+    <ul>
+      <li><a href={p('about')}>{t.nav.about}</a></li>
+      <li><a href={p('program')}>{t.nav.program}</a></li>
+      <li><a href={p('membership')}>{t.nav.vip}</a></li>
+      <li><a href={p('menu')}>{t.nav.menu}</a></li>
+    </ul>
+  </div>
+  <div>
+    <h4>{f.visit}</h4>
+    <ul>
+      <li>{site.address[lang]}</li>
+      <li>{site.hours[0].open}–{site.hours[0].close}, {ru ? 'каждую ночь' : 'every night'}</li>
+      <li><a href={site.mapUrl} target="_blank" rel="noopener">{f.map} ↗</a></li>
+      <li><a href={`${p('about')}#rules`}>{f.rules}</a></li>
+    </ul>
+  </div>
+  <div>
+    <h4>{f.contact}</h4>
+    <ul>
+      {show('contact', 'luka') && <li data-v="contact:luka"><button class="ask-link" type="button" data-contact="callback">{ru ? 'Заказать звонок' : 'Request a call'}</button></li>}
+      {show('contact', 'luka') && <li data-v="contact:luka"><button class="ask-link" type="button" data-contact="question">{ru ? 'Задать вопрос' : 'Ask a question'}</button></li>}
+      {show('contact', 'gio') && <li data-v="contact:gio"><a href={site.phoneHref}>{site.phone}</a></li>}
+      <li><a href={site.whatsapp} target="_blank" rel="noopener">WhatsApp</a></li>
+      <li><a href={site.telegram} target="_blank" rel="noopener">Telegram</a></li>
+      <li><a href={`mailto:${site.email}`}>{site.email}</a></li>
+    </ul>
+  </div>
+  <div>
+    <h4>{f.other}</h4>
+    <ul>
+      <li><a href={p('careers')}>{f.careers}</a></li>
+      <li><a href={`${p('membership')}#occasions`}>{f.parties}</a></li>
+      <li><a href={`${p("gallery")}`}>{t.nav.gallery}</a></li>
+      <li><a href={p('terms')}>{f.terms}</a></li>
+      <li><a href={p('privacy')}>{f.privacy}</a></li>
+      <li><a href={p('cookies')}>{f.cookies}</a></li>
+    </ul>
+  </div>
+</div>
+
+<!-- the name: the club's logo, as a sign with its whole needle (Luka's) or across the page (Gio's) -->
+<div class:list={['ft-mast', `ft-mast-${sign}`]}>
+  <Logo label sign={sign === 'luka' ? 'full' : 'tight'} class="ft-logo" />
+</div>
+
+<div class="ft-bottom">
+  <span class="label"><span class="b18">18+</span>{f.adults}</span>
+  <span class="label">© {new Date().getFullYear()} {site.name} · {ru ? 'Только между нами' : 'Just between us'}</span>
+  <span class="label">{f.credit}</span>
+</div>
+</div>

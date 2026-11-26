@@ -1,0 +1,91 @@
+---
+// Footer v5, «Программа ночи» (styles in styles/footers.css): the last screen as the night's programme. Across the
+// top the four times of the night in the Dial on one hairline, a tick at each (doors at 22:00, the shows at 23:30
+// and 01:30, the last glass at 06:00); while the club is open, the part of the night it is now in Moscow is lit, a
+// point of the light where its tick was. Under it the address in large type with the way there, the ways to reach
+// the club, the sections in one row, and at the foot the club's logo with the small print. (Until 2026-11-21: steel
+// numerals, a crimson dot, and the lily with the old wordmark at the foot.)
+// Phones: the times one under another, then the rest in the same order.
+import { type Lang, ui } from '../data/i18n';
+import { site } from '../data/site';
+import { footerLinks } from '../data/footer';
+import FooterReach from './FooterReach.astro';
+import Ic from './FooterIcon.astro';
+import Logo from './Logo.astro';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const ru = lang === 'ru';
+const f = ui[lang].footer;
+const L = footerLinks(lang);
+const [show1, show2] = site.showTimes;
+const night = [
+  { t: site.hours[0].open, c: ru ? 'Двери и ужин' : 'Doors and dinner' },
+  { t: show1, c: ru ? 'Первое шоу' : 'The first show' },
+  { t: show2, c: ru ? 'Второе шоу' : 'The second show' },
+  { t: site.hours[0].close, c: ru ? 'Последний бокал' : 'The last glass' },
+];
+---
+<div class="fv5" data-fv5>
+  <ol class="fv5-night" aria-label={ru ? 'Программа ночи' : 'The night'}>
+    {night.map((s, i) => (
+      <li class="fv5-stop" data-t={s.t} data-i={i}>
+        <span class="fv5-dot" aria-hidden="true"></span>
+        <span class="fv5-t">{s.t}</span>
+        <span class="fv5-c">{s.c}<span class="fv5-now" hidden>{ru ? 'сейчас' : 'now'}</span></span>
+      </li>
+    ))}
+  </ol>
+
+  <div class="fv5-visit">
+    <div class="fv5-where">
+      <p class="fv5-addr">{site.address[lang]}</p>
+      <p class="fv5-links">
+        <a href={site.mapUrl} target="_blank" rel="noopener"><Ic name="route" /><span>{ru ? 'Маршрут' : 'Directions'}</span></a>
+        <a href={`/${lang}/about/#rules`}>{f.rules}</a>
+      </p>
+    </div>
+    <FooterReach lang={lang} class="fv5-reach" />
+  </div>
+
+  <nav class="fv5-nav" aria-label={ru ? 'Разделы' : 'Sections'}>
+    {[...L.sections, ...L.more.slice(0, 2)].map((l) => <a href={l.href}>{l.label}</a>)}
+  </nav>
+
+  <div class="fv5-end">
+    <a class="fv5-sign" href={`/${lang}/`} aria-label={ru ? 'HOTLAND, на главную' : 'HOTLAND, home'}>
+      <Logo sign="tight" class="fv5-wm" />
+      <span class="fv5-tag">{ru ? 'Только между нами' : 'Just between us'}</span>
+    </a>
+    <div class="fv5-small">
+      <p class="label"><span class="b18">18+</span>{f.adults}</p>
+      <nav aria-label={ru ? 'Документы' : 'Legal'}>{L.legal.map((l) => <a href={l.href}>{l.label}</a>)}</nav>
+      <p class="label">© {new Date().getFullYear()} {site.name} · {f.credit}</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // While the club is open (22:00 to 06:00 in Moscow), mark the part of the night it is now: the last time on the
+  // programme that has passed. Checked once a minute while the page is open. (Which show is on is more than the
+  // hour's three states tell (html[data-hour]), so this one part reads Moscow's clock itself.)
+  const mark = () => {
+    document.querySelectorAll<HTMLElement>('[data-fv5]').forEach((box) => {
+      const stops = [...box.querySelectorAll<HTMLElement>('.fv5-stop')];
+      const msk = new Date(Date.now() + 3 * 3600e3); // Moscow is UTC+3 all year
+      const now = msk.getUTCHours() * 60 + msk.getUTCMinutes();
+      const mins = stops.map((s) => { const [h, m] = (s.dataset.t || '0:0').split(':').map(Number); return h * 60 + m; });
+      // the night runs past midnight: count the small hours as after the evening
+      const night = (x: number) => (x < 12 * 60 ? x + 24 * 60 : x);
+      const n = night(now);
+      let on = -1;
+      if (n >= night(mins[0]) && n < night(mins[mins.length - 1])) mins.forEach((m, i) => { if (n >= night(m)) on = i; });
+      stops.forEach((s, i) => {
+        s.classList.toggle('now', i === on);
+        const tag = s.querySelector<HTMLElement>('.fv5-now');
+        if (tag) tag.hidden = i !== on;
+      });
+    });
+  };
+  mark();
+  setInterval(mark, 60_000);
+</script>

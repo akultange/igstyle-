@@ -1,0 +1,38 @@
+---
+// The club's logo, as the club drew it: HOTLAND in its thin wide capitals, and at the L the glowing sign, a needle of
+// red light with its aura, its white-hot core and the L's foot lit as its spur, and the letters beside it catching
+// the light. Every shape and gradient is the club's own artwork (data/art.ts, written from the club's SVG files by
+// tools/logo/art.py).
+//
+// The picture's box is the capitals' own box, so the logo sits in a line like a word; the sign reaches far above and
+// below it (five capitals each way) and is drawn outside the box. `sign`:
+//   full   the whole sign, where the logo stands free;
+//   short  the needle is whole for two capitals each way and gone by three: in a plate (the header) it breaks
+//          through the plate's edge above and below and dies away just outside it;
+//   tight  the needle stays within about a capital of the name, where other things stand close above and under it;
+//   none   the letters alone.
+// `tone`: the club drew the logo twice. "light" (the default) is for dark ground: pale letters, the sign's light
+// added to what is behind it. "dark" is for light ground (a silver card): graphite letters, the T warmed by the
+// sign, a soft red falloff. The gradients of "light" are in every page (Base.astro, .svg-defs); a page that sets
+// the "dark" one puts its gradients in once itself (logoDark.defs: MemberCards.astro does), and sets it whole
+// (`short` and `tight` are measured for "light" only).
+// `height` is the capitals' height in px (or leave it to CSS: .logo { height }).
+import { logoLight, logoDark } from '../data/art';
+interface Props { height?: number; sign?: 'full' | 'short' | 'tight' | 'none'; tone?: 'light' | 'dark'; label?: boolean; class?: string }
+const { height, sign = 'full', tone = 'light', label = false, class: cls } = Astro.props;
+const L = tone === 'dark' ? logoDark : logoLight;
+const W = L.box[2], H = L.foot - L.top;
+const mask = tone === 'light' && sign === 'short' ? 'url(#hl-short)' : tone === 'light' && sign === 'tight' ? 'url(#hl-tight)' : undefined;
+---
+<svg class:list={['logo', `logo-${tone}`, cls]} viewBox={`0 ${L.top} ${W} ${H}`} style={height ? `height:${height}px` : undefined}
+  role={label ? 'img' : undefined} aria-label={label ? 'HOTLAND' : undefined} aria-hidden={label ? undefined : 'true'} focusable="false">
+  {sign !== 'none' && (
+    <g class="logo-sign" mask={mask}>
+      <g class="logo-aura" set:html={L.aura} />
+      <g class="logo-blade" set:html={L.sign} />
+      <g class="logo-core" set:html={L.core} />
+    </g>
+  )}
+  <g class="logo-letters" set:html={L.letters} />
+  {sign !== 'none' && <g class="logo-heat" clip-path={L.clip ? `url(#${L.clip})` : undefined} set:html={L.reflect} />}
+</svg>

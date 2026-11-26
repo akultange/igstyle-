@@ -1,0 +1,52 @@
+---
+// HIDDEN at the client's request (2026-11-13): "hide the page, don't delete it". Astro builds no page from a file
+// whose name starts with _, so /ru/artists/ and /en/artists/ are gone and nothing links to them (the nav, the
+// footers, the sitemap and the «Всё о шоу» links were taken out). To bring it back: rename this file to
+// artists.astro and put those links back.
+import Base from '../../layouts/Base.astro';
+import StageTitle from '../../components/StageTitle.astro';
+import Troupe from '../../components/Troupe.astro';
+import GalleryPeek from '../../components/GalleryPeek.astro';
+import CastingCall from '../../components/CastingCall.astro';
+import { type Lang, ui, tr, langPaths } from '../../data/i18n';
+import { cast, careers, media } from '../../data/content';
+
+export const getStaticPaths = langPaths;
+const lang = Astro.params.lang as Lang;
+const t = ui[lang];
+const ru = lang === 'ru';
+// the company on stage, and where each of the five stands in the picture (the spot's stops)
+const company = { img: media('gallery-16-company.webp'), ratio: 16 / 9, stops: [[0.178, 0.22], [0.308, 0.215], [0.481, 0.44], [0.635, 0.23], [0.771, 0.245]] as [number, number][] };
+// After the gallery, its end offers the way on to what follows it here: the casting call, called by its own
+// heading («Собираем первый состав»), so the button names what they will see when they arrive
+const afterGallery = {
+  id: 'casting',
+  label: tr(careers.title, lang).replace(/<[^>]*>/g, ''),
+  kick: ru ? 'Дальше на\u00a0странице «Шоу»' : 'Next on the show page',
+};
+---
+<Base lang={lang} title={t.nav.artists} description={tr(cast.lead, lang)}>
+  <StageTitle
+    title={t.nav.artists}
+    sub={ru ? 'Ради него <em>остаются</em> до&nbsp;утра' : 'The reason people <em>stay</em> till morning'}
+    lead={tr(cast.lead, lang)}
+    img={company.img}
+    ratio={company.ratio}
+    stops={company.stops}
+  />
+
+  <!-- The acts: the troupe wall -->
+  <section class="sec-t" id="acts">
+    <div class="wrap">
+      <Troupe lang={lang} />
+    </div>
+  </section>
+
+  <!-- Gallery: the same gallery in brief as on the home page (GalleryPeek.astro): the film strip, the count
+       and the link to the gallery. It keeps this page's #gallery, and the gallery's end brings the visitor back here to the
+       casting call that comes next -->
+  <GalleryPeek lang={lang} id="gallery" next={afterGallery} />
+
+  <!-- The casting call: the dressing room, the roles and the way to apply -->
+  <CastingCall lang={lang} />
+</Base>

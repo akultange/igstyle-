@@ -1,0 +1,99 @@
+---
+// "Tune in" (styles in styles/tune.css): the way into the gallery, set in the middle of the four pictures that
+// open it (artists page; on no page at the moment). A lens in a ring of blackened steel, the gallery's pictures
+// passing through it one after another; round it a ring of words that slowly turns ("See the gallery ✦ 41 photos ✦
+// 9 films"), and outside that the ticks of a tuning dial turning the other way. It sits inside the link that
+// is the whole block, so the lens is what you press but anywhere on the pictures works too. All of it is
+// decoration for the link (aria-hidden): the link's own label says where it goes. Reduced motion: nothing turns.
+// Pressing it dives into the lens: it spins up and flares, then the gallery opens out of it (tune.css; the
+// gallery page reads where the lens was from a note this script leaves for it).
+import { type Lang } from '../data/i18n';
+import { galleryPhotos, galleryFilms } from '../data/gallery';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const ru = lang === 'ru';
+const p = galleryPhotos.length;
+const f = galleryFilms.length;
+const filmsRu = (n: number) => (n % 10 === 1 && n % 100 !== 11 ? 'фильм' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'фильма' : 'фильмов');
+// (non-breaking spaces at both ends: SVG would drop ordinary ones, and the last star would touch the first word)
+const ring = (ru ? `Смотреть галерею ✦ ${p} фото ✦ ${f} ${filmsRu(f)} ✦` : `See the gallery ✦ ${p} photos ✦ ${f} films ✦`).replace(/^|$/g, '\u00a0\u00a0');
+// the pictures that pass through the lens: six from across the gallery
+const pass = ['gal-02-duet-red-blue', 'gal-07-red-stripes', 'gal-04-blue-velvet-chair', 'gal-10-red-light', 'gal-01-pole-red-smoke', 'gal-14-armchair-duet']
+  .map((name) => galleryPhotos.find((s) => s.src.includes(name)))
+  .filter((s): s is (typeof galleryPhotos)[number] => Boolean(s));
+const R = 79; // the ring of words, in the 200-unit drawing
+const pid = `tune-c-${Math.random().toString(36).slice(2, 8)}`;
+const ticks = Array.from({ length: 72 }, (_, i) => i);
+---
+<span class="tune" aria-hidden="true">
+  <span class="tune-glow"></span>
+  <svg class="tune-dial" viewBox="0 0 200 200" focusable="false">
+    {ticks.map((i) => <line x1="100" y1={i % 6 === 0 ? 3 : 5} x2="100" y2="9.5" transform={`rotate(${i * 5} 100 100)`} class:list={{ big: i % 6 === 0 }} />)}
+  </svg>
+  <svg class="tune-ring" viewBox="0 0 200 200" focusable="false">
+    <defs><path id={pid} d={`M100 ${100 - R}a${R} ${R} 0 1 1 0 ${2 * R}a${R} ${R} 0 1 1 0 ${-2 * R}`} /></defs>
+    <text><textPath href={`#${pid}`} textLength={(2 * Math.PI * R).toFixed(1)} lengthAdjust="spacing">{ring.toUpperCase()}</textPath></text>
+  </svg>
+  <span class="tune-bezel"></span>
+  <span class="tune-halo"></span>
+  <span class="tune-lens">
+    {pass.map((s, i) => <img src={s.thumb ?? s.src} alt="" loading="lazy" decoding="async" style={`--i:${i}`} />)}
+    <span class="tune-tint"></span>
+    <span class="tune-play"><svg viewBox="0 0 24 24" focusable="false"><path d="M9.2 6.6v10.8l8.6-5.4z" /></svg></span>
+  </span>
+</span>
+
+<script>
+  // The dive: note where the lens is (for the page that opens out of it), spin it up, then go. Where the browser
+  // can't animate between pages, a dark circle closes over the lens first. Not for a new tab, nor reduced motion.
+  document.querySelectorAll<HTMLAnchorElement>('a.gal-peek').forEach((link) => { from(link); dive(link); });
+
+  // Where they came in from (data-next: the part of this page that comes after the lens), so the end of the gallery
+  // can take them on to it (GalleryNext.astro). Read once, within seconds, by the gallery page.
+  function from(link: HTMLAnchorElement) {
+    const next = link.dataset.next;
+    if (!next) return;
+    link.addEventListener('click', (e) => {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const note = { path: location.pathname, next, label: link.dataset.nextLabel || '', kick: link.dataset.nextKick || '', t: Date.now() };
+      try { sessionStorage.setItem('hl-from', JSON.stringify(note)); } catch { /* the gallery simply ends */ }
+    });
+  }
+
+  function dive(link: HTMLAnchorElement) {
+    const lens = link.querySelector<HTMLElement>('.tune-lens');
+    if (!lens || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const pageAnim = 'CSSViewTransitionRule' in window;
+    const root = document.documentElement;
+    let veil: HTMLElement | null = null;
+    link.addEventListener('click', (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      // the ring of light round the lens is what flies out: the new page opens inside it
+      const ring = link.querySelector<HTMLElement>('.tune-halo') || lens;
+      const r = ring.getBoundingClientRect();
+      const x = ((r.left + r.width / 2) / innerWidth) * 100;
+      const y = ((r.top + r.height / 2) / innerHeight) * 100;
+      const rad = Math.round(r.width / 2);
+      try { sessionStorage.setItem('hl-lens', JSON.stringify({ x: +x.toFixed(2), y: +y.toFixed(2), r: rad, t: Date.now() })); } catch { /* no note: a plain change of page */ }
+      link.classList.add('tuning');
+      const go = () => location.assign(link.href);
+      if (pageAnim) { setTimeout(go, 280); return; }
+      root.style.setProperty('--lens-x', `${x}%`);
+      root.style.setProperty('--lens-y', `${y}%`);
+      root.style.setProperty('--lens-r', `${rad}px`);
+      veil = document.createElement('div');
+      veil.className = 'lens-veil';
+      document.body.append(veil);
+      setTimeout(go, 640);
+    });
+    // back from the gallery (the page kept in memory): the lens at rest again, no veil
+    addEventListener('pageshow', (e) => {
+      if (!e.persisted) return;
+      link.classList.remove('tuning');
+      veil?.remove();
+      veil = null;
+    });
+  }
+</script>

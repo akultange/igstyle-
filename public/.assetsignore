@@ -1,0 +1,4 @@
+# Files for regular Apache/PHP hosting (Timeweb), not for the Cloudflare preview (wrangler reads this list)
+.htaccess
+**/.htaccess
+api/

@@ -1,0 +1,11 @@
+---
+// Section heading: the section's name as a real heading, in the text face at its heavier weight, as a sentence
+// (global.css, .t-l: no capitals, no gradient), and an optional link under it in the Label's capitals. No overline
+// label, no number, no rule above, and no icon. `num` and `icon` are accepted for older call sites but not shown.
+interface Props { num?: string; label: string; link?: { href: string; label: string }; icon?: string }
+const { label, link } = Astro.props;
+---
+<div class="shead">
+  <h2 class="t-l">{label}</h2>
+  {link && <a class="lnk" href={link.href}>{link.label}</a>}
+</div>

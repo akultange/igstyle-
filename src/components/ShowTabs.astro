@@ -1,0 +1,166 @@
+---
+// «Шоу» on the home page (styles in styles/shows.css): what the artists do, as a programme to choose from.
+// The six kinds of number (pole, show ballet, burlesque, live vocals, aerial, duets) are tabs, each with its serial
+// number in the Label; the chosen one's photograph (a torn print, cut.css, in the colour its own light gives it,
+// colour.css) stands beside the list and plays its film while it is on screen, and its two lines sit under the list.
+// Two parts on the page's twelve columns, one screen tall. Desktop: the list on the left, the picture on the right,
+// the larger part (2026-11-23, the client: the three columns, with the guest under the laser drawn between the list
+// and the picture, were too much and a strange layout; the drawing is gone from here).
+// Phones: the six as a row of framed tabs to swipe, then the picture, then the words.
+import { photo } from '../data/images';
+import { type Lang, tr } from '../data/i18n';
+import { acts, cast, media } from '../data/content';
+import '../styles/shows.css';
+import { keepShort } from '../data/format';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const ru = lang === 'ru';
+const pad2 = (n: number) => String(n).padStart(2, '0');
+// a hyphenated word never breaks at its hyphen ("шоу-балет", "дресс-код")
+const nb = (s: string) => s.replace(/(\S)-(?=\S)/g, '$1\u2011');
+/** Where each number's girl has her face in her photo and film, as a share of its height from the top (the burlesque
+ *  dancer's eyes above her fan, the aerialist's head in her hoop), and how much closer the narrowest desktop frame
+ *  shows her (from 1024px the frame is wide enough without). The frame
+ *  then sets every face at one height (styles/shows.css), so the girls don't jump up and down as the numbers take
+ *  turns, and no one's eyes are cut off on a phone. */
+const focus: Record<string, { face: number; zoom?: number }> = {
+  'artist-1-pole.webp': { face: 0.335 },
+  'artist-4-show-ballet.webp': { face: 0.42, zoom: 1.2 },
+  'artist-2-burlesque.webp': { face: 0.165, zoom: 1.2 },
+  'artist-5-live-vocal.webp': { face: 0.3 },
+  'artist-3-aerial.webp': { face: 0.41, zoom: 1.2 },
+  'artist-6-duets.webp': { face: 0.265 },
+};
+const focusOf = (img: string) => {
+  const f = focus[img];
+  return f ? `--face:${f.face};--zoom:${f.zoom ?? 1}` : undefined;
+};
+// (the picture: the screen's width on a phone; seven of the twelve columns from 1024px, six under that)
+const shots = await Promise.all(acts.map((a) => photo(media(a.img), '(max-width: 899px) 96vw, (max-width: 1023px) 48vw, min(54vw, 780px)')));
+---
+<section class="sec shw" id="show" aria-labelledby="shw-title" data-shw>
+  <div class="wrap">
+    <div class="bighead bh-line">
+      <h2 class="t-l" id="shw-title">{ru ? 'Шоу-программа' : 'The show'}</h2>
+      <div class="bighead-side">
+        <p class="body" set:html={keepShort(nb(tr(cast.lead, lang)), lang)} />
+      </div>
+    </div>
+    <div class="shw-body">
+      <div class="shw-list" role="tablist" aria-label={ru ? 'Номера шоу' : 'The numbers'} data-lenis-prevent-horizontal>
+        {acts.map((a, i) => (
+          <button type="button" role="tab" class="shw-tab" id={`shw-t${i}`} aria-controls={`shw-p${i}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>
+            <span class="shw-no" aria-hidden="true">{pad2(i + 1)}</span>
+            <span class="shw-name">{tr(a.title, lang)}</span>
+          </button>
+        ))}
+      </div>
+      {/* (the words right after their tabs, for a screen reader; the picture last, placed by the grid) */}
+      <div class="shw-panels">
+        {acts.map((a, i) => (
+          <div class="shw-panel" role="tabpanel" id={`shw-p${i}`} aria-labelledby={`shw-t${i}`} tabindex="0" hidden={i !== 0}>
+            <p class="body" set:html={keepShort(nb(tr(a.text, lang)), lang)} />
+          </div>
+        ))}
+      </div>
+      <div class="shw-stage">
+        <div class="photo shw-photo">
+          {acts.map((a, i) => (
+            <div class:list={['shw-shot', { on: i === 0 }]} data-i={i} style={focusOf(a.img)}>
+              <img src={media(a.img)} {...shots[i]} alt={tr(a.alt, lang)} loading="lazy" decoding="async" />
+              {a.loop && <video muted loop playsinline preload="none" aria-hidden="true" data-src={media(a.loop)}></video>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // The tabs: a click (or the arrow keys, Home and End) chooses a number; its picture comes up and its film plays
+  // while the picture is on screen. Nothing plays for reduced motion or when the phone asks to save data.
+  // On their own the numbers take turns: the chosen one's line of light is a progress bar that fills while the
+  // section is on screen (.auto.run, styles/shows.css), and when it is full the next number comes up. The first
+  // press on a tab (or the arrow keys, or a swipe of the pills on a phone) stops that for good: from then on the
+  // visitor chooses. Never for reduced motion.
+  document.querySelectorAll<HTMLElement>('[data-shw]').forEach((sec) => {
+    const tabs = [...sec.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const panels = tabs.map((t) => document.getElementById(t.getAttribute('aria-controls')!)!);
+    const shots = [...sec.querySelectorAll<HTMLElement>('.shw-shot')];
+    const list = sec.querySelector<HTMLElement>('.shw-list')!;
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const saveData = Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData);
+    let inView = false;
+    let auto = !still;
+    sec.classList.toggle('auto', auto);
+    const run = () => sec.classList.toggle('run', auto && inView);
+    const manual = () => {
+      if (!auto) return;
+      auto = false;
+      sec.classList.remove('auto', 'run');
+    };
+
+    // (an iPhone in Low Power Mode refuses to start a film without a touch: the next tap starts the one showing)
+    let refused = false;
+    const films = () => shots.forEach((s) => {
+      const v = s.querySelector('video');
+      if (!v) return;
+      if (s.classList.contains('on') && inView && !still && !saveData) {
+        if (!v.getAttribute('src')) v.src = v.dataset.src!;
+        v.play()
+          .then(() => { refused = false; s.classList.add('looping'); })
+          .catch((err: DOMException) => { if (err?.name === 'NotAllowedError') refused = true; });
+      } else {
+        v.pause();
+        s.classList.remove('looping');
+      }
+    });
+    addEventListener('touchend', () => { if (refused) films(); }, { passive: true });
+
+    const select = (i: number, focus = false) => {
+      tabs.forEach((t, k) => {
+        const on = k === i;
+        t.setAttribute('aria-selected', String(on));
+        t.tabIndex = on ? 0 : -1;
+        panels[k].hidden = !on;
+        shots[k]?.classList.toggle('on', on);
+      });
+      if (focus) tabs[i].focus();
+      // on phones the pills are a row to swipe: bring the chosen one into it
+      if (list.scrollWidth > list.clientWidth + 2) {
+        const t = tabs[i];
+        const left = t.offsetLeft - (list.clientWidth - t.offsetWidth) / 2;
+        list.scrollTo({ left, behavior: still ? 'auto' : 'smooth' });
+      }
+      films();
+    };
+
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', () => { manual(); select(i); });
+      t.addEventListener('keydown', (e) => {
+        const n = tabs.length;
+        const to = { ArrowDown: i + 1, ArrowRight: i + 1, ArrowUp: i - 1, ArrowLeft: i - 1, Home: 0, End: n - 1 }[e.key];
+        if (to === undefined) return;
+        e.preventDefault();
+        manual();
+        select((to + n) % n, true);
+      });
+      // the line is full: on to the next number (after the last, the first again)
+      t.addEventListener('animationend', (e) => {
+        if (auto && e.animationName === 'shw-fill') select((i + 1) % tabs.length);
+      });
+    });
+    // a finger on the row of pills (a phone) means the visitor is choosing
+    list.addEventListener('pointerdown', manual, { passive: true });
+
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver((entries) => {
+        inView = entries.some((e) => e.isIntersecting);
+        films();
+        run();
+      }, { threshold: 0.35 }).observe(sec.querySelector('.shw-stage')!);
+    } else manual();
+  });
+</script>

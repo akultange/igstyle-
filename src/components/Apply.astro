@@ -1,0 +1,338 @@
+---
+// The job application, as a full-screen page of its own over the site (styles/apply.css). The client: "the
+// current UX is shit, a full-page popup would be better": instead of a trip to the careers page and a form at
+// its foot, the application opens where you are, in three short steps.
+//   1. «Выберите роль»: the five roles, one to a row (the booking's own kinds); a tap chooses one and moves on.
+//   2. «Как с вами связаться?»: name, phone, and where to reply (WhatsApp, Telegram or a call).
+//   3. «Пара слов о себе»: a few words (optional), a pointer to Telegram for photos and films, the consent.
+// Then thanks; or, if sending fails, the same application again (nothing typed is lost), or WhatsApp with it
+// already in the message.
+// One dialog for the whole site (Base.astro), opened by any link or button with data-apply; data-apply-role="2"
+// comes with that role chosen and opens on step 2. The links still go to /careers/ (with ?role= and #apply), so
+// without scripts nothing is lost, and /careers/#apply opens the dialog straight away. Desktop: the dressing room on
+// the left (the casting call's own picture: the bulb-lit mirror and its free chair, nobody in it; until 2026-11-21 it
+// was two artists at a mirror in their underwear), the steps on the right, dressed as the booking's are (apply.css).
+// Phones: the steps fill the screen, the buttons at the foot.
+// It sends to /api/careers (the managers' Telegram), as the careers form did. Personal data never goes into the URL.
+import { photo } from '../data/images';
+import { type Lang, ui, tr } from '../data/i18n';
+import { site } from '../data/site';
+import { careers } from '../data/content';
+import { keepShort } from '../data/format';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const ru = lang === 'ru';
+const f = ui[lang].form;
+const L = ru
+  ? {
+      title: 'Анкета', close: 'Закрыть', back: 'Назад', next: 'Дальше', send: 'Отправить',
+      h1: 'Выберите роль', lead1: 'Ответим в течение двух дней. Всё останется между нами.',
+      h2: 'Как с вами связаться?', as: 'Роль', change: 'изменить', via: 'Где удобнее ответить',
+      h3: 'Пара слов о себе', about: 'О себе', aboutPh: 'Опыт, где вы работали или выступали, ссылка на портфолио',
+      tg: 'Фото и видео удобнее прислать в Telegram:', tgLink: 'написать',
+      doneH: 'Спасибо, анкета у нас', doneText: 'Ответим в течение двух дней. Ваш номер видят только менеджеры клуба.', ok: 'Хорошо',
+      failH: 'Не получилось отправить', failText: 'Анкета сохранена: попробуйте отправить ещё раз. Или напишите нам в WhatsApp, анкета уже в сообщении.', retry: 'Отправить ещё раз',
+      needContact: 'Укажите имя и телефон.', needConsent: 'Отметьте согласие на обработку данных.',
+      hello: 'Здравствуйте. Хочу работать в HOTLAND.',
+    }
+  : {
+      title: 'Application', close: 'Close', back: 'Back', next: 'Next', send: 'Send',
+      h1: 'Choose a role', lead1: 'We reply within two days. It all stays between us.',
+      h2: 'How do we reach you?', as: 'Role', change: 'change', via: 'Where should we reply',
+      h3: 'A few words about you', about: 'About you', aboutPh: 'Experience, where you’ve worked or performed, a link to your portfolio',
+      tg: 'Photos and videos are easiest on Telegram:', tgLink: 'message us',
+      doneH: 'Thank you, we have your application', doneText: 'We’ll reply within two days. Only the club’s managers see your number.', ok: 'Done',
+      failH: 'We couldn’t send it', failText: 'Your application is kept: try sending it again. Or message us on WhatsApp, your application is already in the message.', retry: 'Try again',
+      needContact: 'Please enter your name and phone.', needConsent: 'Please tick the consent box.',
+      hello: 'Hello. I’d like to work at HOTLAND.',
+    };
+const vias = ['WhatsApp', 'Telegram', f.call];
+// The consent's sentence is i18n's; only the policy's own name in it is the link, so a tap on the rest ticks the box
+// (were the sentence ever reworded without that name, its last two words would be the link). «18 лет» stays together.
+const [, consentA, consentLink, consentB] =
+  f.consent.match(/^(.*?)(политику конфиденциальности|the privacy policy)(.*)$/) ?? f.consent.match(/^(.*\s)(\S+\s+\S+)()$/) ?? ['', '', f.consent, ''];
+const unit = (t: string) => t.replace(/(\d) (?=\p{L})/gu, '$1\u00a0');
+// (the picture covers a panel as tall as the screen, so a 16:9 photograph is drawn 178vh wide, whatever the panel's
+// width: its copy is chosen by that, not by the panel's own width, which "auto" would measure; a phone shows none)
+const pic = await photo('/media/casting-room.webp', '(min-width: 900px) 178vh, 1px', false);
+---
+<dialog class="apl" id="apply-dlg" aria-labelledby="apl-title" data-lenis-prevent data-wa={site.whatsapp} data-l={JSON.stringify({ needContact: L.needContact, needConsent: L.needConsent, hello: L.hello })}>
+  <h2 class="sr-only" id="apl-title">{L.title}</h2>
+  <div class="apl-in">
+    <figure class="apl-pic apl-room" aria-hidden="true"><img src="/media/casting-room.webp" {...pic} alt="" loading="lazy" decoding="async" /></figure>
+    <form class="apl-box" novalidate data-step="1">
+      <header class="apl-top">
+        <p class="apl-count" aria-hidden="true"><b data-apl-n>01</b><span>/&nbsp;03</span></p>
+        <button class="apl-x" type="button" data-apl-close aria-label={L.close}>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18" /></svg>
+        </button>
+      </header>
+      <span class="apl-line" aria-hidden="true"><i></i></span>
+
+      <div class="apl-steps">
+        <!-- 1: the role -->
+        <fieldset class="apl-step" data-s="1" aria-labelledby="apl-h1">
+          <h3 class="apl-h" id="apl-h1" tabindex="-1">{L.h1}</h3>
+          <p class="apl-lead" set:html={keepShort(L.lead1, lang)} />
+          <div class="apl-roles">
+            {careers.roles.map((r, i) => (
+              <label><input type="radio" name="role" value={tr(r, lang)} data-i={i} /><span>{tr(r, lang)}</span></label>
+            ))}
+          </div>
+        </fieldset>
+
+        <!-- 2: how to reach you -->
+        <fieldset class="apl-step" data-s="2" aria-labelledby="apl-h2" hidden>
+          <h3 class="apl-h" id="apl-h2" tabindex="-1">{L.h2}</h3>
+          <p class="apl-chosen">{L.as}: <b data-apl-role></b> <button type="button" class="apl-change" data-apl-goto="1">{L.change}</button></p>
+          <div class="fields apl-fields">
+            <div class="field"><label for="apl-name">{f.name}</label><input id="apl-name" name="name" autocomplete="name" required /></div>
+            <div class="field"><label for="apl-phone">{f.phone}</label><input id="apl-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required /></div>
+          </div>
+          <div class="apl-via" role="radiogroup" aria-labelledby="apl-via-l">
+            <p class="apl-via-l" id="apl-via-l">{L.via}</p>
+            <div class="apl-pills">
+              {vias.map((v, i) => (
+                <label class="apl-pill"><input type="radio" name="messenger" value={v} checked={i === 0} /><span>{v}</span></label>
+              ))}
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- 3: a few words, and the consent -->
+        <fieldset class="apl-step" data-s="3" aria-labelledby="apl-h3" hidden>
+          <h3 class="apl-h" id="apl-h3" tabindex="-1">{L.h3}</h3>
+          <div class="field full"><label for="apl-about">{L.about}</label><textarea id="apl-about" name="about" rows="5" maxlength="800" placeholder={L.aboutPh}></textarea></div>
+          <p class="apl-hint">{L.tg} <a href={site.telegramCasting} target="_blank" rel="noopener">{L.tgLink}</a></p>
+          <div class="hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off" /></label></div>
+          <label class="consent"><input type="checkbox" name="consent" required /><span>{unit(consentA)}<a href={`/${lang}/privacy/`} target="_blank" rel="noopener">{consentLink}</a>{consentB}</span></label>
+        </fieldset>
+
+        <!-- sent -->
+        <div class="apl-step apl-end" data-s="done" role="status" hidden>
+          <span class="apl-mark" aria-hidden="true"></span>
+          <p class="apl-h" tabindex="-1">{L.doneH}</p>
+          <p class="apl-lead">{L.doneText}</p>
+          <div class="btns"><button class="btn btn-crimson" type="button" data-apl-close>{L.ok}</button></div>
+        </div>
+
+        <!-- not sent: the same application again, or WhatsApp with it in the message -->
+        <div class="apl-step apl-end" data-s="fail" role="alert" hidden>
+          <p class="apl-h" tabindex="-1">{L.failH}</p>
+          <p class="apl-lead">{L.failText}</p>
+          <div class="btns">
+            <button class="btn btn-crimson" type="button" data-apl-retry>{L.retry}</button>
+            <a class="btn btn-line" data-apl-wa href={site.whatsapp} target="_blank" rel="noopener">{f.sendWa}</a>
+            <a class="btn btn-line" href={site.telegramCasting} target="_blank" rel="noopener">Telegram</a>
+          </div>
+        </div>
+      </div>
+
+      <footer class="apl-foot">
+        <p class="apl-err" id="apl-err" role="alert" hidden></p>
+        <button class="btn btn-line apl-back" type="button" data-apl-back>{L.back}</button>
+        <button class="btn btn-crimson apl-next" type="button" data-apl-next>{L.next}</button>
+        <button class="btn btn-crimson apl-send" type="submit" data-sending={f.sending} hidden>{L.send}</button>
+      </footer>
+    </form>
+  </div>
+</dialog>
+
+<script>
+  import { track } from '../scripts/track';
+  const dlg = document.getElementById('apply-dlg') as HTMLDialogElement | null;
+  if (dlg) {
+    const root = document.documentElement;
+    const form = dlg.querySelector<HTMLFormElement>('form')!;
+    const L = JSON.parse(dlg.dataset.l || '{}') as { needContact: string; needConsent: string; hello: string };
+    const steps = Array.from(dlg.querySelectorAll<HTMLElement>('[data-s]'));
+    const count = dlg.querySelector<HTMLElement>('[data-apl-n]')!;
+    const chosen = dlg.querySelector<HTMLElement>('[data-apl-role]')!;
+    const err = dlg.querySelector<HTMLElement>('.apl-err')!;
+    const back = dlg.querySelector<HTMLButtonElement>('[data-apl-back]')!;
+    const next = dlg.querySelector<HTMLButtonElement>('[data-apl-next]')!;
+    const send = dlg.querySelector<HTMLButtonElement>('.apl-send')!;
+    const roles = Array.from(dlg.querySelectorAll<HTMLInputElement>('input[name="role"]'));
+    const name = dlg.querySelector<HTMLInputElement>('input[name="name"]')!;
+    const phone = dlg.querySelector<HTMLInputElement>('input[name="phone"]')!;
+    const consent = dlg.querySelector<HTMLInputElement>('input[name="consent"]')!;
+    let step: string = '1';
+    let opened = 0;
+    let auto = 0;
+
+    const say = (text = '') => { err.textContent = text; err.hidden = !text; };
+    // What can be wrong (the name and the phone on step 2, the consent on step 3), and how each is right. A field
+    // that is wrong shows it itself (apply.css: .is-bad, its line in light) and says so to a screen reader; put
+    // right, its mark goes, and the message with the last of them.
+    const checks: [HTMLInputElement, () => boolean][] = [
+      [name, () => Boolean(name.value.trim())],
+      [phone, () => phone.value.replace(/\D/g, '').length >= 6],
+      [consent, () => consent.checked],
+    ];
+    function mark(el: HTMLInputElement, bad: boolean) {
+      el.closest('.field, .consent')?.classList.toggle('is-bad', bad);
+      if (bad) { el.setAttribute('aria-invalid', 'true'); el.setAttribute('aria-describedby', err.id); }
+      else { el.removeAttribute('aria-invalid'); el.removeAttribute('aria-describedby'); }
+    }
+    /** The first of these that is wrong: marked, named at the window's foot, and the cursor in it. */
+    function wrong(els: HTMLInputElement[], text: string) {
+      const bad = checks.filter(([el, ok]) => els.includes(el) && !ok()).map(([el]) => el);
+      els.forEach((el) => mark(el, bad.includes(el)));
+      if (!bad.length) return false;
+      say(text);
+      bad[0].focus();
+      return true;
+    }
+    form.addEventListener('input', () => {
+      checks.forEach(([el, ok]) => { if (el.hasAttribute('aria-invalid') && ok()) mark(el, false); });
+      if (!form.querySelector('[aria-invalid]')) say();
+    });
+    /** Show a step: its number above, the line filling, the buttons it needs; the eye (and the keyboard) on it. */
+    function show(s: string, focus = true) {
+      step = s;
+      form.dataset.step = s;
+      steps.forEach((el) => { el.hidden = el.dataset.s !== s; });
+      const n = Number(s) || 3;
+      count.textContent = `0${n}`;
+      dlg!.style.setProperty('--apl-p', String(s === 'done' || s === 'fail' ? 1 : n / 3));
+      const ending = s === 'done' || s === 'fail';
+      back.hidden = s === '1' || ending;
+      next.hidden = s !== '2';
+      send.hidden = s !== '3';
+      form.classList.toggle('apl-ending', ending);
+      checks.forEach(([el]) => mark(el, false));
+      say();
+      if (focus) {
+        const target = s === '2' && !name.value ? name : dlg!.querySelector<HTMLElement>(`[data-s="${s}"] .apl-h`);
+        requestAnimationFrame(() => target?.focus({ preventScroll: true }));
+      }
+    }
+    const role = () => roles.find((r) => r.checked);
+    function choose(i: number) {
+      const r = roles[i];
+      if (!r) return;
+      r.checked = true;
+      chosen.textContent = r.value;
+    }
+
+    /** Open it: fresh after an application went out; on step 2 with the role chosen when a role's link opened it;
+     *  otherwise where the visitor left off (or on step 1). */
+    function open(i?: number) {
+      if (dlg!.open) return;
+      if (step === 'done' || step === 'fail') { form.reset(); step = '1'; }
+      if (i !== undefined) { choose(i); step = '2'; }
+      if (!role()) step = '1';
+      root.classList.add('apl-lock');
+      if (typeof dlg!.showModal === 'function') dlg!.showModal();
+      else dlg!.setAttribute('open', '');
+      opened = Date.now();
+      show(step);
+      track('careers_open');
+    }
+    /** Close it: the window leaves in a short fade (apply.css: apl-out), and only then closes, so the page is never
+     *  cut to. (The timer is for a browser that never says the fade has ended.) */
+    function close() {
+      if (!dlg!.open || dlg!.classList.contains('apl-out')) return;
+      let closed = false;
+      const end = (e?: Event) => {
+        if (closed || (e && e.target !== dlg)) return; // (a step's own entrance ending inside is not the window's)
+        closed = true;
+        dlg!.removeEventListener('animationend', end);
+        dlg!.classList.remove('apl-out');
+        if (typeof dlg!.close === 'function') dlg!.close();
+        else dlg!.removeAttribute('open');
+        root.classList.remove('apl-lock');
+      };
+      dlg!.addEventListener('animationend', end);
+      dlg!.classList.add('apl-out');
+      setTimeout(end, 400);
+    }
+    dlg.addEventListener('close', () => root.classList.remove('apl-lock'));
+    // Esc: the same closing as the cross
+    dlg.addEventListener('cancel', (e) => { e.preventDefault(); close(); });
+
+    // any link or button with data-apply opens it, where you are (a new tab or window still follows the link)
+    document.addEventListener('click', (e) => {
+      const a = (e.target as Element | null)?.closest<HTMLElement>('[data-apply]');
+      if (!a || (e as MouseEvent).button || (e as MouseEvent).metaKey || (e as MouseEvent).ctrlKey || (e as MouseEvent).shiftKey || (e as MouseEvent).altKey) return;
+      e.preventDefault();
+      e.stopPropagation(); // (the smooth scrolling would follow the #apply link and move the page behind the dialog)
+      const i = a.dataset.applyRole;
+      open(i !== undefined && /^\d+$/.test(i) ? Number(i) : undefined);
+    });
+    dlg.querySelectorAll<HTMLElement>('[data-apl-close]').forEach((b) => b.addEventListener('click', close));
+
+    // step 1: a tap on a role chooses it and moves on (a moment later, so the choice is seen)
+    // (a tap on the role already chosen, back here after «изменить», moves on too)
+    const pick = (r: HTMLInputElement) => {
+      chosen.textContent = r.value;
+      clearTimeout(auto);
+      auto = window.setTimeout(() => { if (step === '1' && dlg.open) show('2'); }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 280);
+    };
+    roles.forEach((r) => {
+      r.addEventListener('change', () => pick(r));
+      r.addEventListener('click', () => { if (r.checked) pick(r); });
+    });
+    dlg.querySelector('[data-apl-goto="1"]')?.addEventListener('click', () => show('1'));
+    back.addEventListener('click', () => show(step === '3' ? '2' : '1'));
+    function toThree() {
+      if (wrong([name, phone], L.needContact)) return;
+      show('3');
+    }
+    next.addEventListener('click', toThree);
+    // Enter in a field of step 2 goes on to step 3 (not straight to sending)
+    form.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && step === '2' && (e.target as HTMLElement).tagName === 'INPUT') { e.preventDefault(); toThree(); }
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (step !== '3' || send.disabled) return;
+      if (wrong([consent], L.needConsent)) return;
+      const fd = new FormData(form);
+      const data = Object.fromEntries(['role', 'name', 'phone', 'messenger', 'about', 'website'].map((k) => [k, String(fd.get(k) || '')]));
+      const label = send.textContent || '';
+      send.disabled = true;
+      send.textContent = send.dataset.sending || '…';
+      try {
+        const r = await fetch('/api/careers', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ ...data, elapsed: Date.now() - opened, lang: root.lang, page: location.pathname }),
+          signal: typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(12000) : undefined,
+        });
+        const res = await r.json().catch(() => ({}));
+        if (!(r.ok && res.ok)) throw new Error(res.error || String(r.status));
+        track('careers_sent');
+        show('done');
+      } catch {
+        track('careers_failed');
+        const text = [L.hello, `${data.role}: ${data.name}, ${data.phone} (${data.messenger})`, data.about].filter(Boolean).join('\n');
+        const wa = dlg.querySelector<HTMLAnchorElement>('[data-apl-wa]');
+        if (wa) wa.href = `${dlg.dataset.wa}?text=${encodeURIComponent(text)}`;
+        show('fail');
+      } finally {
+        send.disabled = false;
+        send.textContent = label;
+      }
+    });
+
+    // the same application again: back on its last step, everything still filled in, and sent
+    dlg.querySelector('[data-apl-retry]')?.addEventListener('click', () => {
+      show('3', false);
+      if (typeof form.requestSubmit === 'function') form.requestSubmit(); else send.click();
+    });
+
+    // arriving at /careers/#apply (a shared link, or a link followed without scripts): it opens straight away, with
+    // the role from ?role= if there is one
+    if (location.hash === '#apply') {
+      const q = new URLSearchParams(location.search).get('role');
+      const go = () => open(q && /^\d+$/.test(q) ? Number(q) : undefined);
+      // (once the 18+ question is answered)
+      const gate = document.getElementById('gate');
+      if (!gate || root.classList.contains('age-ok') || gate.classList.contains('out')) go();
+      else addEventListener('hotland:gate', go, { once: true });
+    }
+  }
+</script>

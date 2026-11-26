@@ -1,0 +1,33 @@
+---
+// The switch between the versions of the site that Gio and Luka keep side by side, for review: Gio's «Между» (on
+// Cloudflare), Luka's first version (hotlandbeta on GitHub Pages) and this one, LUKA LATEST (Gio's «Между» with Luka's
+// changes, hotland-latest on GitHub Pages, 2026-11-23). It shows only on a build made with PUBLIC_SITE_SWITCH set (the
+// copies hosted for review), never on the club's own site. Each other name goes to the same page in that version.
+const on = !!import.meta.env.PUBLIC_SITE_SWITCH;
+const path = Astro.url.pathname;
+const ru = !path.startsWith('/en/');
+const versions = [
+  { name: ru ? 'Гио' : 'Gio', href: 'https://hotland-mezhdu.club-site.workers.dev' + path },
+  { name: ru ? 'Лука' : 'Luka', href: 'https://akultange.github.io/hotlandbeta' + path },
+  { name: ru ? 'Лука latest' : 'Luka latest', href: null },
+];
+---
+{on && (
+  <nav class="site-switch" aria-label={ru ? 'Версия сайта' : 'Site version'}>
+    {versions.map((v) => (v.href ? <a href={v.href}>{v.name}</a> : <span class="ss-on" aria-current="true">{v.name}</span>))}
+  </nav>
+)}
+<style is:global>
+  /* a small smoked tab at the foot of the screen on the left; above the phone's dock on a phone */
+  .site-switch {
+    position: fixed; z-index: 95; left: 16px; bottom: 16px;
+    display: flex; align-items: stretch; height: 34px;
+    background: var(--smoke, rgba(5, 5, 6, .88)); box-shadow: inset 0 0 0 1px var(--rule-2, rgba(236, 236, 232, .3));
+    font: var(--label-wght, 600) 11px/1 var(--f-label, sans-serif); font-stretch: var(--label-wdth, 40%);
+    letter-spacing: var(--label-track, .06em); text-transform: uppercase;
+  }
+  .site-switch > * { display: grid; place-items: center; padding: 0 14px; color: var(--ash, #8c8f94); text-decoration: none; }
+  .site-switch .ss-on { color: var(--shirt, #ecece8); box-shadow: inset 0 -2px 0 var(--light, #ff2d2d); }
+  .site-switch a:hover, .site-switch a:focus-visible { color: var(--shirt, #ecece8); }
+  @media (max-width: 899px) { .site-switch { bottom: calc(env(safe-area-inset-bottom) + 84px); left: 12px; } .site-switch > * { padding: 0 11px; } }
+</style>

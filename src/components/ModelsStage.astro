@@ -1,0 +1,371 @@
+---
+// The artists, take two (data/variants.ts 'models': v2; styles in styles/spotlight.css): the spotlight stage. The
+// client: "the models are here and there, barely visible, only silhouettes; the camera zooms to one, while the next
+// and the one before stay visible, and reveals her fully. Seamless: twenty more models must not be a problem. And no
+// hidden gems: people would miss the controls."
+// So: a dark stage, one screen tall. The artists stand in a line in the dark; only the one in the light is shown
+// big and bright (in black and white until the new shoot, as every picture is). Each is framed as the row frames her
+// (data/artists.ts frameOf: her eyes on one line, her face one size), so she fills her frame as brightly as she did
+// in the row, and her story flies out of the stage without a jump. Every portrait is a print cut from the newspaper,
+// as every photograph on the site is (the torn edge, the white fibre, the dot screen, a slight tilt; the one in the
+// light stands straight: styles/spotlight.css). Her neighbours wait on either side, smaller, dimmer and nearly
+// colourless; further out they sink into the black. Every few
+// seconds the light moves on: the camera pulls back a touch, the line glides, the next artist steps into the light
+// while the last one sinks back into the dark, and the camera pushes in on her. The line loops, and only the few
+// near the light are drawn, so seven artists or twenty-seven behave the same.
+// The order, top to bottom (2026-11-23, the client: "the tabs on top, the quote bigger, better hierarchy"): the
+// heading row; every name, a row of tabs over the stage (the Label's small capitals on one hairline, the one in the
+// light in white over a seam of the light that fills while she stands there, as the header's current section and
+// the Шоу tabs are lit; red, amber after 04:00); the stage; her two lines under it, large, in the text face, shirt
+// white, so they read at a glance (the client found them unreadable in the Dial's hairline, which stays for short
+// display words and numbers).
+// Nothing is hidden: the names over the stage; square arrow frames on both sides; a drag or a swipe moves the line
+// under your finger; a tap on a silhouette brings her into the light; the arrow keys too. The first touch stops the
+// line moving on its own, for good. Under the pointer, the artist in the light shows her second photograph.
+// A tap or a click on the artist in the light (or Enter) opens her story, full screen, the same story as the row's
+// (ArtistStory.astro, scripts/story.ts): on a phone it brings in her second photograph a moment after she arrives.
+// Reduced motion: no moving on its own, and the light moves at once.
+import { type Lang } from '../data/i18n';
+import { artists, artistFrames, type Frame } from '../data/artists';
+import ArtistStory from './ArtistStory.astro';
+import { photo } from '../data/images';
+import '../styles/spotlight.css';
+import { keepShort } from '../data/format';
+
+interface Props { lang: Lang; id?: string }
+const { lang, id = 'models-stage' } = Astro.props;
+const ru = lang === 'ru';
+/** How long each artist stands in the light on her own, in seconds. */
+const HOLD = 6;
+/** What the script needs, in the page's language. */
+const data = artists.map((a) => ({ name: a.name[lang], lines: a[lang] }));
+/** Her framing as CSS variables (styles/spotlight.css), as the row's cards have it (Models.astro). */
+const frameVars = (f: Frame) =>
+  [`--ox:${f.ox}`, `--oy:${f.oy}`, `--az:${f.a.z}`, `--aex:${f.a.x}`, `--aey:${f.a.y}`, ...(f.b ? [`--bz:${f.b.z}`, `--bex:${f.b.x}`, `--bey:${f.b.y}`] : [])].join(';');
+/** Only the artists within two places of the light have their photograph from the start; the script gives the
+ *  others theirs as they come near (render() below), so seven artists or twenty-seven cost the same. */
+const near = (i: number) => Math.min(i, artists.length - i) <= 2;
+/** Their photographs in a phone's size too (src/data/images.ts): the one in the light is most of a phone's width, a
+ *  third of a desktop's. */
+const SIZES = '(max-width: 899px) 84vw, 33vw';
+const sets = await Promise.all(artists.map(async (a) => ({ main: await photo(`/media/${a.photo}.webp`, SIZES), hot: a.hot ? await photo(`/media/${a.hot}.webp`, SIZES) : {} })));
+---
+<section class="sec mst" id={id} aria-roledescription={ru ? 'карусель' : 'carousel'} aria-labelledby={`${id}-title`} data-mst style={`--mst-hold:${HOLD}s`}>
+  <div class="wrap">
+    <div class="bighead bh-line">
+      <h2 class="t-l" id={`${id}-title`}>{ru ? 'Артистки' : 'Artists'}</h2>
+      <div class="bighead-side">
+        <p class="body" set:html={keepShort(ru ? 'Лица HOTLAND. Здесь знакомство, остальное на сцене.' : 'The faces of HOTLAND. You meet them here; the rest is on stage.', lang)} />
+      </div>
+    </div>
+    <div class="mst-names" data-names role="group" aria-label={ru ? 'Имена артисток' : 'The artists by name'} data-lenis-prevent-horizontal>
+      {data.map((a, i) => (
+        <button type="button" class:list={['mst-n', { on: i === 0 }]} data-go={i} aria-current={i === 0 ? 'true' : undefined}><span>{a.name}</span><i aria-hidden="true"></i></button>
+      ))}
+    </div>
+  </div>
+
+  <div class="mst-stage" data-stage tabindex="0" role="group" aria-label={ru ? 'Сцена с артистками, листайте стрелками' : 'The stage, use the arrow keys'}>
+    <div class="mst-cam" data-cam>
+      {artists.map((a, i) => (
+        <figure class:list={['mst-a', { on: i === 0 }]} data-i={i} style={frameVars(artistFrames[i])} aria-hidden={i === 0 ? undefined : 'true'}>
+          <span class="mst-print">
+            {near(i)
+              ? <img class="mst-main" src={`/media/${a.photo}.webp`} {...sets[i].main} alt={a.alt[lang]} loading="lazy" decoding="async" draggable="false" />
+              : <img class="mst-main" data-src={`/media/${a.photo}.webp`} data-srcset={sets[i].main.srcset} data-sizes={sets[i].main.sizes} data-alt={a.alt[lang]} alt="" loading="lazy" decoding="async" draggable="false" />}
+            {a.hot && <img class="mst-hot" data-src={`/media/${a.hot}.webp`} data-srcset={sets[i].hot.srcset} data-sizes={sets[i].hot.sizes} alt="" loading="lazy" decoding="async" draggable="false" />}
+          </span>
+        </figure>
+      ))}
+    </div>
+    <button type="button" class="btn btn-line mst-arrow mst-prev" data-prev aria-label={ru ? 'Предыдущая артистка' : 'Previous artist'}>
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 12H5M11 6l-6 6 6 6" /></svg>
+    </button>
+    <button type="button" class="btn btn-line mst-arrow mst-next" data-next aria-label={ru ? 'Следующая артистка' : 'Next artist'}>
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 12h15M13 6l6 6-6 6" /></svg>
+    </button>
+  </div>
+
+  <div class="wrap mst-foot">
+    <p class="mst-lines" aria-live="off" data-lines><span>{data[0].lines[0]}</span> <span>{data[0].lines[1]}</span></p>
+  </div>
+  <script type="application/json" data-mst-data is:inline set:html={JSON.stringify(data)} />
+  <ArtistStory lang={lang} />
+</section>
+
+<script>
+  import { gsap } from 'gsap';
+  import { profile, type StoryItem } from '../scripts/story';
+
+  type A = { name: string; lines: [string, string] };
+  document.querySelectorAll<HTMLElement>('[data-mst]').forEach((sec) => {
+    const stage = sec.querySelector<HTMLElement>('[data-stage]')!;
+    const cam = sec.querySelector<HTMLElement>('[data-cam]')!;
+    const cards = Array.from(sec.querySelectorAll<HTMLElement>('.mst-a'));
+    const names = Array.from(sec.querySelectorAll<HTMLButtonElement>('.mst-n'));
+    const row = sec.querySelector<HTMLElement>('[data-names]')!;
+    const linesEl = sec.querySelector<HTMLElement>('[data-lines]')!;
+    const data = JSON.parse(sec.querySelector('[data-mst-data]')?.textContent || '[]') as A[];
+    const N = cards.length;
+    if (!N) return;
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /** Where the light is: a continuous index into the line (0 = the first artist; it keeps counting past N). */
+    const st = { p: 0 };
+    let active = 0;
+    let W = 1;
+    let H = 1;
+    const smooth = (t: number) => t * t * (3 - 2 * t);
+    /** An artist's place relative to the light, the short way round the loop: -N/2 … N/2. */
+    const rel = (i: number, p: number) => {
+      let d = (i - p) % N;
+      if (d < -N / 2) d += N;
+      if (d >= N / 2) d -= N;
+      return d;
+    };
+    const measure = () => { W = cards[0].offsetWidth || 1; H = cards[0].offsetHeight || 1; };
+
+    /** Every artist from where the light is: her place, size, light, colour, sharpness and edges. */
+    function render() {
+      const p = st.p;
+      for (let i = 0; i < N; i++) {
+        const c = cards[i];
+        const d = rel(i, p);
+        const a = Math.abs(d);
+        if (a > 3.3) { if (c.style.visibility !== 'hidden') c.style.visibility = 'hidden'; continue; }
+        if (c.style.visibility) c.style.visibility = '';
+        // coming near the light: her photograph (only the nearest have it from the start)
+        if (a < 2.6) {
+          const im = c.querySelector<HTMLImageElement>('img.mst-main');
+          if (im?.dataset.src) {
+            if (im.dataset.srcset) { im.sizes = im.dataset.sizes || ''; im.srcset = im.dataset.srcset; }
+            im.src = im.dataset.src;
+            im.alt = im.dataset.alt || '';
+            im.removeAttribute('data-src');
+            im.removeAttribute('data-alt');
+          }
+        }
+        const near = smooth(Math.min(a, 1));
+        const far = Math.max(a - 1, 0);
+        const x = Math.sign(d) * (Math.min(a, 1) * W * 0.74 + far * W * 0.5);
+        const s = 1 - 0.34 * near - 0.15 * Math.min(far, 2);
+        const y = -(1 - s) * H * 0.07;
+        // in the light: as the row showed her (a touch more contrast, styles/global.css .photo); in the dark: dim and
+        // nearly colourless, but sharp, in her own frame (no blur: it cost a repaint of every portrait each frame)
+        const b = Math.max(0.12, 1 - 0.58 * near - 0.14 * far);
+        c.style.transform = `translate3d(calc(-50% + ${x.toFixed(1)}px), ${y.toFixed(1)}px, 0) scale(${s.toFixed(4)})`;
+        c.style.filter = `brightness(${b.toFixed(3)}) contrast(${(1.08 + 0.04 * near).toFixed(3)}) saturate(${(1 - 0.7 * near).toFixed(3)})`;
+        // (beyond the second neighbour a frame is gone: at a tenth of its light it was a faint empty box)
+        c.style.opacity = (a <= 2 ? 1 : Math.max(0, 1 - (a - 2) / 0.5)).toFixed(3);
+        c.style.zIndex = String(100 - Math.round(a * 10));
+      }
+    }
+
+    /** Her name lit in the names over the stage, and her two lines under it, coming up as the light moves to her. */
+    let shown = 0;
+    function caption(i: number) {
+      names.forEach((b, k) => {
+        const on = k === i;
+        b.classList.toggle('on', on);
+        if (on) b.setAttribute('aria-current', 'true');
+        else b.removeAttribute('aria-current');
+      });
+      const a = data[i];
+      if (a && i !== shown) {
+        shown = i;
+        const [first, second] = a.lines.map((l) => {
+          const s = document.createElement('span');
+          s.textContent = l;
+          return s;
+        });
+        linesEl.replaceChildren(first, ' ', second);
+        if (!still) linesEl.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 600, easing: 'cubic-bezier(.16, 1, .3, 1)' });
+      }
+      // the names row keeps the one in the light in view (a long cast scrolls under it)
+      const b = names[i];
+      if (b && row.scrollWidth > row.clientWidth + 2) {
+        row.scrollTo({ left: b.offsetLeft - (row.clientWidth - b.offsetWidth) / 2, behavior: still ? 'auto' : 'smooth' });
+      }
+    }
+    /** The one in the light: shown whole (and her second photograph under a mouse, styles/spotlight.css), the others
+     *  hidden from screen readers. */
+    function arrive(i: number) {
+      cards.forEach((c, k) => {
+        c.classList.toggle('on', k === i);
+        if (k === i) c.removeAttribute('aria-hidden');
+        else c.setAttribute('aria-hidden', 'true');
+      });
+    }
+
+    /** Move the light to artist i, the short way round (or in the direction given). */
+    function go(i: number, dir = 0) {
+      const target = ((i % N) + N) % N;
+      let delta = rel(target, st.p);
+      if (dir > 0 && delta <= 0) delta += N;
+      if (dir < 0 && delta >= 0) delta -= N;
+      active = target;
+      caption(active);
+      cards.forEach((c) => c.classList.remove('on'));
+      gsap.killTweensOf(st);
+      gsap.killTweensOf(cam);
+      if (still) {
+        st.p = target;
+        render();
+        arrive(active);
+        return;
+      }
+      // moving on its own, the line glides slow-fast-slow; under the visitor's hand it answers at once and settles
+      // (her name and words change at the tap: the picture must not lag half a second behind them)
+      const byHand = !auto;
+      const dur = byHand ? Math.min(1.1, 0.72 + 0.14 * Math.abs(delta)) : Math.min(1.6, 0.9 + 0.25 * Math.abs(delta));
+      // the camera pulls back a little while the line glides, and pushes in again as she steps into the light
+      gsap.timeline()
+        .to(cam, { scale: 0.94, duration: dur * 0.42, ease: 'power2.out' })
+        .to(cam, { scale: 1, duration: dur * 0.7, ease: 'power3.inOut' }, dur * 0.36);
+      gsap.to(st, {
+        p: st.p + delta, duration: dur, ease: byHand ? 'power3.out' : 'power3.inOut', onUpdate: render,
+        onComplete: () => { st.p = target; render(); arrive(active); },
+      });
+    }
+
+    /* ---------- On its own: the line of light under her name fills while she stands in the light, then the next
+       steps in (.auto.run, styles/spotlight.css). The first touch stops it, for good. Never for reduced motion. ---------- */
+    let auto = !still;
+    let inView = false;
+    let hover = false;
+    sec.classList.toggle('auto', auto);
+    // her lines are read out only when the visitor moves the light: moving on its own, every 6 seconds, it would
+    // talk over everything else
+    if (!auto) linesEl.setAttribute('aria-live', 'polite');
+    const run = () => sec.classList.toggle('run', auto && inView && !hover);
+    const manual = () => {
+      if (!auto) return;
+      auto = false;
+      sec.classList.remove('auto', 'run');
+      linesEl.setAttribute('aria-live', 'polite');
+    };
+    names.forEach((b) => b.querySelector('i')?.addEventListener('animationend', (e) => {
+      if (auto && (e as AnimationEvent).animationName === 'mst-fill' && b.classList.contains('on')) go(active + 1, 1);
+    }));
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(([e]) => { inView = e.isIntersecting; run(); }, { threshold: 0.4 }).observe(stage);
+    }
+    stage.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { hover = true; run(); hotPhotos(); } });
+    stage.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') { hover = false; run(); } });
+
+    // her second photograph shows only under a mouse (styles/spotlight.css), so it's fetched only when a mouse first
+    // comes onto the stage: a phone never downloads them (her story brings its own)
+    const hotPhotos = () => {
+      if (!hoverQ.matches) return;
+      sec.querySelectorAll<HTMLImageElement>('img.mst-hot[data-src]').forEach((im) => {
+        if (im.dataset.srcset) { im.sizes = im.dataset.sizes || ''; im.srcset = im.dataset.srcset; }
+        im.src = im.dataset.src!;
+        im.removeAttribute('data-src');
+      });
+    };
+
+    /* ---------- By hand ---------- */
+    sec.querySelector('[data-prev]')?.addEventListener('click', () => { manual(); go(active - 1, -1); });
+    sec.querySelector('[data-next]')?.addEventListener('click', () => { manual(); go(active + 1, 1); });
+    names.forEach((b, i) => b.addEventListener('click', () => { manual(); if (i !== active) go(i); }));
+    stage.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); manual(); story(active, cards[active]); return; }
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      manual();
+      go(active + (e.key === 'ArrowRight' ? 1 : -1), e.key === 'ArrowRight' ? 1 : -1);
+    });
+    // a drag or a swipe moves the line under the finger; let go and it settles on the nearest artist (a flick goes
+    // on to the next). A tap on a silhouette brings her into the light.
+    let drag: { x: number; y: number; p: number; t: number; moved: boolean; id: number } | null = null;
+    let lastX = 0;
+    let lastT = 0;
+    let vel = 0;
+    stage.addEventListener('pointerdown', (e) => {
+      if ((e.target as Element).closest('button') || e.button > 0) return;
+      gsap.killTweensOf(st);
+      drag = { x: e.clientX, y: e.clientY, p: st.p, t: performance.now(), moved: false, id: e.pointerId };
+      lastX = e.clientX;
+      lastT = performance.now();
+      vel = 0;
+    });
+    stage.addEventListener('pointermove', (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.x;
+      if (!drag.moved && Math.abs(dx) < 6) return;
+      if (!drag.moved) {
+        drag.moved = true;
+        manual();
+        stage.classList.add('drag');
+        try { stage.setPointerCapture(e.pointerId); } catch { /* fine */ }
+        cards.forEach((c) => c.classList.remove('on'));
+      }
+      const now = performance.now();
+      vel = (e.clientX - lastX) / Math.max(1, now - lastT);
+      lastX = e.clientX;
+      lastT = now;
+      st.p = drag.p - dx / (W * 0.74);
+      render();
+    });
+    const end = (e: PointerEvent, taken = false) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const was = drag;
+      drag = null;
+      stage.classList.remove('drag');
+      if (!was.moved) {
+        // The browser took the gesture (a finger that began on the stage is scrolling the page), or the pointer
+        // travelled up or down before letting go: that was not a tap, and nothing opens.
+        if (taken || Math.abs(e.clientY - was.y) > 10) return;
+        // a tap: on a silhouette, she comes into the light; on the one in the light, her story opens
+        const fig = (e.target as Element).closest<HTMLElement>('.mst-a');
+        const i = fig ? Number(fig.dataset.i) : -1;
+        if (i >= 0 && i !== active) { manual(); go(i); }
+        else if (fig && i === active) { manual(); story(i, fig); }
+        return;
+      }
+      const flick = Math.abs(vel) > 0.45 ? -Math.sign(vel) * 0.5 : 0;
+      go(Math.round(st.p + flick));
+    };
+    stage.addEventListener('pointerup', (e) => end(e));
+    stage.addEventListener('pointercancel', (e) => end(e, true));
+
+    /* ---------- Her story (the row's, scripts/story.ts): the portrait flies out of the stage to fill the screen ---------- */
+    const dlg = sec.querySelector<HTMLElement>('[data-mdv]');
+    const items: StoryItem[] = JSON.parse(sec.querySelector('[data-mdv-data]')?.textContent || '[]');
+    let openStory: (i: number, from?: HTMLElement | null) => void = () => {};
+    if (dlg && items.length === N) {
+      document.body.append(dlg); // full screen above everything, whatever the section is doing
+      openStory = profile(dlg, items, {
+        // the story closes on artist i: she is the one in the light at once, and her portrait flies back to her
+        jump: (i) => {
+          gsap.killTweensOf(st);
+          gsap.killTweensOf(cam);
+          gsap.set(cam, { clearProps: 'transform' });
+          st.p = i;
+          active = i;
+          render();
+          caption(i);
+          arrive(i);
+        },
+        photo: (i) => cards[i],
+        back: () => stage,
+        leave: () => {},
+      });
+    }
+    /** Open her story from her place on the stage (on whichever photograph she shows: her second under a mouse). */
+    const hoverQ = matchMedia('(hover: hover) and (pointer: fine) and (min-width: 900px)');
+    function story(i: number, from: HTMLElement) {
+      const hot = hoverQ.matches && from.matches(':hover');
+      if (hot) from.setAttribute('data-hot-on', '');
+      openStory(i, from);
+      from.removeAttribute('data-hot-on');
+    }
+
+    measure();
+    render();
+    caption(0);
+    arrive(0);
+    addEventListener('resize', () => { measure(); render(); });
+    sec.classList.add('is-live');
+  });
+</script>

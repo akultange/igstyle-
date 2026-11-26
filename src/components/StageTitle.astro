@@ -1,0 +1,111 @@
+---
+// The artists page's header (styles in styles/stage-title.css): the company on a dark stage, found by a follow
+// spot. The picture lies almost black; a soft round of light moves from one artist to the next, picking each
+// out in full colour for a moment, its beam falling through the haze from above. The spot keeps its own slow
+// round: it never follows the mouse or a finger (the house rule: nothing follows the pointer). The page's name,
+// its second line and the lead sit over the dark, like the inner-page header elsewhere (PageTitle.astro). With
+// reduced motion the spot rests on the middle of the company.
+// The light is two copies of the picture: the dark one fills the stage; the lit one shows only inside the spot,
+// moved the opposite way so the two stay in register (both moves are transforms, so nothing repaints). On a
+// phone the stage shows only the middle of the wide picture, so the picture pans with the spot, like a camera
+// following it from one artist to the next.
+import { keepShort } from '../data/format';
+import '../styles/stage-title.css';
+interface Props {
+  title: string;
+  sub?: string;
+  lead?: string;
+  img: string;
+  /** Where each artist stands in the picture (shares of its width and height): the stops of the spot's round. */
+  stops: [number, number][];
+  /** The picture's own width / height. */
+  ratio: number;
+}
+const { title, sub, lead, img, stops, ratio } = Astro.props;
+// The lead is plain text. In Russian a short word stays on the line of the word after it ("и живой").
+const leadHtml = lead && keepShort(lead.replace(/&/g, '&amp;').replace(/</g, '&lt;'), /[а-яё]/i.test(lead) ? 'ru' : 'en');
+---
+<section class="st" data-stage style={`--r:${ratio}`} data-stops={JSON.stringify(stops)}>
+  <div class="st-stage" aria-hidden="true">
+    <div class="st-frame">
+      <img class="st-dark" src={img} alt="" decoding="async" fetchpriority="high" />
+      <span class="st-beam"></span>
+      <div class="st-spot"><img class="st-lit" src={img} alt="" decoding="async" /></div>
+    </div>
+    <span class="st-shade"></span>
+  </div>
+  <div class="wrap st-in">
+    <h1 class="ptitle-h st-h">
+      <span class="t-xl ptitle-name st-name" set:html={title} />
+      {sub && <span class="ptitle-sub" set:html={sub} />}
+    </h1>
+    {leadHtml && <p class="lead st-lead" set:html={leadHtml} />}
+  </div>
+</section>
+
+<script>
+  // The follow spot: it travels from artist to artist, a pause on each, on its own (it never follows the pointer).
+  const st = document.querySelector<HTMLElement>('[data-stage]');
+  if (st) {
+    const frame = st.querySelector<HTMLElement>('.st-frame')!;
+    const spot = st.querySelector<HTMLElement>('.st-spot')!;
+    const lit = st.querySelector<HTMLElement>('.st-lit')!;
+    const beam = st.querySelector<HTMLElement>('.st-beam')!;
+    const stops: [number, number][] = JSON.parse(st.dataset.stops || '[]');
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let fw = 0, fh = 0, R = 0, sw = 0, pan = false;
+    // the spot's place, in the frame's pixels; where it is heading
+    let x = 0, y = 0, tx = 0, ty = 0;
+    let k = 0, hold = 0, last = performance.now(), raf = 0, inView = true;
+    const size = () => {
+      const r = frame.getBoundingClientRect();
+      fw = r.width; fh = r.height;
+      sw = st.getBoundingClientRect().width;
+      pan = fw > sw * 1.4; // the stage shows less than about two thirds of the picture: a phone held upright
+      R = Math.max(110, Math.min(fw * 0.12, 240));
+      spot.style.width = spot.style.height = `${R * 2}px`;
+      lit.style.width = `${fw}px`;
+      lit.style.height = `${fh}px`;
+    };
+    const place = () => {
+      spot.style.transform = `translate3d(${(x - R).toFixed(1)}px, ${(y - R).toFixed(1)}px, 0)`;
+      lit.style.transform = `translate3d(${(R - x).toFixed(1)}px, ${(R - y).toFixed(1)}px, 0)`;
+      // the beam: from above the stage down to the spot
+      beam.style.transform = `translate3d(${(x - R).toFixed(1)}px, 0, 0) scale(1, ${(Math.max(1, y) / fh).toFixed(4)})`;
+      beam.style.width = `${R * 2}px`;
+      // the camera: the picture slides so the spot stays near the middle of the stage
+      if (pan) frame.style.setProperty('--fx', Math.min(1, Math.max(0, (x - sw / 2) / (fw - sw))).toFixed(4));
+    };
+    const stopAt = (i: number): [number, number] => {
+      const [a, b] = stops[i % stops.length] ?? [0.5, 0.45];
+      return [a * fw, b * fh];
+    };
+    const tick = (now: number) => {
+      const dt = Math.min(64, now - last);
+      last = now;
+      if (!reduce) {
+        hold -= dt;
+        if (hold <= 0) {
+          k = (k + 1) % stops.length;
+          [tx, ty] = stopAt(k);
+          hold = 2300; // the time on each artist, the journey included
+        }
+      }
+      const ease = 1 - Math.exp(-dt / 260);
+      x += (tx - x) * ease;
+      y += (ty - y) * ease;
+      place();
+      raf = inView && !reduce ? requestAnimationFrame(tick) : 0;
+    };
+    const wake = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(tick); } };
+    size();
+    [x, y] = [tx, ty] = stopAt(Math.floor(stops.length / 2));
+    k = Math.floor(stops.length / 2);
+    hold = 1600;
+    place();
+    st.classList.add('on');
+    if (!reduce) wake();
+    addEventListener('resize', () => { const [a, b] = [x / fw, y / fh]; size(); x = a * fw; y = b * fh; [tx, ty] = [x, y]; place(); }, { passive: true });
+    if ('IntersectionObserver' in window) new IntersectionObserver(([e]) => { inView = e.isIntersecting; if (inView) wake(); }).observe(st);
+  }
+</script>

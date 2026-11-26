@@ -1,0 +1,74 @@
+---
+// Membership and parties. «Между»: the cards stand on a plate of blackened steel, bead-blasted (global.css .cloth: until
+// 2026-11-23 the navy cloth with its chalk stripe), the whole width of the page, and at the plate's foot the two things
+// a member carries in, each a line of words with its drawing beside it, small, straight on the metal like an engraving
+// (LineArt.astro): the card, with the way to ask for one, and the cuff and watch, with the dress code. (Until
+// 2026-11-22 the two drawings hung large, each in a plate of its own, and read as pictures still to come.) Then the
+// club's rooms, a plain list beside a photograph of the hall (Zones.astro), and the parties. Styles: styles/vip.css
+// (the cards and this page's steel), styles/zones.css, styles/parties.css.
+import Base from '../../../layouts/Base.astro';
+import PageTitle from '../../../components/PageTitle.astro';
+import MemberCards from '../../../components/MemberCards.astro';
+import Zones from '../../../components/Zones.astro';
+import Parties from '../../../components/Parties.astro';
+import LineArt from '../../../components/LineArt.astro';
+import { type Lang, ui, tr, langPaths } from '../../../data/i18n';
+import { vip, visit, bookingTypes, tiers } from '../../../data/content';
+
+export const getStaticPaths = langPaths;
+const lang = Astro.params.lang as Lang;
+const t = ui[lang];
+const ru = lang === 'ru';
+const request = `/${lang}/booking/?type=card`;
+// the two notes' words, the site's own: what the booking form calls a card, and the dress code from the visit
+const card = bookingTypes.find((b) => b.id === 'card')!.label;
+const dress = visit.rows.find((r) => r.k.en === 'Dress code')!;
+// the cards' names for the page's description, from content.ts ("Выдержка 12, 18 и 25")
+const names = tiers.map((p) => tr(p.name, lang));
+const ages = names.map((n) => n.replace(/^\D+/, ''));
+const series = names[0].replace(/\s*\d+$/, '');
+const cardsList = `${series} ${ages.slice(0, -1).join(', ')} ${ru ? 'и' : 'and'} ${ages[ages.length - 1]}`;
+const description = ru
+  ? `Членство в HOTLAND: карты ${cardsList}. Стол в зале, ложа у сцены, отдельный кабинет. Зоны клуба и праздники по вашему сценарию.`
+  : `Membership at HOTLAND: the ${cardsList} cards. A table in the main room, a booth by the stage, a private room. The club’s rooms, and parties to your own script.`;
+---
+<Base lang={lang} title={t.nav.vip} description={description}>
+  <PageTitle
+    crumbs={[{ href: `/${lang}/`, label: 'HOTLAND' }, { label: t.nav.vip }]}
+    title={t.nav.vip}
+    sub={ru ? 'Карта клуба <em>и ваш праздник</em>' : 'A club card <em>and your party</em>'}
+    lead={tr(vip.lead, lang)}
+  >
+    <a class="btn btn-crimson" href={request}>{tr(vip.request, lang)}</a>
+  </PageTitle>
+
+  <!-- 01 The cards, on the steel (the section is the plate); at its foot the two things a member carries in -->
+  <section class="sec cloth mem-suit">
+    <div class="wrap">
+      <MemberCards lang={lang} />
+      <div class="mem-notes">
+        <div class="mem-note">
+          <LineArt name="card" class="mem-art mem-art-card" />
+          <div class="mem-cap">
+            <span class="mem-k">{tr(card, lang)}</span>
+            <span class="mem-v">{t.priceOnRequest}</span>
+            <a class="lnk" href={request}>{tr(vip.request, lang)}</a>
+          </div>
+        </div>
+        <div class="mem-note">
+          <LineArt name="cuff" class="mem-art mem-art-cuff" />
+          <div class="mem-cap">
+            <span class="mem-k">{tr(dress.k, lang)}</span>
+            <span class="mem-v">{tr(dress.v, lang)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 The club's rooms: the list beside a photograph of the hall (Zones.astro) -->
+  <Zones lang={lang} />
+
+  <!-- 03 Parties: the same section as on the home page (Parties.astro), anchored "occasions" for the footer's «Праздники» -->
+  <Parties lang={lang} id="occasions" />
+</Base>

@@ -1,0 +1,183 @@
+---
+// The gallery in brief (the home page's «Галерея», data/variants.ts 'gallery': v2; styles in styles/filmstrip.css):
+// a length of half-frame 35 mm film running through a steel gate. The gate stands still: two machined rails of
+// blackened steel, edge to edge across the screen, the channel between them, and on the upper rail a counter that
+// reads the frame at the gate. The film runs in the channel under the rails' edges: a solid black base, square
+// sprocket holes punched through it four to a frame (deep: the gate's steel at the bottom of each), the frame numbers
+// and the film's name stamped along its edges in the Label's capitals, and in each frame one of the gallery's
+// pictures with clean edges, graded on its frame as every picture on the site (styles/colour.css: in colour where
+// the room's warm light lit it, black and white with the red kept, the rest black and white).
+// As the page scrolls the film runs sideways through the gate, from its head on the page's left margin to its tail
+// on the right margin, and a finger laid on it moves it too (with reduced motion it stays, a row to scroll by hand).
+// Under the mouse a frame comes up a touch brighter and plays its film if it has one (on phones, the frame that
+// settles in view plays). Each frame opens the gallery.
+// (It was this film, lighter, until 2026-11-22; then a row of prints torn from the newspaper for a day; the client
+// asked for the film back, more industrial and robust, with the prints' pictures.)
+import { photo } from '../data/images';
+import { type Lang } from '../data/i18n';
+import { galleryPhotos } from '../data/gallery';
+
+interface Props { lang: Lang; href: string; next?: Record<string, string> }
+const { lang, href, next = {} } = Astro.props;
+// ten frames (a phone's film is the first eight: filmstrip.css): the prints' pictures, which the client likes, and
+// two more. Three have a film of their own (the stage, the kitchen, the bar).
+const names = [
+  'bar-menu-entry', 'gal-06-dressing-room', 'gal-01-pole-red-smoke', 'bar-menu-kitchen', 'gal-15-behind-the-curtain',
+  'gal-03-on-the-bar', 'gal-09-duet-curtain', 'bar-menu-bar', 'gal-12-corset-chair', 'gal-04-blue-velvet-chair',
+];
+const frames = names
+  .map((name) => galleryPhotos.find((s) => s.src.includes(`/${name}.`)))
+  .filter((s): s is (typeof galleryPhotos)[number] => Boolean(s));
+const sets = await Promise.all(frames.map((s) => photo(s.thumb ?? s.src, '(max-width: 699px) 38vw, (max-width: 899px) 26vw, 17vw')));
+/** A frame's number as the film carries it: two figures, from the head of the film. */
+const no = (i: number) => String(i + 1).padStart(2, '0');
+---
+<div class="gfs" data-gfs>
+  <div class="gfs-run" data-lenis-prevent-horizontal>
+    <ol class="gfs-film" role="list" data-gfs-strip>
+      {frames.map((s, i) => (
+        <li class="gfs-frame">
+          <a class="gfs-a" href={href} tabindex="-1" aria-hidden="true" {...next}>
+            <span class="gfs-img" data-loop={s.film}>
+              <img src={s.thumb ?? s.src} {...sets[i]} alt="" loading="lazy" decoding="async" draggable="false" />
+            </span>
+          </a>
+          {/* the edge print: the frame's number under it; the film's name over every fourth */}
+          <span class="gfs-no" aria-hidden="true">{no(i)}</span>
+          {i % 4 === 1 && <span class="gfs-brand" aria-hidden="true">HOTLAND 400</span>}
+        </li>
+      ))}
+    </ol>
+  </div>
+  <!-- the gate: the two rails over the film's edges; on the upper one, the counter -->
+  <div class="gfs-rail gfs-rail-top" aria-hidden="true">
+    <span class="gfs-count">{lang === 'ru' ? 'Кадр' : 'Frame'}<b data-gfs-n>01</b></span>
+  </div>
+  <div class="gfs-rail gfs-rail-foot" aria-hidden="true"></div>
+</div>
+
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  gsap.registerPlugin(ScrollTrigger);
+
+  // With motion (.is-live): as the gate passes through the screen the film runs sideways through it, from its head on
+  // the page's left margin to its tail on the right margin, at about the page's own pace (no faster: the client found
+  // a faster strip too much; a phone's film is eight frames long so that it gets there: filmstrip.css). A finger laid
+  // on it moves it too: a sideways drag adds to where the scroll has brought it, between its two ends, and it glides
+  // on a little when let go; an up-and-down drag stays the page's own scroll (touch-action: pan-y; the browser then
+  // cancels ours). Without motion the film is a row to scroll by hand (filmstrip.css); the counter follows it either way.
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.querySelectorAll<HTMLElement>('[data-gfs]').forEach((box) => {
+    const run = box.querySelector<HTMLElement>('.gfs-run');
+    const strip = box.querySelector<HTMLElement>('[data-gfs-strip]');
+    const counter = box.querySelector<HTMLElement>('[data-gfs-n]');
+    if (!run || !strip) return;
+
+    // the counter: the number of the frame at the gate (the first frame's place when the film stands at its head)
+    let shown = -1;
+    let pitch = 0; // a frame's pitch, from the film's own measure (filmstrip.css: --fp)
+    let frames = 0; // how many frames the film has on this screen
+    const count = () => {
+      const kept = [...strip.children].filter((li) => (li as HTMLElement).offsetWidth > 0) as HTMLElement[];
+      frames = kept.length;
+      pitch = kept[0]?.offsetWidth || 0;
+    };
+    const read = (ran: number) => {
+      if (!counter || !pitch) return;
+      const k = Math.min(frames - 1, Math.max(0, Math.round(ran / pitch)));
+      if (k === shown) return;
+      shown = k;
+      counter.textContent = String(k + 1).padStart(2, '0');
+    };
+    count();
+
+    if (still || !document.documentElement.classList.contains('motion')) {
+      // by hand: the counter reads how far the row has been scrolled
+      run.addEventListener('scroll', () => read(run.scrollLeft), { passive: true });
+      addEventListener('resize', () => { count(); shown = -1; read(run.scrollLeft); });
+      return;
+    }
+    // the page's margin (var(--pad)), read from a probe: it follows the window
+    const padNow = (or: number) => {
+      const probe = document.createElement('div');
+      probe.style.cssText = 'position:absolute;visibility:hidden;padding-left:var(--pad)';
+      box.append(probe);
+      const v = parseFloat(getComputedStyle(probe).paddingLeft) || or;
+      probe.remove();
+      return v;
+    };
+    let pad = padNow(16);
+    box.classList.add('is-live');
+
+    // where the film stands: `at`, where the page's scroll has brought it, plus `off`, what a finger has added
+    const st = { at: 0, off: 0 };
+    let first = 0, last = 0; // its two ends: its head on the left margin, its tail on the right margin
+    const measure = () => {
+      const W = box.clientWidth;
+      // (on a screen wider than the page's column, the margin is the column's)
+      const edge = Math.max(pad, (W - 1440) / 2 + pad);
+      first = edge;
+      last = Math.min(first, W - edge - strip.scrollWidth);
+      count();
+    };
+    const draw = () => {
+      const x = Math.min(first, Math.max(last, st.at + st.off));
+      // (what would run past an end is let go, so the film answers at once when the scroll or the finger turns back)
+      st.off = x - st.at;
+      gsap.set(strip, { x });
+      read(first - x);
+    };
+    measure();
+    st.at = first;
+    draw();
+    gsap.fromTo(st, { at: () => { measure(); return first; } }, {
+      at: () => { measure(); return last; },
+      ease: 'none',
+      onUpdate: draw,
+      scrollTrigger: { trigger: box, start: 'top bottom', end: 'bottom top', scrub: 0.6, invalidateOnRefresh: true, onRefresh: draw },
+    });
+    addEventListener('resize', () => { pad = padNow(pad); });
+
+    // the finger (and a pen; a mouse has the scroll, and the frames are links to click)
+    let held: { id: number; x: number; moved: boolean } | null = null;
+    let glide: gsap.core.Tween | null = null;
+    let trail: { t: number; x: number }[] = [];
+    let dragEnded = 0;
+    run.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' || !e.isPrimary) return;
+      glide?.kill();
+      held = { id: e.pointerId, x: e.clientX, moved: false };
+      trail = [{ t: e.timeStamp, x: e.clientX }];
+    });
+    run.addEventListener('pointermove', (e) => {
+      if (!held || e.pointerId !== held.id) return;
+      const dx = e.clientX - held.x;
+      if (!held.moved && Math.abs(dx) < 6) return; // (a tap wobbles a little: not a drag yet)
+      held.moved = true;
+      held.x = e.clientX;
+      st.off += dx;
+      draw();
+      trail.push({ t: e.timeStamp, x: e.clientX });
+      if (trail.length > 6) trail.shift();
+    });
+    const letGo = (e: PointerEvent) => {
+      if (!held || e.pointerId !== held.id) return;
+      const was = held;
+      held = null;
+      if (!was.moved) return;
+      dragEnded = e.timeStamp;
+      if (e.type === 'pointercancel' || trail.length < 2) return;
+      // it glides on by its last speed, slowing to a stop (nothing springs back)
+      const a = trail[0], b = trail[trail.length - 1];
+      const v = e.timeStamp - b.t > 90 ? 0 : (b.x - a.x) / Math.max(16, b.t - a.t); // px a millisecond
+      if (Math.abs(v) > 0.08) glide = gsap.to(st, { off: st.off + v * 260, duration: 0.8, ease: 'power3.out', onUpdate: draw });
+    };
+    run.addEventListener('pointerup', letGo);
+    run.addEventListener('pointercancel', letGo);
+    // a drag is not a tap: the frame under the finger does not open the gallery
+    run.addEventListener('click', (e) => {
+      if (e.timeStamp - dragEnded < 400) { e.preventDefault(); e.stopPropagation(); }
+    }, true);
+  });
+</script>

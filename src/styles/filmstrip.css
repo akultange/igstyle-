@@ -1,0 +1,144 @@
+/* ---------- The gallery in brief: film through a steel gate (GalleryFilmStrip.astro) ----------
+   Half-frame 35 mm film, measured from the real thing and scaled by the film's width --sh (35 mm): upright frames
+   18 x 24 mm, one every 19 mm, 1 mm of black between two; four sprocket holes to a frame along both edges, 1.8 mm
+   in from the edge. Each frame draws its own four holes, so they keep step with the frames along the whole film.
+   The gate stands still and the film runs through it (2026-11-23, the client: the film back, "more industrial and
+   robust"; before, a lighter strip lay on the wall by itself):
+   - two rails of blackened steel, edge to edge across the screen: machined (fine grinding lines along them, one
+     bright edge where the light from above catches, a black one where it doesn't), reaching 0.7 mm over the film's
+     edges; the upper one throws a hard line of shadow on the film. On the upper rail, at the page's margin, a
+     counter reads the frame at the gate, its figures in a recessed window;
+   - between the rails the channel, the gate's darker steel, where the film isn't;
+   - the film: a solid matte black base; the holes punched square through it and deep: the channel's steel at the
+     bottom of each, the film's own thickness as a band of shadow under its upper edge and a lit lip along its lower
+     one; the frame numbers under the frames and the film's name over every fourth, stamped in the Label's capitals,
+     in steel; the pictures with clean edges, graded on their frames as every picture is (global.css, colour.css).
+   Nothing glossy and no soft shadow: every edge is a hard line.
+   Without motion, or before the script: a row to scroll by hand inside the gate. With motion (.is-live, set by the
+   script): the film runs through the gate as the page scrolls, and a finger laid on it moves it too. */
+.gfs {
+  --sh: clamp(300px, 50svh, 500px);           /* the film's width: 35 mm */
+  --mm: calc(var(--sh) / 35);                 /* one millimetre of film */
+  --fp: calc(var(--mm) * 19);                 /* a frame's pitch */
+  --fgap: var(--mm);                          /* the black between two frames */
+  --ft: calc(var(--mm) * 5.5);                /* a frame's top, from the film's edge (24 mm of picture, centred) */
+  --hy: calc(var(--mm) * 1.8);                /* the holes, from the film's edge */
+  --hw: calc(var(--mm) * 2.3);                /* a hole's width */
+  --hh: calc(var(--mm) * 2);                  /* and its height: square-cut, nearly square */
+  --wall: max(2px, calc(var(--hh) * .12));    /* the film's thickness, seen inside a hole */
+  --rail: max(22px, calc(var(--mm) * 2.8));   /* a rail's height (never too thin for the counter) */
+  --lip: calc(var(--mm) * .7);                /* how far a rail reaches over the film's edge */
+  --chamfer: max(2px, calc(var(--mm) * .3));  /* the rails' machined edge along the film */
+  --margin: max(var(--pad), calc((100% - var(--max)) / 2 + var(--pad))); /* the page column's edge */
+  --base: #111215;                            /* the film's base */
+  --chan: #1d1e22;                            /* the gate's channel, seen where the film isn't and through the holes */
+  /* a hole, looking into it, the light above: the shadow its upper edge throws on the channel's steel at the
+     bottom, the steel coming up into the light, then the lower wall, the film's own thickness, lit, its rim brightest */
+  --hole: linear-gradient(180deg, #050506 0 32%, #17181b 32%, #26282c calc(100% - var(--wall)),
+    #3a3c41 calc(100% - var(--wall)) calc(100% - 1px), #6a6e75 calc(100% - 1px));
+  /* (cut at the screen's sides only: the film is longer than the screen is wide) */
+  position: relative; overflow-x: clip; overflow-y: visible;
+  background: var(--chan);
+}
+
+/* the row, moved by hand: a finger or a trackpad scrolls the film inside the gate, which stays */
+.gfs-run {
+  position: relative; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none;
+  padding: calc(var(--rail) - var(--lip)) var(--margin);
+}
+.gfs-run::-webkit-scrollbar { display: none; }
+/* with motion the script moves the film itself, so nothing scrolls inside the row: a sideways drag is the script's,
+   and the page's own up-and-down scroll stays the browser's (pan-y) */
+.gfs.is-live .gfs-run { overflow: visible; padding-inline: 0; touch-action: pan-y; }
+.gfs.is-live .gfs-film { will-change: transform; }
+
+/* the film: frame after frame on the solid base, its two cut ends a black line */
+.gfs-film {
+  position: relative; list-style: none; margin: 0; padding: 0;
+  display: flex; width: max-content; height: var(--sh);
+  background: var(--base); box-shadow: -1px 0 #000, 1px 0 #000;
+}
+/* a frame's length of film, with its four holes along each edge */
+.gfs-frame {
+  position: relative; flex: none; width: var(--fp); height: 100%;
+  background-image: var(--hole), var(--hole), var(--hole), var(--hole), var(--hole), var(--hole), var(--hole), var(--hole);
+  background-size: var(--hw) var(--hh);
+  background-repeat: no-repeat;
+  background-position:
+    calc(var(--fp) * .125 - var(--hw) / 2) var(--hy), calc(var(--fp) * .375 - var(--hw) / 2) var(--hy),
+    calc(var(--fp) * .625 - var(--hw) / 2) var(--hy), calc(var(--fp) * .875 - var(--hw) / 2) var(--hy),
+    calc(var(--fp) * .125 - var(--hw) / 2) calc(100% - var(--hy)), calc(var(--fp) * .375 - var(--hw) / 2) calc(100% - var(--hy)),
+    calc(var(--fp) * .625 - var(--hw) / 2) calc(100% - var(--hy)), calc(var(--fp) * .875 - var(--hw) / 2) calc(100% - var(--hy));
+}
+/* the picture, 18 x 24 mm in the middle of its length: clean edges, a fine black line where the image ends */
+.gfs-a {
+  position: absolute; z-index: 1; left: calc(var(--fgap) / 2); top: var(--ft);
+  display: block; width: calc(var(--fp) - var(--fgap)); height: calc(var(--mm) * 24);
+  -webkit-tap-highlight-color: transparent; -webkit-user-drag: none;
+}
+.gfs-img {
+  position: relative; display: block; width: 100%; height: 100%; overflow: hidden;
+  background: var(--lacquer); box-shadow: 0 0 0 1px #000;
+}
+/* (the grade is on the frame, .gfs-img, as on every picture's: global.css and colour.css. Under the pointer the
+   picture comes up a touch brighter, and its number is lit) */
+.gfs-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: filter .5s ease; -webkit-user-drag: none; }
+@media (hover: hover) {
+  .gfs-a:hover .gfs-img img { filter: brightness(1.08); }
+  .gfs-frame:has(.gfs-a:hover) .gfs-no { color: var(--shirt); }
+}
+
+/* the edge print, stamped: the frame's number under the frame, after a small arrow; the film's name over every
+   fourth. The Label's capitals in steel, each in the middle of the band between the holes and the pictures. */
+.gfs-no, .gfs-brand, .gfs-count {
+  font: var(--label-wght) clamp(11px, calc(var(--mm) * .95), 13px)/1 var(--f-label); font-stretch: var(--label-wdth);
+  letter-spacing: var(--label-track); text-transform: uppercase; font-variant-numeric: tabular-nums; white-space: nowrap;
+  color: var(--steel-hi);
+}
+.gfs-no, .gfs-brand { position: absolute; z-index: 1; translate: 0 -50%; pointer-events: none; transition: color .3s ease; }
+.gfs-no {
+  left: calc(var(--fgap) / 2); top: calc((var(--sh) + var(--ft) + var(--mm) * 24 - var(--hy) - var(--hh)) / 2);
+  display: flex; align-items: center; gap: .4em;
+}
+.gfs-no::before { content: ''; width: .5em; height: .6em; background: currentColor; clip-path: polygon(0 0, 100% 50%, 0 100%); }
+.gfs-brand { left: calc(var(--fgap) / 2 + var(--mm) * 6); top: calc((var(--hy) + var(--hh) + var(--ft)) / 2); }
+
+/* the gate's rails, over the film's edges: blackened steel with the fine lines of its grinding along it */
+.gfs-rail { position: absolute; left: 0; right: 0; z-index: 2; height: var(--rail); pointer-events: none; }
+/* (the light is above: the upper rail's edge along the film turns away from it, darker, and throws a hard shadow on
+   the film; the lower rail's turns up to it and catches it) */
+.gfs-rail-top {
+  top: 0;
+  background:
+    linear-gradient(180deg, rgba(236, 236, 232, .16) 0 1px, transparent 1px calc(100% - var(--chamfer)), #1f2124 0 calc(100% - 1px), #000 0),
+    repeating-linear-gradient(180deg, rgba(236, 236, 232, .03) 0 1px, transparent 1px 3px), var(--steel);
+}
+.gfs-rail-top::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: max(2px, calc(var(--mm) * .2)); background: rgba(0, 0, 0, .55); }
+.gfs-rail-foot {
+  bottom: 0;
+  background:
+    linear-gradient(180deg, rgba(236, 236, 232, .3) 0 1px, #3b3e43 1px var(--chamfer), transparent 0 calc(100% - 1px), #000 0),
+    repeating-linear-gradient(180deg, rgba(236, 236, 232, .03) 0 1px, transparent 1px 3px), var(--steel);
+}
+/* the counter: the word stamped in the rail, the figures in a window cut into it */
+.gfs-count { position: absolute; left: var(--margin); top: 50%; translate: 0 -50%; display: flex; align-items: center; gap: .7em; }
+.gfs-count b {
+  font-weight: inherit; color: var(--shirt);
+  padding: .3em .5em .26em; background: #08080a;
+  box-shadow: inset 0 2px #000, inset 0 -1px rgba(236, 236, 232, .2);
+}
+
+/* tablets: the film a little narrower */
+@media (max-width: 899px) {
+  .gfs { --sh: clamp(280px, 46vw, 400px); }
+}
+/* phones: eight frames, not ten: as much film as goes by in one pass of the screen at the page's own pace (it must
+   not run faster than the page scrolls) */
+@media (max-width: 699px) {
+  .gfs { --sh: clamp(250px, 74vw, 330px); }
+  .gfs-frame:nth-child(n + 9) { display: none; }
+}
+/* a phone held sideways: the film within the short screen */
+@media (orientation: landscape) and (max-height: 500px) {
+  .gfs { --sh: min(60svh, 260px); }
+}

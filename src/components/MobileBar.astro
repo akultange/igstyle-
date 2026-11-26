@@ -1,0 +1,37 @@
+---
+// Phone action dock (styles: nav.css, "Phone dock"): a band of blackened steel along the foot of the screen with
+// the seam of the light along its top edge; call, WhatsApp and directions as plain line icons over their words, and
+// "Book" as the cuff on the right, under the thumb. "Call" asks for a call back (Ask.astro): the club's number is
+// never shown. "Book" opens the booking where you are (Book.astro), on the booking page too. Hidden from 900px up. It
+// is the page's one booking button from the first screen on: on a phone the home header carries no buttons of its
+// own (first-screen.css).
+import { type Lang, ui } from '../data/i18n';
+import { site } from '../data/site';
+import Ic from './FooterIcon.astro';
+const { lang } = Astro.props as { lang: Lang };
+const t = ui[lang];
+import { show } from '../data/variants';
+---
+<nav class="mbar" aria-label={lang === 'ru' ? 'Быстрые действия' : 'Quick actions'}>
+  {show('contact', 'luka') && (
+  <button class="mbar-act" type="button" data-contact="callback" data-v="contact:luka" aria-label={lang === 'ru' ? 'Заказать звонок' : 'Request a call'}>
+    <Ic name="phone" />
+    <span>{lang === 'ru' ? 'Звонок' : t.call}</span>
+  </button>
+  )}
+  {show('contact', 'gio') && (
+  <a class="mbar-act" data-v="contact:gio" href={site.phoneHref}>
+    <Ic name="phone" />
+    <span>{lang === 'ru' ? 'Звонок' : t.call}</span>
+  </a>
+  )}
+  <a class="mbar-act" href={site.whatsapp} target="_blank" rel="noopener">
+    <Ic name="whatsapp" />
+    <span>{t.whatsapp}</span>
+  </a>
+  <a class="mbar-act" href={site.mapUrl} target="_blank" rel="noopener">
+    <Ic name="route" />
+    <span>{t.directions}</span>
+  </a>
+  <a class="btn btn-crimson mbar-book" href={`/${lang}/booking/`}>{t.book}</a>
+</nav>

@@ -1,0 +1,14 @@
+{
+  // The Cloudflare worker (index.ts), checked on its own with the Workers runtime's types: npm run check
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "es2022",
+    "moduleResolution": "bundler",
+    "lib": ["es2022"],
+    "types": ["@cloudflare/workers-types"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["index.ts"]
+}

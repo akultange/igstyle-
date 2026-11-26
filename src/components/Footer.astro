@@ -1,0 +1,56 @@
+---
+import { type Lang, ui, tr } from '../data/i18n';
+import { site } from '../data/site';
+import FooterCard from './FooterCard.astro';
+import FooterNight from './FooterNight.astro';
+import FooterClassic from './FooterClassic.astro';
+import LineArt from './LineArt.astro';
+import VariantSwitch from './VariantSwitch.astro';
+import { choosing, show } from '../data/variants';
+import { closing } from '../data/content';
+import { keepShort } from '../data/format';
+// cta: the closing "your table is waiting" block; pages that end in a form of their own leave it out
+const { lang, cta = true } = Astro.props as { lang: Lang; cta?: boolean };
+const t = ui[lang];
+const p = (s: string) => `/${lang}/${s}/`;
+---
+<footer class:list={['ft', { 'no-cta': !cta }]}>
+  <div class="wrap">
+    {cta && (
+      <div class="ft-cta">
+        <!-- The invitation: one card on the page's column. Its words stand in one stack on the left, the title at
+             the card's head and the line with the two buttons at its foot; beside them, drawn in chalk on lacquer,
+             the guest at his table (LineArt "guest", 2026-11-23, the client's wish): the low table set for him, its
+             lamp lit amber, the man in a dark suit standing by it, seen from behind, and between them the logo's
+             needle as a seam of red light in the back wall. When the card comes into view the pen draws it, then the
+             needle is struck, then the lamp comes on (styles: footers.css, lineart.css). Before it, the table and
+             its lamp alone ("lamp", now on the booking pages); until 2026-11-21 a photograph, champagne before the
+             stage with guests' faces in the room behind it: the club shows the room, never its guests. -->
+        <div class="cta-card">
+          <div class="cta-words">
+            <p class="t-xl cta-h" set:html={tr(closing.title, lang)} />
+            <div class="cta-act">
+              <p class="lead" set:html={keepShort(tr(closing.text, lang), lang)} />
+              <div class="btns">
+                <a class="btn btn-crimson" href={p('booking')}>{t.bookTable}</a>
+                <a class="btn btn-line" href={site.whatsapp} target="_blank" rel="noopener">WhatsApp</a>
+              </div>
+            </div>
+          </div>
+          <div class="cta-art"><LineArt name="guest" class="cta-guest" /></div>
+        </div>
+      </div>
+    )}
+
+    <!-- the last screen: the links, the contacts and the small print, never taller than the screen. While the
+         client chose, four takes (data/variants.ts, 'footer', settled on v4): v4 the calling card, v5 the night's
+         programme, and the four columns over the club's logo (Luka's and Gio's rounds) -->
+    <div class:list={['ft-host', { 'vx-host': choosing('footer') }]}>
+      {show('footer', 'v4') && <div class="vx-part" data-v="footer:v4"><FooterCard lang={lang} /></div>}
+      {show('footer', 'v5') && <div class="vx-part" data-v="footer:v5"><FooterNight lang={lang} /></div>}
+      {show('footer', 'luka') && <div class="vx-part" data-v="footer:luka"><FooterClassic lang={lang} sign="luka" /></div>}
+      {show('footer', 'gio') && <div class="vx-part" data-v="footer:gio"><FooterClassic lang={lang} sign="gio" /></div>}
+      <VariantSwitch name="footer" />
+    </div>
+  </div>
+</footer>

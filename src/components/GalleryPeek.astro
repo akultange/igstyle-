@@ -1,0 +1,111 @@
+---
+// The gallery in brief: the one way into the gallery wherever a page offers it (the home page, before the
+// artists' faces). It should read at a glance as what it is: photographs. The heading row as every section's (the
+// title, one line with what's inside, so many photos and films, and the link to the gallery), then a length of film
+// running through a steel gate, sideways as the page scrolls (GalleryFilmStrip.astro: the gallery's pictures in its
+// frames, with clean edges, graded as every picture on the site); each frame opens the gallery too.
+// (A second take stays in the code, out of the page, data/variants.ts 'gallery': the prints hung to dry on a steel
+// wire, swinging on their clips as the line comes into view; styles in styles/peek.css.)
+// The gallery's end offers a plain link on to the part of this page that comes after the block (data-next;
+// GalleryNext.astro). Each page says which (`next`: that part's id, its name on the button, the line above it)
+// and what this section is called in its links (`id`). Without them it is the home page's: #gallery, then on to
+// the artists' faces (#models).
+import { photo } from '../data/images';
+import { type Lang, tr } from '../data/i18n';
+import { galleryPhotos, galleryCount } from '../data/gallery';
+import { galleryTitle } from '../data/content';
+import GalleryFilmStrip from './GalleryFilmStrip.astro';
+import VariantSwitch from './VariantSwitch.astro';
+import { choosing, show } from '../data/variants';
+import '../styles/filmstrip.css';
+import '../styles/peek.css';
+
+interface Props {
+  lang: Lang;
+  /** this section's id, where links to the page's gallery block land (unique on the page) */
+  id?: string;
+  /** what follows the block on this page, for the gallery's end: its id, its name and the line above it */
+  next?: { id: string; label: string; kick: string };
+}
+const { lang, id = 'gallery', next: after } = Astro.props;
+const ru = lang === 'ru';
+const href = `/${lang}/gallery/`;
+const n = galleryCount(lang);
+// (the Russian «и» stays with the number after it)
+const count = `${n.photos}${ru ? `${n.and.trimEnd()}\u00a0` : ' and '}${n.films}`;
+// the five prints, left to right: tall, square, tall, tall, tall (their shapes vary, as prints on a line do)
+const picks = ['gal-04-blue-velvet-chair', 'gal-08-over-the-shoulder', 'gal-02-duet-red-blue', 'gal-03-on-the-bar', 'gal-15-behind-the-curtain']
+  .map((name) => galleryPhotos.find((s) => s.src.includes(`/${name}.`)))
+  .filter((s): s is (typeof galleryPhotos)[number] => Boolean(s));
+const to = after ?? { id: 'models', label: ru ? 'Артистки' : 'Artists', kick: ru ? 'Дальше на\u00a0главной' : 'Next on the home page' };
+const next = { 'data-next': to.id, 'data-next-label': to.label, 'data-next-kick': to.kick };
+// the heading's id follows the section's, so it stays unique too
+const titleId = `${id}-title`;
+const prints = await Promise.all(picks.map((s) => photo(s.thumb ?? s.src, '(max-width: 899px) 44vw, 18vw')));
+---
+<section class:list={['sec gpk', { 'vx-host': choosing('gallery') }]} id={id} aria-labelledby={titleId}>
+  <VariantSwitch name="gallery" />
+  <div class="wrap">
+    <div class="bighead bh-line gpk-head">
+      <h2 class="t-l" id={titleId}>{tr(galleryTitle, lang)}</h2>
+      <div class="bighead-side">
+        <p class="body">{ru ? `${count} из клуба. Остальное только вживую.` : `${count} from the club. The rest, in person only.`}</p>
+        <a class="lnk" href={href} {...next}>{ru ? 'Вся галерея' : 'The whole gallery'}</a>
+      </div>
+    </div>
+  </div>
+  <!-- two takes while the client chooses (data/variants.ts 'gallery'): the film strip, or the prints on the wire -->
+  {show('gallery', 'film') && <div class="vx-part" data-v="gallery:film"><GalleryFilmStrip lang={lang} href={href} next={next} /></div>}
+  {show('gallery', 'prints') && <div class="vx-part" data-v="gallery:prints">
+  <div class="gpk-run" data-lenis-prevent-horizontal>
+    <div class="gpk-line" data-gpk-line>
+      <svg class="gpk-wire" viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,0 Q500,200 1000,0" />
+      </svg>
+      {picks.map((s, i) => (
+        <a class="gpk-print" href={href} tabindex="-1" aria-hidden="true" style={`--ar:${s.ratio};--i:${i}`} {...next}>
+          <svg class="gpk-clip" viewBox="0 0 30 44" aria-hidden="true">
+            <path class="gpk-clip-arm" d="M9.5 16 L12 4 Q15 .6 18 4 L20.5 16" />
+            <path class="gpk-clip-jaw" d="M4 14 H26 L24.2 35.6 Q23.9 39 20.6 39 H9.4 Q6.1 39 5.8 35.6 Z" />
+            <path class="gpk-clip-fold" d="M4.9 21 H25.1" />
+          </svg>
+          <span class="gpk-paper">
+            <span class="gpk-img" data-loop={s.film}>
+              <img src={s.thumb ?? s.src} {...prints[i]} alt="" loading="lazy" decoding="async" />
+            </span>
+          </span>
+        </a>
+      ))}
+    </div>
+  </div>
+  </div>}
+</section>
+
+<script>
+  // The line comes into view: the prints swing on their clips once and settle (styles/peek.css, .is-in). Without
+  // motion they simply hang there.
+  const lines = document.querySelectorAll<HTMLElement>('[data-gpk-line]');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      e.target.classList.add('is-in');
+      io.unobserve(e.target);
+    }), { threshold: 0.25 });
+    lines.forEach((l) => io.observe(l));
+  } else lines.forEach((l) => l.classList.add('is-in'));
+
+  // Where they came in from, so the end of the gallery can take them on to what comes next on this page (the
+  // artists' faces on the home page; GalleryNext.astro reads this note once, within seconds). Not for a new tab or
+  // window.
+  document.querySelectorAll<HTMLAnchorElement>('.gpk a[data-next]').forEach((link) => {
+    link.addEventListener('click', (e) => {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const { next = '', nextLabel = '', nextKick = '' } = link.dataset;
+      try {
+        sessionStorage.setItem('hl-from', JSON.stringify({ path: location.pathname, next, label: nextLabel, kick: nextKick, t: Date.now() }));
+      } catch {
+        /* the gallery simply ends */
+      }
+    });
+  });
+</script>

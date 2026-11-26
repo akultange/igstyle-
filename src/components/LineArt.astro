@@ -1,0 +1,82 @@
+---
+// One drawing from the line-art set (data/lineart.ts): the guest's world in fine chalk lines on black, with amber or
+// red only where there is light. It takes the place of the glossy 3D props and the lily, and stands in where a
+// photograph would be wrong (the bar menu's, say).
+//   <LineArt name="glass" />                                          decoration: screen readers pass it by
+//   <LineArt name="lamp" label={tr(lineArt.lamp.alt, lang)} />        a drawing that carries meaning: read as an image
+//   <LineArt name="door" class="visit-art" draw={false} />            no draw-in: it simply stands there
+// Size comes from CSS: the drawing is as wide as its container (or as `width` on the class you give it) and keeps its
+// proportions; its lines stay hairlines at any size. Inline SVG, no pictures to fetch. Styles: styles/lineart.css.
+//
+// The draw-in: the first time a drawing is well in view, the pen draws its lines (contour, details, reflections)
+// and the light comes up last, about a second and a half in all (a drawing with the club's needle in it, the closing
+// card's, lights the needle and then the room, about four seconds in all, and the needle breathes after that); only
+// for visitors who allow motion (html.motion, Base.astro), and only after the 18+ door has opened. Without scripts,
+// with less motion asked for, or with draw={false}, the drawing is complete from the start.
+import { lineArt, type LineArtName } from '../data/lineart';
+import '../styles/lineart.css';
+interface Props {
+  name: LineArtName;
+  class?: string;
+  /** Draw itself in, the first time it comes into view (with motion allowed). Default: true. */
+  draw?: boolean;
+  /** For a drawing that carries meaning: read out as an image with this label (each drawing's `alt` has one in
+   *  both languages). Without it, the drawing is decoration (aria-hidden). */
+  label?: string;
+}
+const { name, class: cls, draw = true, label } = Astro.props;
+const art = lineArt[name];
+// (its gradients, masks and filters get a prefix of their own, so two of the same drawing on a page never share an id)
+const id = 'la' + Math.random().toString(36).slice(2, 8);
+const own = (s?: string) => s?.replaceAll('{id}', id);
+const weights = [[1, art.lines.contour], [2, art.lines.detail], [3, art.lines.hint]] as const;
+---
+<svg class:list={['la', `la-${name}`, cls]} viewBox={`0 0 ${art.box[0]} ${art.box[1]}`} data-draw={draw ? '' : undefined}
+  role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : 'true'} focusable="false">
+  {art.defs && <defs set:html={own(art.defs)} />}
+  {art.shade && <g class="la-shade" set:html={own(art.shade)} />}
+  {art.light && <g class="la-light" set:html={own(art.light)} />}
+  {weights.map(([w, lines]) => lines.map(([d, length, style]) => <path class={`la-s la-${w}`} d={d} pathLength={length} style={own(style)} />))}
+</svg>
+
+<script>
+  // The draw-in (styles/lineart.css): each drawing that may draw itself in (data-draw) is watched until it is well
+  // in view, then drawn once. Behind the 18+ door nothing starts until the door opens. Arriving from the other
+  // language, what is on screen was there a moment ago, so it is simply there (as scripts/motion.ts does).
+  const root = document.documentElement;
+  const waiting = () => Array.from(document.querySelectorAll<SVGSVGElement>('svg.la[data-draw]:not(.la-in)'));
+  const complete = (svg: SVGSVGElement) => svg.classList.add('la-in', 'la-done');
+  // While it draws, a line is drawn in the drawing's own units: --la-u is one screen pixel in them, so it keeps the
+  // width it will have. When the pen and the light are done, it is a fixed hairline again (.la-done). A drawing with
+  // the club's needle in it lights in turn after the pen (the needle, then the room: lineart.css), so it is done later.
+  const drawIn = (svg: SVGSVGElement) => {
+    const box = svg.viewBox.baseVal, r = svg.getBoundingClientRect();
+    const px = box && box.width && r.width ? Math.min(r.width / box.width, r.height / box.height) : 0;
+    if (!px) return complete(svg);
+    svg.style.setProperty('--la-u', (1 / px).toFixed(4));
+    svg.classList.add('la-in');
+    setTimeout(() => svg.classList.add('la-done'), svg.querySelector('.la-needle') ? 4700 : 2300);
+  };
+  if (root.classList.contains('motion') && waiting().length) {
+    if (!('IntersectionObserver' in window)) waiting().forEach(complete);
+    else {
+      const arriving = root.classList.contains('lang-in');
+      let first = true;
+      const io = new IntersectionObserver((entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          io.unobserve(e.target);
+          (first && arriving ? complete : drawIn)(e.target as SVGSVGElement);
+        }
+        first = false;
+      }, { threshold: 0.25, rootMargin: '0px 0px -6% 0px' });
+      const watch = () => waiting().forEach((svg) => io.observe(svg));
+      // (a drawing whose needle breathes rests while it is out of sight: lineart.css, .la-off)
+      const rest = new IntersectionObserver((es) => es.forEach((e) => e.target.classList.toggle('la-off', !e.isIntersecting)));
+      waiting().forEach((svg) => svg.querySelector('.la-needle') && rest.observe(svg));
+      const gate = document.getElementById('gate');
+      if (gate && !root.classList.contains('age-ok') && !gate.classList.contains('out')) addEventListener('hotland:gate', watch, { once: true });
+      else watch();
+    }
+  }
+</script>

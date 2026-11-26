@@ -1,0 +1,96 @@
+---
+// The page after "No" on the 18+ door: the door from outside, closed. The wall's dark concrete (the door's own
+// recipe, styles/gate.css, with its light turned down), the club's logo on it (Logo.astro), the door itself drawn
+// (LineArt: the two concrete leaves, the red seam of light between them, the sealed pouches on the counter) on a
+// plate of black stock torn out as every plate on the site is (cut.css, .ab-plate), one title, one line, and a quiet
+// way back to the question. The logo's sign burns low and comes up to full while the pointer or the keyboard is on
+// that way back. No club content, no menu.
+import Base from '../../layouts/Base.astro';
+import Logo from '../../components/Logo.astro';
+import LineArt from '../../components/LineArt.astro';
+import { type Lang, ui, langPaths } from '../../data/i18n';
+import { keepShort } from '../../data/format';
+
+export const getStaticPaths = langPaths;
+const lang = Astro.params.lang as Lang;
+const ru = lang === 'ru';
+---
+<Base lang={lang} title={ru ? 'Доступ ограничен' : 'Access restricted'} bare noindex>
+  <section class="bye">
+    <div class="bye-in">
+      <Logo label sign="tight" class="bye-name" />
+      <figure class="bye-door ab-plate"><LineArt name="door" /></figure>
+      <h1 class="bye-h">{ru ? 'Только 18+' : '18+ only'}</h1>
+      <p class="bye-line" set:html={keepShort(ui[lang].gate.bye, lang)} />
+      <a class="bye-back" href={`/${lang}/`}><span>{ru ? 'Вернуться' : 'Back'}</span></a>
+    </div>
+  </section>
+</Base>
+
+<style is:global>
+  /* The wall: the door's concrete (gate.css, .gate-face: the stone's grain and clouds laid over a near-black, the
+     corners falling away, the light from the upper left), with that light at half strength: the door is shut.
+     Its last pixels on the right settle into the tone the window's edge has while no answer is given (--gate-end),
+     so the wall runs to the edge where a scrollbar's room is kept. */
+  .bye {
+    /* the block stands a little above the middle */
+    min-height: 100svh; display: grid; place-items: center; padding: var(--pad) var(--pad) calc(8svh + var(--pad));
+    text-align: center; color: var(--fg);
+    background-color: #08090a;
+    background-image:
+      linear-gradient(270deg, var(--gate-end, #080808) 0, rgba(8, 8, 8, 0) 56px),
+      radial-gradient(130% 105% at 34% 30%, rgba(0, 0, 0, 0) 38%, rgba(0, 0, 0, .7) 100%),
+      url('/img/concrete/concrete.webp'), url('/img/concrete/mottle.webp'),
+      radial-gradient(ellipse 58% 56% at 2% 2%, rgba(236, 238, 244, .18) 0%, rgba(236, 238, 244, .085) 36%, rgba(236, 238, 244, .025) 66%, rgba(236, 238, 244, 0) 100%),
+      linear-gradient(115deg, #17181a 0%, #0c0d0e 52%, #070708 100%);
+    background-size: auto, auto, 430px auto, 1500px auto, auto, auto;
+    background-blend-mode: normal, normal, overlay, overlay, normal, normal;
+  }
+  .bye-in { display: grid; justify-items: center; width: 100%; }
+  /* the club's logo, its sign kept close to the name (sign="tight": about a capital above the letters and under
+     them); --cap is a capital's height. The logo stands as the club drew it: no shadow under its letters. */
+  .bye { --cap: clamp(15px, 1.3vw, 20px); }
+  .bye .bye-name { height: var(--cap); margin-top: var(--cap); }
+  /* the door is shut: the sign burns low. It comes up while the way back is under the pointer or has the focus */
+  .bye .bye-name .logo-sign, .bye .bye-name .logo-heat { opacity: .6; transition: opacity .7s ease; }
+  .bye-in:has(.bye-back:hover, .bye-back:focus-visible) .bye-name :is(.logo-sign, .logo-heat) { opacity: 1; }
+  /* the door, drawn, on a plate of black stock torn out all round, as a cutting is (cut.css tears .ab-plate; the
+     fourth tear, torn on every side, is this page's and the 404's): lacquer, with a mat of air round the drawing */
+  .bye .bye-door {
+    --tear: var(--tear-4); --tear-in: var(--tear-4-in); --cut-lean: -.6deg;
+    width: min(100%, 560px); margin: calc(1.6 * var(--cap) + clamp(16px, 2.4vh, 28px)) 0 0; padding: clamp(18px, 2.6vw, 36px);
+    background: var(--lacquer);
+  }
+  /* the title: the Dial, as every page's name is (a hairline at 200 under 900px, so it holds on a phone's screen) */
+  .bye-h {
+    margin-top: clamp(22px, 3.4vh, 36px);
+    font: 280 clamp(72px, 8vw, 120px)/.8 var(--f-flex); font-stretch: var(--dial-wdth); text-transform: uppercase;
+    font-variant-numeric: lining-nums; letter-spacing: 0; word-spacing: .1em;
+  }
+  @media (max-width: 899px) { .bye-h { font-weight: 300; } }
+  .bye-line { max-width: 34ch; margin-top: clamp(14px, 1.8vh, 20px); font: 400 var(--lead)/1.6 var(--f-text); color: var(--fg-2); text-wrap: balance; }
+  /* the way back to the question: the Label's small capitals over a hairline, a finger's height to tap; under the
+     pointer the hairline fills with the light from the left, as a section's own link does (.lnk) */
+  .bye-back {
+    display: inline-flex; align-items: center; min-height: 44px; margin-top: clamp(10px, 1.4vh, 18px); padding: 0 14px;
+    font: var(--label-wght) 13px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); text-transform: uppercase; color: var(--fg-2);
+    transition: color .3s ease; -webkit-tap-highlight-color: transparent;
+  }
+  .bye-back span {
+    padding: 8px 0 8px var(--label-track); /* (the last letter's spacing is balanced on the left, so the word sits centred) */
+    background: linear-gradient(var(--lit), var(--lit)) 0 100% / 0 1px no-repeat, linear-gradient(var(--rule-2), var(--rule-2)) 0 100% / 100% 1px no-repeat;
+    transition: background-size .6s var(--ease-out);
+  }
+  .bye-back:hover, .bye-back:focus-visible { color: var(--fg); }
+  .bye-back:is(:hover, :focus-visible) span { background-size: 100% 1px, 100% 1px; }
+  /* arriving (only when motion is welcome): the logo, the door, the words rise into place one after another (the
+     drawing then draws itself in: LineArt.astro) */
+  @media (prefers-reduced-motion: no-preference) {
+    .bye-in > * { animation: bye-rise .9s var(--ease-out) backwards; }
+    .bye-in > :nth-child(2) { animation-delay: .08s; }
+    .bye-in > :nth-child(3) { animation-delay: .16s; }
+    .bye-in > :nth-child(4) { animation-delay: .24s; }
+    .bye-in > :nth-child(5) { animation-delay: .32s; }
+  }
+  @keyframes bye-rise { from { opacity: 0; translate: 0 14px; } }
+</style>

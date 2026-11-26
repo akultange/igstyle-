@@ -1,0 +1,355 @@
+---
+// The 18+ question, as the club's door (after the club's brand board: a dark concrete wall, the name in steel, one
+// line of red light). Two slabs of concrete meet in the middle of the screen; HOTLAND runs across them in the
+// logo's capitals, and in the joint, where the L begins, burns the club's sign: the logo's own glowing artwork
+// (data/art.ts), its aura on the wall, its needle of light, its white-hot core, the L's foot lit as its spur and
+// the letters beside it catching the light. It is the first thing on every page and stays while the page loads.
+// "Yes": the light runs the length of the joint, and the slabs part.
+//
+// The door stands on the home header's own skeleton (styles/first-screen.css): its name where the header's is, its
+// question where the header's words are, its two buttons where the header's two are (a line higher there). So "Yes" does not cut to another
+// picture. The question goes, the light answers, and the slabs slide apart from the line (one movement drives the
+// slabs, their lit edges and the name: the script below). What the light does next depends on what is behind:
+//   - the home header on an upright phone: the line opens into the header's gap of light. The two lights come to
+//     rest on the gap's two edges and the name stays between them and the screen's edges, HOT before the gap and
+//     LAND on its far edge, each half brought down to the header's size on the way: they are the header's own
+//     from then on;
+//   - the home header on a wider screen: the big word has no line of its own (the club took it out, 2026-11-20),
+//     so both lights leave with their slabs, and the small name sinks at once, before the big word shows through;
+//   - any other page (or the home page opened part-way down): light and name leave with the slabs.
+// The page's own pieces then come in behind it (the header's plates, the phone's dock: global.css, "The door
+// opens"; the home header's words: hero.css, Entrances). Styles: styles/gate.css.
+import { type Lang, ui, altPath } from '../data/i18n';
+import { line, nameHalves, FLOWER } from '../data/wordmark';
+import { signGlow as art } from '../data/art';
+import '../styles/first-screen.css';
+import '../styles/gate.css';
+const { lang } = Astro.props as { lang: Lang };
+const t = ui[lang];
+const path = Astro.url.pathname;
+const nm = nameHalves();
+// the big word's proportions (the header's HOTLAND): the skeleton places the name and the words around it
+const wr = 735 / line('HOTLAND').width;
+// a half's letters as one shape, for the band of light that crosses the steel once the name is lit: the band shows
+// only where there is a letter (a mask, gate.css .gate-glint)
+// the sign's picture: the club's own file of the sign alone (127.8 by 596.58 units, the needle at x 58.85)
+const SIGN_BOX = art.box.join(' ');
+const shape = (h: { paths: string[]; width: number }) =>
+  `url("data:image/svg+xml,${`<svg xmlns='http://www.w3.org/2000/svg' viewBox='${nm.box(h.width)}'><path d='${h.paths.join(' ')}'/></svg>`.replace(/</g, '%3C').replace(/>/g, '%3E').replace(/#/g, '%23')}")`;
+---
+<div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title" aria-describedby="gate-text" tabindex="-1" data-lenis-prevent
+  style={`--wr:${wr.toFixed(5)};--wl:${nm.land.width};--ngu:${nm.gap};--nsu:${nm.axis}`}>
+  <div class="gate-slab gate-slab-l" aria-hidden="true"><div class="gate-clip"><div class="gate-face"></div>
+    {/* the club's flower, tall and faint on the wall at its left edge (the club's own sheet sets it so); it is on the
+        left slab, so it leaves with it */}
+    <svg class="gate-flower" viewBox={FLOWER.box} focusable="false"><path d={FLOWER.d} /></svg>
+  </div><i class="gate-shade"></i></div>
+  <div class="gate-slab gate-slab-r" aria-hidden="true"><div class="gate-clip"><div class="gate-face"></div></div><i class="gate-shade"></i></div>
+  <div class="gate-in">
+    <div class="gate-flare gate-flare-l" aria-hidden="true"><i></i></div>
+    <div class="gate-flare gate-flare-r" aria-hidden="true"><i></i></div>
+    {/* the lights, as one group: when a light hands over to the header's own line, a copy of that line is added to
+        this group and the two are summed (the script) */}
+    <div class="gate-lights" aria-hidden="true">
+      <div class="gate-edge gate-edge-l"><i></i></div>
+      <div class="gate-edge gate-edge-r"><i></i></div>
+    </div>
+    {/* the club's sign in the joint: its light on the wall, its aura, and its needle with the core (pictures of
+        their own, so each can arrive on its own: gate.css, Arriving). In the artwork's own units; gate.css sets
+        the picture's box so that the needle stands on the joint and the spur on the L's foot */}
+    <div class="gate-sign" aria-hidden="true">
+      <i class="gate-sign-wash"></i>
+      <svg class="gate-sign-aura" viewBox={SIGN_BOX} focusable="false" set:html={art.aura} />
+      <div class="gate-sign-blade"><svg viewBox={SIGN_BOX} focusable="false" set:html={art.sign + art.core} /></div>
+    </div>
+    <div class="wall-name gate-name" aria-hidden="true">
+      {/* each half: a box the size of its word, one small picture per letter laid over it (--i: how many letters
+          from the line), and over the letters the light they catch from the sign (.gate-heat: the logo's own
+          reflection, an oval of warm light round the L's foot that shows only on the letters; gate.css) */}
+      <span class="gate-half gate-half-l" style={`--hw:${nm.hot.width}`}>
+        {nm.hot.paths.map((d, i) => <svg viewBox={nm.box(nm.hot.width)} focusable="false" style={`--i:${nm.hot.paths.length - 1 - i}`}><path d={d} /></svg>)}
+        <span class="gate-heat" style={`--m:${shape(nm.hot)}`}></span>
+        <span class="gate-glint" style={`--m:${shape(nm.hot)}`}><i></i></span>
+      </span>
+      <span class="gate-half gate-half-r" style={`--hw:${nm.land.width}`}>
+        {nm.land.paths.map((d, i) => <svg viewBox={nm.box(nm.land.width)} focusable="false" style={`--i:${i}`}><path d={d} /></svg>)}
+        <span class="gate-heat" style={`--m:${shape(nm.land)}`}></span>
+        <span class="gate-glint" style={`--m:${shape(nm.land)}`}><i></i></span>
+      </span>
+    </div>
+    <div class="hv-copy gate-copy">
+      <h2 id="gate-title" class="hero-tag">{t.gate.title}</h2>
+      <p id="gate-text" class="lead hv-lead">{t.gate.text}</p>
+      <div class="hv-act">
+        <button class="btn btn-crimson" type="button" data-gate-yes>{t.gate.yes}</button>
+        <a class="btn btn-line" href={`/${lang}/goodbye/`}>{t.gate.no}</a>
+      </div>
+    </div>
+  </div>
+  <div class="gate-foot">
+    <a href={altPath(path, 'ru')} hreflang="ru" lang="ru" aria-current={lang === 'ru' ? 'true' : undefined}>Рус</a>
+    <a href={altPath(path, 'en')} hreflang="en" lang="en" aria-current={lang === 'en' ? 'true' : undefined}>Eng</a>
+    <a href={`/${lang}/privacy/`}>{t.footer.privacy}</a>
+  </div>
+</div>
+<script>
+  // While the question shows, the page behind it is out of reach (inert: the keyboard and screen readers stay in the
+  // question; nothing changes on screen) and the question has the focus.
+  const root = document.documentElement;
+  const gate = document.getElementById('gate');
+  const behind = gate && !root.classList.contains('age-ok')
+    ? Array.from(document.body.children).filter((el): el is HTMLElement => el !== gate && el instanceof HTMLElement && !el.matches('script, .svg-defs'))
+    : [];
+  behind.forEach((el) => { el.inert = true; });
+  if (behind.length && !gate!.contains(document.activeElement)) gate!.focus({ preventScroll: true });
+  // The page behind is not drawn while the door arrives (gate.css). Once the whole arrival is over (the band of
+  // light has crossed the name, about 2.6 s in) and the browser has a free moment, the page is drawn behind the
+  // door, so the answer has nothing left to paint; drawing it earlier cost the arrival its last frames.
+  if (behind.length) {
+    const set = () => root.classList.add('door-set');
+    const idle = () => ('requestIdleCallback' in window ? requestIdleCallback(set, { timeout: 1200 }) : setTimeout(set, 200));
+    if (!root.classList.contains('motion') || root.classList.contains('door-still')) set();
+    else setTimeout(idle, 3000);
+  }
+
+  /* The door as a place (src/door3d). Where the browser has a graphics card and the visitor has not asked for less
+     motion (html.d3, set in the page's head), the two slabs are a scene drawn in three dimensions, and "Yes" opens
+     that. The flat door above stays underneath: it is what everyone else gets, and what comes back if the scene has
+     not arrived within five seconds or fails. The question and its answers move into the scene's own frame at once
+     (gate.css, The door as a place), so they can be answered before the picture is there.
+     In the address: ?door=2d keeps the flat door; ?door=3d waits for the scene however long it takes and accepts a
+     slow graphics card; ?door=first plays the long first-visit arrival again (a returning visitor gets a short one:
+     hl-door-seen, kept in this browser). */
+  type Door3d = { arrive(quick: boolean): void; open(o?: { onCover?: () => void }): Promise<void>; stop(): void };
+  let door3d: Door3d | null = null;
+  if (gate && behind.length && root.classList.contains('d3')) {
+    const want = new URLSearchParams(location.search).get('door');
+    const copy = gate.querySelector('.gate-copy')!;
+    const moved = [gate.querySelector('#gate-title')!, gate.querySelector('#gate-text')!, copy.querySelector('.hv-act')!];
+    const ask = document.createElement('div'), canvas = document.createElement('canvas');
+    // back to the flat door: its pieces are shown again and the question goes back where it was
+    const flat = () => { root.classList.remove('d3', 'd3-on'); copy.append(...moved); ask.remove(); canvas.remove(); };
+    let gl: WebGL2RenderingContext | null = null;
+    try { gl = document.createElement('canvas').getContext('webgl2', { failIfMajorPerformanceCaveat: want !== '3d' }); } catch {}
+    // (a browser that draws without a graphics card would take seconds over every frame: it says so in its
+    // renderer's name, and keeps the flat door without the scene ever being fetched; the scene times itself too)
+    let soft = false;
+    try {
+      const info = gl?.getExtension('WEBGL_debug_renderer_info');
+      soft = !!gl && /swiftshader|llvmpipe|software|basic render/i.test(String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER)));
+    } catch {}
+    if (!gl || (soft && want !== '3d')) flat();
+    else {
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
+      const q = document.createElement('div'), a = document.createElement('div');
+      q.className = 'd3-q'; q.append(moved[0], moved[1]);
+      a.className = 'd3-a'; a.append(moved[2]);
+      ask.className = 'd3-ask'; ask.append(q, a);
+      canvas.id = 'd3-scene'; canvas.className = 'd3-scene'; canvas.setAttribute('aria-hidden', 'true');
+      gate.prepend(canvas);
+      gate.append(ask);
+      let late = false;
+      const timer = want === '3d' ? 0 : window.setTimeout(() => { late = true; flat(); }, 5000);
+      import('../door3d/scene.js').then((m) => m.ready).then((d) => {
+        clearTimeout(timer);
+        if (late || gate.classList.contains('out') || root.classList.contains('age-ok')) { d.stop(); return; }
+        let seen = false;
+        try { seen = !!localStorage.getItem('hl-door-seen'); } catch {}
+        root.classList.add('d3-on');
+        door3d = d;
+        d.arrive(want !== 'first' && (seen || root.classList.contains('door-still')));
+      }).catch((err) => { clearTimeout(timer); if (!late) flat(); console.error(err); });
+    }
+  }
+
+  // Yes: remember the answer for this visit (Base.astro asks again on the next one), give the page back, and open
+  // the door. The page is told it may begin a moment after (motion.ts waits for this), and once the slabs are off the
+  // screen, .age-ok takes the door away.
+  gate?.querySelector('[data-gate-yes]')?.addEventListener('click', () => {
+    if (gate.classList.contains('out')) return;
+    behind.forEach((el) => { el.inert = false; });
+    try { sessionStorage.setItem('age_ok', String(Date.now())); } catch {}
+    const begin = () => dispatchEvent(new Event('hotland:gate'));
+    if (root.classList.contains('d3')) {
+      // The door as a place (below) has its own opening: the slabs part, we go in, the picture fills with the light
+      // inside and, once it is all light, the page begins behind it and the picture gives way to it. Answered
+      // before the scene has arrived, there is no door to open: the page is simply there.
+      const d = door3d;
+      if (!d) { root.classList.add('age-ok'); begin(); return; }
+      gate.classList.add('d3-out');
+      root.classList.add('gate-plain');
+      try { localStorage.setItem('hl-door-seen', '1'); } catch {}
+      let over = false;
+      const cover = () => { if (gate.classList.contains('out')) return; gate.classList.add('out'); begin(); };
+      const done = () => { if (over) return; over = true; clearTimeout(guard); cover(); root.classList.add('age-ok'); d.stop(); };
+      // (if the tab is put away mid-way and the frames stop, the door still goes)
+      const guard = setTimeout(done, 6500);
+      d.open({ onCover: cover }).then(done, done);
+      return;
+    }
+    if (!root.classList.contains('motion') || typeof gate.animate !== 'function') {
+      root.classList.add('age-ok');
+      begin();
+      return;
+    }
+    // (how much of the answering light the pointer had already raised: the opening carries on from there)
+    const glow = parseFloat(getComputedStyle(gate.querySelector('.gate-flare')!).opacity) || 0;
+    gate.classList.add('out');
+    setTimeout(begin, 250);
+    try {
+      open(gate, glow);
+    } catch (err) {
+      root.classList.add('age-ok');
+      console.error(err);
+    }
+  });
+
+  /* The opening. One movement: p, how far each slab has gone from the line, eased slow-fast-slow as a heavy door
+     moves. Where everything else is follows from p (the lights, the name, the shade a slab casts), and every piece is
+     given its own run of positions, sampled from that one movement, as an animation of transform and opacity only.
+     The browser plays those off the main thread, so the door moves evenly even while the page behind it is busy
+     starting up.
+       0 ms     the question and the small links go; the light runs the length of the joint (the lit edges come
+                up out of the sign, 320 ms, and the sign goes, to 550); the wall's red answers; nothing else moves
+       140      the slabs start (1300 ms). A light that stays leaves with its slab, falls behind and settles on the
+                header's own line (an upright phone's gap); a light that leaves is out soon after. The wall's red
+                is out by 660
+       ~640     a light that stayed gives way to the header's own line: one cross-fade, 450 ms, the two always adding
+                up to one light
+       500      the header's film comes up inside the gap (hero.css)
+       ~900     (phone; ~1100 wide screens) the slabs are off the screen; the page's own pieces come in behind them
+       1440     the door is taken away (.age-ok) */
+  function open(gate: HTMLElement, glow: number) {
+    const q = <T extends Element = HTMLElement>(sel: string) => gate.querySelector<T>(sel)!;
+    const all = <T extends Element = HTMLElement>(sel: string) => Array.from(gate.querySelectorAll<T>(sel));
+    const slabL = q('.gate-slab-l'), slabR = q('.gate-slab-r');
+    const edgeL = q('.gate-edge-l'), edgeR = q('.gate-edge-r');
+    const [flareL, flareR] = all('.gate-flare');
+    const [nameL, nameR] = all('.gate-half');
+    const W = gate.clientWidth;
+    const shown = (el: Element) => parseFloat(getComputedStyle(el).opacity);
+
+    // Where each light comes to rest (see the top of this file): the header's own line on that side of the door, if
+    // the header is what stands behind it. ownL / ownR are the header's lines, aL / aR how far each light travels
+    // to stand on its line (0: no line on that side, the light leaves with its slab).
+    const mid = (el: Element) => { const r = el.getBoundingClientRect(); return r.width ? r.left + r.width / 2 : NaN; };
+    const hero = scrollY < 2 ? document.querySelector<HTMLElement>('.hero .hv3') : null;
+    const gap = hero ? Array.from(hero.querySelectorAll<HTMLElement>('.hv3-gap i')) : [];
+    let ownL: HTMLElement | undefined, ownR: HTMLElement | undefined;
+    if (gap.length === 2 && mid(gap[0]) > 0) [ownL, ownR] = gap;
+    const reach = (d: number) => (d > 1 && d < W / 2 ? d : 0);
+    const aL = ownL ? reach(mid(q('.gate-edge-l i')) - mid(ownL)) : 0;
+    const aR = ownR ? reach(mid(ownR) - mid(q('.gate-edge-r i'))) : 0;
+    // the header's gap on both sides: the name stays, either side of it
+    const keep = aL > 0 && aR > 0;
+    // ... and comes to rest exactly on the header's own name. The door's name is the larger of the two on a phone
+    // (its LAND has the half screen; the header's has to fit beside the gap: gate.css, Where the logo stands), so each half is carried to its place and brought down to the header's size on the way: where its
+    // middle goes (x, y) and how much smaller it ends (s). Measured, not worked out: half a pixel off showed as a
+    // tick when the door was taken away.
+    const theirs = keep ? Array.from(hero!.querySelectorAll('.hv3-name svg')) : [];
+    const onto = (mine: Element, to: Element | undefined, guess: number) => {
+      const m = mine.getBoundingClientRect(), t = to?.getBoundingClientRect();
+      const x = t ? t.left + t.width / 2 - (m.left + m.width / 2) : NaN, y = t ? t.top + t.height / 2 - (m.top + m.height / 2) : NaN;
+      const s = t && m.width ? t.width / m.width : NaN;
+      return [x, y, s].every(Number.isFinite) && s > 0.5 && s < 1.5 && Math.abs(x) < W / 2 && Math.abs(y) < 60 ? { x, y, s } : { x: guess, y: 0, s: 1 };
+    };
+    const nL = onto(nameL, theirs[0], -aL), nR = onto(nameR, theirs[1], aR);
+    const dimR = shown(nameR) || 1; // (LAND stands a step dimmer on the wall: gate.css)
+    root.classList.add(keep ? 'gate-keep' : 'gate-plain');
+
+    // The one movement, sampled.
+    const START = 140, LASTS = 1300, STEPS = 56;
+    const travel = W / 2 + 110;
+    const heavy = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    const P = Array.from({ length: STEPS + 1 }, (_, i) => travel * heavy(i / STEPS));
+    const c01 = (v: number) => Math.min(1, Math.max(0, v));
+    // a light that stays leaves with its slab and then falls behind it, settling on its line by the time the slab
+    // has gone twice as far (0 to 1: how much of the way it has come)
+    const settle = (p: number, a: number) => { const u = Math.min(1, p / (2 * a)); return 1 - (1 - u) * (1 - u); };
+    // ... and when that is, in ms from the tap (the first sampled moment the slab is twice as far)
+    const settled = (a: number) => START + (Math.max(0, P.findIndex((p) => p >= 2 * a)) / STEPS) * LASTS;
+    const ride = W * 0.14 + 50; // how far a light that leaves is carried before it has gone out
+    const running: Animation[] = [];
+    const run = (el: Element | null | undefined, frames: Keyframe[], timing: KeyframeAnimationOptions) => {
+      if (el) running.push(el.animate(frames, { fill: 'both', ...timing }));
+    };
+    /** One piece through the movement: where it is (x, and y and its size s where those change) and how much of it
+     *  shows (o) at each sampled p. */
+    const play = (el: Element | undefined, at: (p: number) => { x?: number; y?: number; s?: number; o?: number }) => {
+      run(el, P.map((p) => {
+        const { x, y = 0, s = 1, o } = at(p);
+        const f: Keyframe = {};
+        if (x !== undefined) f.transform = `translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,0)${s === 1 ? '' : ` scale(${s.toFixed(5)})`}`;
+        if (o !== undefined) f.opacity = o.toFixed(3);
+        return f;
+      }), { duration: LASTS, delay: START, easing: 'linear' });
+    };
+    play(slabL, (p) => ({ x: -p }));
+    play(slabR, (p) => ({ x: p }));
+    play(flareL, (p) => ({ x: -p }));
+    play(flareR, (p) => ({ x: p }));
+    all('.gate-shade').forEach((el) => play(el, (p) => ({ o: Math.min(1, p / 40) })));
+    const lights = q('.gate-lights');
+    const copies = new Set<Element>();
+    const light = (edge: HTMLElement, dir: number, a: number, own: HTMLElement | undefined) => {
+      if (!a || !own) { play(edge, (p) => ({ x: dir * p, o: 1 - c01((p - 16) / ride) })); return; }
+      play(edge, (p) => ({ x: dir * a * settle(p, a) }));
+      // Standing on the header's line, it gives way to it: one cross-fade. The header's line takes part as a copy
+      // of itself inside the door's own group of lights, added to the door's light rather than laid over it
+      // (plus-lighter), so the two are one light all the way: it neither doubles nor dips, it only changes from
+      // the door's line into the header's. The original stays out of sight until the door is taken away; the copy
+      // stands exactly on it, so that moment shows nothing.
+      const swap = { duration: 450, delay: settled(a), easing: 'ease-in-out' };
+      run(edge, [{ opacity: 1 }, { opacity: 0 }], swap);
+      const box = own.parentElement?.matches('.hv3-gap') ? own.parentElement : own; // (what carries the line's mask)
+      if (copies.has(box)) return;
+      copies.add(box);
+      const r = box.getBoundingClientRect(), g = lights.getBoundingClientRect();
+      const copy = box.cloneNode(true) as HTMLElement;
+      Object.assign(copy.style, {
+        position: 'absolute', display: 'block', margin: '0', left: `${r.left - g.left}px`, top: `${r.top - g.top}px`, width: `${r.width}px`, height: `${r.height}px`,
+        mixBlendMode: 'plus-lighter', willChange: 'opacity',
+      });
+      lights.append(copy);
+      run(copy, [{ opacity: 0 }, { opacity: 1 }], swap);
+      run(box, [{ opacity: 0 }, { opacity: 0 }], { duration: START + LASTS });
+    };
+    light(edgeL, -1, aL, ownL);
+    light(edgeR, 1, aR, ownR);
+    // The name. Where the lights stay it goes with them, to the header's own name, and LAND comes up to full; the
+    // (the light the letters took from the sign goes with the sign, below). Where they leave, it leaves with the slabs, sinking into
+    // the dark as it goes: slowly on an inner page, at once where the home header's big word is about to show
+    // through the opening (the small name used to ride out across it).
+    const sink = hero ? (p: number) => 1 - c01((p - 8) / (W * 0.05)) : (p: number) => 1 - c01((p - W * 0.12) / (W * 0.3));
+    const carry = (to: { x: number; y: number; s: number }, u: number) => ({ x: to.x * u, y: to.y * u, s: 1 + (to.s - 1) * u });
+    play(nameL, (p) => (keep ? carry(nL, settle(p, aL)) : { x: -p, o: sink(p) }));
+    play(nameR, (p) => (keep ? { ...carry(nR, settle(p, aR)), o: dimR + (1 - dimR) * settle(p, aR) } : { x: p, o: dimR * sink(p) }));
+
+    // Around it: the question goes (from wherever it is: "Yes" may be pressed before it has finished arriving), and
+    // the light answers along the line: on the slabs, so it leaves with them, and out before the lights have settled.
+    const out = 'cubic-bezier(.22, .61, .36, 1)';
+    // The light runs the length of the joint: the two lit edges come up out of the sign, growing from the name to
+    // their full length, while the sign itself goes, and with it the light the letters took from it.
+    const sign = q('.gate-sign');
+    run(lights, [{ opacity: 0, transform: 'scaleY(.3)' }, { opacity: 1, transform: 'scaleY(1)' }], { duration: 320, easing: out });
+    run(sign, [{ opacity: shown(sign) }, { opacity: 0 }], { duration: 460, delay: 90, easing: 'ease-in' });
+    all('.gate-heat').forEach((el) => run(el, [{ opacity: shown(el) }, { opacity: 0 }], { duration: 460, delay: 90, easing: 'ease-in' }));
+    const copy = q('.gate-copy'), foot = q('.gate-foot');
+    run(copy, [{ opacity: 1, transform: 'translate3d(0,0,0)' }, { opacity: 0, transform: 'translate3d(0,8px,0)' }], { duration: 240, easing: 'cubic-bezier(.55, .06, .68, .19)' });
+    run(foot, [{ opacity: shown(foot) }, { opacity: 0 }], { duration: 240, easing: 'ease-in' });
+    [flareL, flareR].forEach((el) => run(el, [{ opacity: glow, easing: out }, { opacity: 1, offset: 0.45, easing: 'ease-in-out' }, { opacity: 0 }], { duration: 660 }));
+
+    let over = false;
+    const done = () => {
+      if (over) return;
+      over = true;
+      clearTimeout(guard);
+      root.classList.add('age-ok');
+      // (the header's own lines go back to being simply there)
+      running.forEach((a) => { const el = (a.effect as KeyframeEffect | null)?.target; if (el && !gate.contains(el)) a.cancel(); });
+    };
+    // (if the tab is put away mid-way and the frames stop, the door still goes)
+    const guard = setTimeout(done, 3200);
+    Promise.all(running.map((a) => a.finished)).then(done, done);
+  }
+</script>

@@ -1,0 +1,357 @@
+/* The gallery page (pages/[lang]/gallery.astro). Loaded after global.css (Base.astro).
+   A short top with the name; the walk past the photographs (GalleryDepth); the films (GalleryFilms);
+   the full-screen viewer (GalleryViewer). Every photograph and film in black and white until the new shoot (the
+   grade on each picture's frame, global.css). (2026-11-21, «Между»: the counters are the Dial and the Label, not
+   steel letters; the controls are square, smoked and solid, never round or blurred glass; the lines of light
+   follow the hour, --lit.) */
+
+/* ---------- Top: the name, big, and how much there is ---------- */
+.gx-top {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 32px;
+  padding-top: calc(var(--hdr) + clamp(24px, 4vw, 68px)); padding-bottom: clamp(10px, 1.4vw, 22px);
+}
+.gx-title { margin: 0; }
+/* (above the title's line masks, which reach a little below it: on phones the line sits right under it) */
+/* how much there is: the Label's small capitals (a control: each half is a way straight to it) */
+.gx-count {
+  position: relative; z-index: 1; padding-bottom: .9em;
+  font: var(--label-wght) 13px/1.4 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); text-transform: uppercase; color: var(--ash);
+}
+.gx-count b { font-weight: inherit; color: var(--fg); font-variant-numeric: tabular-nums lining-nums; }
+/* the two halves take you to the photos and to the films (a hairline under each that fills with the light, like .lnk) */
+.gx-count a {
+  padding-bottom: 6px; color: var(--fg-2);
+  background: linear-gradient(var(--lit), var(--lit)) 0 100% / 0 1px no-repeat, linear-gradient(var(--rule-2), var(--rule-2)) 0 100% / 100% 1px no-repeat;
+  transition: background-size .6s var(--ease-out), color .3s ease;
+}
+.gx-count a:is(:hover, :focus-visible) { background-size: 100% 1px, 100% 1px; color: var(--fg); }
+/* under a finger each half answers to a finger's height (the extra is unseen and takes no room, as .lnk's is) */
+@media (pointer: coarse) {
+  .gx-count a { position: relative; }
+  .gx-count a::before { content: ''; position: absolute; inset: -12px -4px; }
+}
+html.motion:is(.age-ok, :has(.gate.out)) .gx-count { animation: rv-up 1.1s var(--ease-out) .55s backwards; }
+/* where those links land: the walk's stage in place on its first picture, the films' strip in place */
+.gxd.is-3d { scroll-margin-top: 0; }
+.gxf { scroll-margin-top: calc(var(--hdr) + 24px - var(--sec-y)); }
+.gxf.is-strip { scroll-margin-top: calc(-1 * var(--gxf-top)); }
+@media (prefers-reduced-motion: reduce) { html:has(.gxd) { scroll-behavior: auto; } }
+
+/* the photographs show whole, edge to edge, with no fade or shadow into the page (the client: "remove shadow from
+   gallery images"); the films stand in frames, like screens, so they read at once as films */
+.gxd-ph { -webkit-mask-image: none; mask-image: none; }
+
+/* =====================================================================
+   Photographs
+   Without motion (or before the script): rows that fill the width, every picture in a row the same height,
+   each run of pictures closed by its wide big moment across the page. The script (rows() in GalleryDepth)
+   picks where each row breaks so none is left half empty; without it the browser wraps them itself.
+   With motion: a stage that stays on screen while the camera walks through the pictures.
+   ===================================================================== */
+.gxd { position: relative; padding: clamp(18px, 2.6vw, 40px) 0 var(--sec-y); } /* (the page's name heads the photos, close above them; every section's air under them) */
+.gxd-world {
+  list-style: none; margin: 0 auto; padding: 0 var(--pad); max-width: var(--max);
+  display: flex; flex-wrap: wrap; align-items: flex-start; gap: clamp(28px, 3vw, 44px) var(--gap);
+}
+/* (--rn is the picture's width / height: widths in step with it give a row one height) */
+.gxd-item { flex: var(--rn, .75) 1 calc(var(--rn, .75) * clamp(280px, 31vw, 460px)); min-width: 0; }
+.gxd-item.wide { flex: 1 1 100%; margin: clamp(4px, 1vw, 16px) 0 clamp(12px, 2vw, 32px); }
+/* the last wide picture closes the photographs: no row comes after it, and its foot falls into the black over its
+   last sixth, so the section ends at the middle of that fall (8% of its height; --rn is its width over its height)
+   and the films' air starts where the picture can still be seen */
+.gxd:not(.is-3d) .gxd-item.wide:last-child { margin-bottom: calc(-8% / var(--rn, 1.78)); }
+html:not(.js) .gxd-item:not(.wide) { max-width: calc(var(--rn, .75) * clamp(280px, 31vw, 460px) * 1.5); }
+.gxd-open { display: block; width: 100%; text-align: left; cursor: zoom-in; -webkit-tap-highlight-color: transparent; }
+.gxd-ph { position: relative; display: block; aspect-ratio: var(--r); overflow: hidden; isolation: isolate; background: #0b0b0c; }
+.gxd-ph img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.gxd-cap { display: flex; align-items: baseline; gap: 12px; margin-top: 12px; }
+/* (the count runs at the foot of the walk and in the viewer; the rows don't need it) */
+.gxd-no { display: none; }
+.gxd-tx { display: grid; gap: 4px; min-width: 0; }
+.gxd-t { font: 500 clamp(20px, 1.6vw, 24px)/1.12 var(--f-text); color: var(--fg); text-wrap: balance; transition: color .3s ease; }
+.gxd-sub { font: 400 16px/1.5 var(--f-text); color: var(--ash); }
+.gxd-item.wide .gxd-t { font: 500 clamp(30px, 3.4vw, 56px)/1.05 var(--f-text); letter-spacing: -.02em; }
+.gxd-hud { display: none; }
+@media (hover: hover) {
+  .gxd:not(.is-3d) .gxd-ph img { transition: transform 1.2s cubic-bezier(.2, .7, .2, 1); }
+  .gxd:not(.is-3d) .gxd-item:hover .gxd-ph img { transform: scale(1.03); }
+  .gxd:not(.is-3d) .gxd-item:hover .gxd-t { color: #fff; } /* a quiet brighten, the title stays upright */
+}
+@media (max-width: 899px) {
+  .gxd-world { gap: 24px 12px; }
+  .gxd-item { flex-basis: calc(var(--rn, .75) * 56vw); }
+  html:not(.js) .gxd-item:not(.wide) { max-width: calc(var(--rn, .75) * 56vw * 1.5); }
+  .gxd-cap { gap: 8px; margin-top: 8px; }
+  .gxd-t { font-size: 18px; }
+  .gxd-sub { font-size: 15px; }
+}
+
+/* ---------- The walk (motion) ----------
+   The section is as tall as the walk; the stage inside stays on screen (sticky) while the script moves
+   the camera (.gxd-world) forward. Before the script starts, the stage waits dark and the pictures hidden. */
+:is(.gxd.is-3d, html.motion .gxd:not(.gx-still)) {
+  --gx-step: clamp(320px, 44svh, 500px);
+  height: calc(var(--gxw) * var(--gx-step) + 100svh);
+  padding: 0;
+}
+:is(.gxd.is-3d, html.motion .gxd:not(.gx-still)) .gxd-stage {
+  position: sticky; top: 0; height: 100svh; overflow: hidden; contain: layout paint;
+  /* a faint light far down the room, where the pictures come from (white, as the pictures are) */
+  background: radial-gradient(46% 40% at 50% 43%, rgba(236, 236, 232, .05) 0%, rgba(236, 236, 232, .015) 46%, rgba(236, 236, 232, 0) 72%), var(--black);
+}
+:is(.gxd.is-3d, html.motion .gxd:not(.gx-still)) .gxd-world {
+  position: absolute; inset: 0; display: block; margin: 0; padding: 0; max-width: none;
+  transform-style: preserve-3d; will-change: transform; pointer-events: none;
+}
+:is(.gxd.is-3d, html.motion .gxd:not(.gx-still)) .gxd-item {
+  position: absolute; left: 0; top: 0; margin: 0; display: block; opacity: 0;
+  pointer-events: none; will-change: transform, opacity; backface-visibility: hidden;
+}
+/* before the script has placed them, the pictures wait out of sight (and don't load) */
+html.motion .gxd:not(.is-3d):not(.gx-still) .gxd-item { display: none; }
+:is(.gxd.is-3d, html.motion .gxd:not(.gx-still)) .gxd-item.live { pointer-events: auto; }
+:is(.gxd.is-3d, html.motion .gxd:not(.gx-still)) :is(.gxd-open, .gxd-ph) { width: 100%; height: 100%; aspect-ratio: auto; }
+:is(.gxd.is-3d, html.motion .gxd:not(.gx-still)) .gxd-ph { background: none; }
+.gxd.is-3d .gxd-ph img { opacity: 0; transition: opacity .8s ease; }
+.gxd.is-3d .gxd-ph img.ok { opacity: 1; }
+:is(.gxd.is-3d, html.motion .gxd:not(.gx-still)) .gxd-open { cursor: pointer; }
+:is(.gxd.is-3d, html.motion .gxd:not(.gx-still)) .gxd-cap { display: none; }
+.gxd-film { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .9s ease; pointer-events: none; }
+.gxd-film.on { opacity: 1; }
+.gxd.is-3d .gxd-open:focus-visible { outline-offset: 6px; }
+
+/* the caption that travels under the picture in focus, and the count at the foot of the stage */
+.gxd.is-3d .gxd-hud { display: block; position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+/* the photographs carry no captions now (the labels stay out of sight) */
+.gxd-labs { display: none; }
+.gxd-lab { position: absolute; left: 0; top: 0; display: none; width: max-content; max-width: min(420px, 34vw); opacity: 0; will-change: transform, opacity; }
+.gxd-lab.show { display: block; }
+.gxd-lab .gxd-tx { gap: 8px; }
+.gxd-lab .gxd-t { font: 500 clamp(23px, 2.05vw, 34px)/1.05 var(--f-text); letter-spacing: -.01em; }
+/* (as wide as its picture, 62% of the screen) */
+.gxd-lab.wide { max-width: min(1200px, 62vw); }
+.gxd-lab.wide .gxd-t { font: 500 clamp(34px, 3.7vw, 62px)/1.05 var(--f-text); letter-spacing: -.02em; }
+.gxd-lab .gxd-sub { font: 400 clamp(16px, 1.1vw, 17px)/1.45 var(--f-text); color: var(--fg-2); }
+.gxd-lab.wide .gxd-sub { font-size: clamp(17px, 1.35vw, 21px); }
+.gxd-lab.hov .gxd-t { color: #fff; }
+.gxd-meter { position: absolute; right: var(--pad); bottom: clamp(22px, 3.6vh, 40px); display: flex; align-items: flex-end; gap: 22px; }
+.gxd-ticks { display: flex; align-items: flex-end; gap: 5px; height: 24px; }
+.gxd-ticks i { display: block; flex: none; width: 1px; height: 9px; background: var(--rule-2); transition: height .5s var(--ease-out), background-color .5s ease, box-shadow .5s ease; }
+.gxd-ticks i.past { background: color-mix(in srgb, var(--shirt) 55%, transparent); }
+/* (the picture you are at: a line of the light, the red of the show, amber after 04:00) */
+.gxd-ticks i.now { width: var(--seam); height: 24px; background: var(--lit-core); box-shadow: var(--seam-glow); }
+/* the ticks are a control too (GalleryDepth.astro): a tap goes to a picture, a finger or the mouse sliding along them
+   walks the room. The target reaches well above and below the thin ticks; while it's held the ticks stand a little
+   taller. */
+.gxd-ticks { position: relative; box-sizing: content-box; pointer-events: auto; cursor: pointer; touch-action: none; padding: 14px 0; margin: -14px 0; outline: none; -webkit-tap-highlight-color: transparent; }
+.gxd-ticks.held i:not(.now) { height: 13px; }
+.gxd-ticks:focus-visible { outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) { .gxd-ticks:hover i:not(.now):not(.past) { background: color-mix(in srgb, var(--shirt) 40%, transparent); } }
+/* the count: the picture's number in the Dial, how many in the Label */
+.gxd-count { display: flex; align-items: baseline; gap: 8px; }
+/* (a touch apart, and never under 44px: smaller, the Dial's narrow 0 and 1 run together into two bars; its figures
+   are tabular, so «/ 18» stands close beside it without moving as the number changes) */
+.gxd-num { font: var(--dial-num-s-wght) var(--dial-num-s)/.8 var(--f-flex); font-stretch: var(--dial-wdth); font-variant-numeric: tabular-nums lining-nums; letter-spacing: .05em; color: var(--fg); }
+.gxd-of { font: var(--label-wght) 13px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); color: var(--ash); font-variant-numeric: tabular-nums; }
+@media (max-width: 899px) {
+  :is(.gxd.is-3d, html.motion .gxd:not(.gx-still)) { --gx-step: clamp(300px, 46svh, 440px); }
+  :is(.gxd.is-3d, html.motion .gxd:not(.gx-still)) .gxd-stage { background: radial-gradient(70% 34% at 50% 40%, rgba(236, 236, 232, .05) 0%, rgba(236, 236, 232, 0) 72%), var(--black); }
+  .gxd-lab { max-width: calc(100vw - 2 * var(--pad)); }
+  .gxd-lab .gxd-t { font-size: 30px; }
+  .gxd-lab.wide { max-width: calc(100vw - 2 * var(--pad)); }
+  .gxd-lab.wide .gxd-t { font-size: 44px; }
+  .gxd-lab .gxd-sub { font-size: 16px; }
+  .gxd-meter { left: var(--pad); right: var(--pad); bottom: calc(var(--dock) + 16px); justify-content: space-between; gap: 16px; }
+  .gxd-ticks { flex: 1; max-width: 270px; justify-content: space-between; gap: 0; height: 20px; }
+  .gxd-ticks i.now { height: 20px; }
+  .gxd-num { font-size: 44px; }
+}
+
+/* =====================================================================
+   Films
+   Phones: a row you swipe. Desktop with motion: a strip that stays on screen and slides sideways
+   (.is-strip). Desktop without motion: the posters side by side.
+   ===================================================================== */
+/* the films are a section like any other: the section's air above and below (--sec-y) */
+.gxf { position: relative; padding: var(--sec-y) 0; }
+/* the heading row as every section's (global.css, .bighead): the title, and its line under it on the same left edge */
+.gxf-head { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; row-gap: clamp(14px, 1.3vw, 20px); margin-bottom: var(--head-gap); }
+.gxf-head .t-l { margin: 0; }
+.gxf-lead { max-width: 56ch; font: 400 clamp(17px, 1.25vw, 18px)/1.6 var(--f-text); color: var(--fg-2); text-wrap: pretty; }
+.gxf-rail {
+  position: relative; list-style: none; margin: 0; padding: 0 var(--pad) 4px;
+  display: flex; align-items: flex-end; gap: 14px;
+  overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-inline: var(--pad); scrollbar-width: none;
+}
+.gxf-rail::-webkit-scrollbar { display: none; }
+.gxf-card { flex: none; min-width: 0; width: min(80vw, calc(58svh * var(--rpn))); scroll-snap-align: start; }
+.gxf-open { position: relative; display: block; width: 100%; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+/* the frame, like a screen's: square-cut, a hairline, a band of lacquer, a fainter hairline. No shadow under it. */
+.gxf-media {
+  position: relative; display: block; aspect-ratio: var(--rp); overflow: hidden; isolation: isolate; background: var(--lacquer);
+  box-shadow: 0 0 0 1px var(--rule-2), 0 0 0 6px var(--lacquer), 0 0 0 7px var(--rule);
+}
+/* while a film plays, a line of the light runs along its foot with the film (GalleryFilms.astro sets --pt, 0 to 1).
+   It is drawn on the button that holds the frame, not on the frame: the frame is graded to black and white with
+   its picture, and the light would go grey with it. */
+.gxf-open::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; height: var(--seam); pointer-events: none;
+  background: var(--lit-core); box-shadow: var(--seam-glow); transform-origin: 0 50%; transform: scaleX(var(--pt, 0)); opacity: 0;
+  transition: transform .3s linear, opacity .4s ease;
+}
+.gxf-card.playing .gxf-open::after { opacity: 1; }
+.gxf-card.rewind .gxf-open::after { transition: opacity .4s ease; }
+/* (the poster's <picture> fills the frame as a box of its own: the photo grade, global.css, puts a filter on whatever
+   holds an <img> directly, here the <picture>, and a filtered element is the box its absolutely placed picture is
+   sized by. Left inline, the <picture> was a box of no size, and every poster stood black.) */
+.gxf-media picture { position: absolute; inset: 0; display: block; }
+.gxf-media img, .gxf-media video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.gxf-media video { opacity: 0; transition: opacity .7s ease; }
+.gxf-card.playing .gxf-media video { opacity: 1; }
+/* the play mark on the films that are waiting: a square plate, smoked and solid, inside one hairline, the size of
+   the viewer's arrows; under the pointer its hairline comes up to shirt white */
+.gxf-play {
+  position: absolute; z-index: 1; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px;
+  background: var(--smoke); box-shadow: inset 0 0 0 1px var(--rule-2);
+  transition: opacity .5s ease, scale .5s var(--ease-out), box-shadow .25s ease;
+}
+/* (the triangle stands on its centre of weight, a third of its width from its upright side) */
+.gxf-play::after { content: ''; position: absolute; left: 21px; top: 18px; border-left: 13px solid var(--fg); border-top: 8px solid transparent; border-bottom: 8px solid transparent; }
+@media (hover: hover) { .gxf-open:hover .gxf-play { box-shadow: inset 0 0 0 1px var(--shirt); } }
+.gxf-card.playing .gxf-play { opacity: 0; scale: .8; }
+.gxf-cap { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin-top: 12px; }
+/* a film's number and its hour: the Label (a serial number, a short time), the number in steel */
+.gxf-no { font: var(--label-wght) 12px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); color: var(--steel-hi); font-variant-numeric: tabular-nums; }
+.gxf-time { font: var(--label-wght) 13px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); color: var(--fg); font-variant-numeric: lining-nums tabular-nums; }
+.gxf-t { font: 500 var(--item-s)/1.25 var(--f-text); color: var(--fg); transition: color .3s ease; }
+@media (hover: hover) { .gxf-card:hover .gxf-t { color: #fff; } } /* a quiet brighten, the title stays upright */
+.gxf-foot { display: flex; align-items: center; gap: 20px; margin-top: clamp(18px, 2vw, 28px); }
+/* how far along the films: a hairline, and on it a line of the light */
+.gxf-bar { position: relative; flex: 1; max-width: 560px; height: 1px; background: var(--rule-2); }
+.gxf-bar i { position: absolute; left: 0; right: 0; top: -.5px; height: var(--seam); background: var(--lit-core); box-shadow: var(--seam-glow); transform-origin: 0 50%; transform: scaleX(.02); }
+.gxf-meter { font: var(--label-wght) 13px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); color: var(--ash); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gxf-meter b { font-weight: inherit; color: var(--fg); }
+.gxf-end { padding-top: clamp(64px, 8vw, 120px); text-align: center; font: 400 var(--statement)/1.25 var(--f-text); letter-spacing: -.012em; color: var(--fg-2); text-wrap: balance; }
+@media (max-width: 899px) {
+  /* the row to swipe, as the site's other rows are: each film rests on the page's left edge, and the next one,
+     peeking in at the right, fades into the black (--peek-fade), so its name never ends sliced at the screen's edge.
+     Room above for the frames' rings and the focus ring, which the scrolling row would cut (taken back by the
+     margin); room after the last film to clear the fade; and the films far enough apart that the one before has
+     left the screen, frame and all, when the next rests on the edge. */
+  .gxf-rail {
+    gap: 24px; margin-top: -10px; padding-top: 10px; padding-inline-end: 64px;
+    -webkit-mask-image: var(--peek-fade); mask-image: var(--peek-fade);
+  }
+}
+/* an upright phone shows one film at a time: the room after the last one is what lets it come to rest on the left
+   edge too, where every other film rests (--rpl: the last film's width over its height, GalleryFilms.astro) */
+@media (max-width: 699px) and (orientation: portrait) {
+  .gxf-rail { padding-inline-end: max(64px, calc(100vw - var(--pad) - min(80vw, 58svh * var(--rpl, .5625)))); }
+}
+@media (min-width: 900px) {
+  /* without motion: the posters side by side in rows that fill the width, every poster in a row the same height (as
+     the photographs' rows are: each grows in step with its own shape, --rn). A row that can't fill without its
+     posters growing far past the others' size (the last, short one) stops at a third larger and keeps to the left. */
+  .gxf:not(.is-strip) .gxf-rail { flex-wrap: wrap; align-items: flex-start; gap: 40px var(--gap); max-width: var(--max); margin: 0 auto; overflow: visible; scroll-snap-type: none; }
+  .gxf:not(.is-strip) .gxf-card {
+    --gxf-u: clamp(240px, 22vw, 320px);
+    flex: var(--rn) 1 calc(var(--gxf-u) * var(--rn)); width: auto; max-width: calc(var(--gxf-u) * var(--rn) * 1.32);
+  }
+  .gxf:not(.is-strip) .gxf-media { aspect-ratio: var(--r); }
+  .gxf:not(.is-strip) .gxf-foot { display: none; }
+}
+/* desktop with motion: the strip stays and slides; the film in the middle plays, the others wait dimmed */
+/* (the held stage's own top clears the header, and the photos' stage ends with some 40px of air of its own: the
+   two make up the rest of the air above the heading, twice --sec-y as between any two sections) */
+.gxf.is-strip { --gxf-top: max(0px, calc(2 * var(--sec-y) - var(--hdr) - 50px)); padding-top: var(--gxf-top); }
+.gxf.is-strip .gxf-pin { height: calc(var(--dist, 0px) + 100svh); }
+.gxf.is-strip .gxf-stage {
+  position: sticky; top: 0; height: 100svh; overflow: hidden;
+  display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; align-items: center;
+  padding: calc(var(--hdr) + clamp(8px, 2vh, 24px)) 0 clamp(22px, 3.6vh, 40px);
+}
+.gxf.is-strip .gxf-head { margin-bottom: 0; align-self: start; }
+/* (the films start the heading gap under the heading row, as every section's content does; the spare height of
+   the screen falls under them, above the counter) */
+.gxf.is-strip .gxf-rail { justify-self: start; align-self: start; width: max-content; margin-top: var(--head-gap); padding: 0; gap: clamp(40px, 4.4vw, 76px); align-items: flex-start; overflow: visible; scroll-snap-type: none; will-change: transform; }
+.gxf.is-strip .gxf-card { width: auto; opacity: calc(.32 + .68 * var(--f, 1)); }
+.gxf.is-strip .gxf-media { height: min(50svh, 560px); width: auto; aspect-ratio: var(--r); }
+/* (the turn is the button's, frame and line of light together) */
+.gxf.is-strip .gxf-open { transform: perspective(1500px) rotateY(calc(var(--d, 0) * -18deg)) scale(calc(.88 + .12 * var(--f, 1))); }
+.gxf.is-strip .gxf-cap { width: 0; min-width: 100%; }
+.gxf.is-strip .gxf-foot { margin-top: 0; justify-content: flex-end; }
+.gxf.is-strip .gxf-bar { max-width: 300px; }
+
+/* =====================================================================
+   The viewer
+   ===================================================================== */
+html.gx-lock { overflow: hidden; }
+.gxv { position: fixed; inset: 0; z-index: 95; overscroll-behavior: contain; color: var(--fg); }
+.gxv[hidden] { display: none; }
+.gxv-veil { position: absolute; inset: 0; background: var(--lacquer); }
+.gxv-stage { position: absolute; inset: 0; touch-action: none; user-select: none; -webkit-user-select: none; }
+/* (the picture as the page already shows it stands in, as this box's ground, until the full file has come; then
+   the full file comes up over it: GalleryViewer.astro) */
+.gxv-media { position: absolute; will-change: transform; background: center / cover no-repeat; }
+/* (in the viewer too, the picture shows whole, with no fade at its edges) */
+.gxv-media img, .gxv-media video { display: block; width: 100%; height: 100%; object-fit: cover; -webkit-user-drag: none; }
+.gxv-media img { transition: opacity .3s ease; }
+.gxv-media img.wait { opacity: 0; }
+.gxv-ui { position: absolute; inset: 0; pointer-events: none; }
+.gxv-ui > * { pointer-events: auto; }
+/* (the count: the number in the Dial, how many in the Label, standing on the middle line of «Закрыть») */
+.gxv-n { position: absolute; left: var(--pad); top: calc(20px + env(safe-area-inset-top)); display: flex; align-items: baseline; gap: 8px; font: var(--label-wght) 13px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); color: var(--ash); font-variant-numeric: tabular-nums; pointer-events: none; }
+.gxv-n b { font: 340 48px/.8 var(--f-flex); font-stretch: var(--dial-wdth); font-variant-numeric: lining-nums tabular-nums; letter-spacing: .05em; color: var(--fg); }
+/* the controls: square plates, smoked and solid, inside one hairline (never round, never blurred glass); under the
+   pointer the hairline comes up to shirt white */
+.gxv-close, .gxv-nav { background: var(--smoke); box-shadow: inset 0 0 0 1px var(--rule-2); }
+.gxv-close {
+  position: absolute; right: var(--pad); top: calc(16px + env(safe-area-inset-top));
+  display: inline-flex; align-items: center; gap: 12px; height: 46px; padding: 0 16px 0 18px;
+  /* (its word in the Label, as every control on the site speaks) */
+  font: var(--label-wght) 12px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); text-transform: uppercase; color: var(--fg); transition: box-shadow .25s ease, scale .2s ease;
+}
+.gxv-close i { position: relative; flex: none; width: 14px; height: 14px; }
+.gxv-close i::before, .gxv-close i::after { content: ''; position: absolute; left: -1px; right: -1px; top: 50%; height: 1.6px; margin-top: -.8px; background: currentColor; rotate: 45deg; }
+.gxv-close i::after { rotate: -45deg; }
+/* the arrows: square plates as «Закрыть» is, their marks cut as square as the cross */
+.gxv-nav {
+  position: absolute; top: 50%; width: 52px; height: 52px; margin-top: -26px;
+  display: grid; place-items: center; color: var(--fg); transition: box-shadow .25s ease, scale .2s ease;
+}
+.gxv-nav[hidden] { display: none; }
+.gxv-nav svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: square; stroke-linejoin: miter; }
+.gxv-prev { left: var(--pad); }
+.gxv-next { right: var(--pad); }
+.gxv-close:active, .gxv-nav:active { scale: .94; }
+@media (hover: hover) { .gxv-close:hover, .gxv-nav:hover { box-shadow: inset 0 0 0 1px var(--shirt); } }
+/* a film's words go with the film, close under its foot (--cap-top: GalleryViewer.astro places the two together) */
+.gxv-cap { position: absolute; left: 50%; top: var(--cap-top, auto); width: min(780px, calc(100% - 2 * var(--pad))); translate: -50% 0; text-align: center; pointer-events: none; }
+.gxv-t { font: 500 clamp(21px, 1.89vw, 31px)/1.05 var(--f-text); text-wrap: balance; }
+/* (its lines even, so the last is never one word) */
+.gxv-d { margin-top: 8px; font: 400 16px/1.5 var(--f-text); color: var(--ash); text-wrap: balance; }
+@media (max-width: 899px) {
+  /* (between the arrows, the numerals on the arrows' middle line) */
+  .gxv-n { left: 50%; top: auto; bottom: calc(27px + env(safe-area-inset-bottom)); translate: -50% 0; }
+  .gxv-n b { font-size: 44px; }
+  .gxv-nav { top: auto; bottom: calc(16px + env(safe-area-inset-bottom)); margin-top: 0; }
+  .gxv-t { font-size: 26px; }
+  .gxv-d { font-size: 15px; }
+}
+/* a short phone: the film keeps the room, its name alone under it */
+@media (max-width: 899px) and (max-height: 699px) { .gxv-d { display: none; } }
+
+/* ---------- A phone held sideways (or any screen as short): see landscape.css ---------- */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* ---------- The gallery viewer: the picture the full height, the controls at its sides ---------- */
+  .gxv-n { left: var(--pad); right: auto; top: calc(14px + env(safe-area-inset-top, 0px)); bottom: auto; translate: none; }
+  .gxv-n b { font-size: 40px; }
+  .gxv-nav { top: 50%; bottom: auto; margin-top: -24px; width: 48px; height: 48px; }
+  .gxv-close { top: 12px; width: 44px; height: 44px; padding: 0; justify-content: center; }
+  .gxv-close span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  /* (the words lie over the film's foot here: on a smoked plate inside one hairline, as the controls are, not on a
+     shadow) */
+  .gxv-cap { top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); width: auto; max-width: min(560px, 62%); padding: 8px 14px; background: var(--smoke); box-shadow: inset 0 0 0 1px var(--rule-2); }
+  .gxv-t { font-size: 22px; }
+  .gxv-d { display: none; }
+}

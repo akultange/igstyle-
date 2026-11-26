@@ -1,0 +1,12 @@
+{
+  // HOTLAND «Между», the redesign's copy for review (2026-11-22): the static pages only, beside the club's preview
+  // on the same Cloudflare account. No server function and no cron: the forms send nothing from here, and nothing
+  // reaches the managers' Telegram twice. Build and publish with `npm run deploy:mezhdu`.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hotland-mezhdu",
+  "compatibility_date": "2026-11-03",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  }
+}

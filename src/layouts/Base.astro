@@ -1,0 +1,274 @@
+---
+// What every page uses; a part's own look comes with the part (its component imports its stylesheet), so a page
+// carries only the parts it shows. landscape.css stays last.
+import '../styles/fonts.css';
+import '../styles/global.css';
+import '../styles/cut.css';
+import '../styles/colour.css';
+import '../styles/nav.css';
+import '../styles/ask.css';
+import '../styles/apply.css';
+import '../styles/book.css';
+import '../styles/tune.css';
+import '../styles/footers.css';
+import '../styles/landscape.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import AgeGate from '../components/AgeGate.astro';
+import MobileBar from '../components/MobileBar.astro';
+import SiteSwitch from '../components/SiteSwitch.astro';
+import Ask from '../components/Ask.astro';
+import Apply from '../components/Apply.astro';
+import Book from '../components/Book.astro';
+import { site } from '../data/site';
+import { type Lang, altPath, ui } from '../data/i18n';
+import { TEST as VTEST, chooser as vChooser, hideRules as vHide, show as showV } from '../data/variants';
+import fonts from '../data/fonts.json';
+import { LILY, WORDMARK, WORDMARK_BOX } from '../data/brand';
+import { logoLight, signGlow, flowerGlow } from '../data/art';
+
+interface Props {
+  lang: Lang;
+  title?: string;
+  description?: string;
+  /** No header, footer or age gate (goodbye page). */
+  bare?: boolean;
+  /** The 18+ door (default: on). Off on the documents the door itself links to: the privacy policy has to be
+   *  readable before the question is answered. Every other page asks. */
+  gate?: boolean;
+  /** Header starts solid instead of transparent. */
+  solidHeader?: boolean;
+  schema?: Record<string, unknown>;
+  noindex?: boolean;
+  /** Added to prefilled WhatsApp messages, e.g. the event or occasion name. */
+  waContext?: string;
+  /** The footer's "your table is waiting" block. Off on pages that end in their own form. */
+  closing?: boolean;
+}
+const { lang, title, description = '', bare = false, gate = true, solidHeader = false, schema, noindex: noindexPage = false, waContext, closing = true } = Astro.props;
+// Preview builds (GitHub Pages) are kept out of search engines.
+const noindex = noindexPage || import.meta.env.PUBLIC_NOINDEX === '1';
+const fullTitle = title ? `${title} · ${site.name}` : `${site.name} · ${lang === 'ru' ? 'Только между нами' : site.tagline}`;
+const path = Astro.url.pathname;
+const abs = (p: string) => new URL(p, Astro.site).href;
+// The fonts the first screen needs (styles/fonts.css, the site's own), fetched alongside the page instead of after its
+// stylesheet. Every first screen has all three faces: the text (Inter Tight), the labels of the header and the
+// buttons (Roboto Flex Label) and the big voice of a page's title or the hours (Roboto Flex); each in the page's
+// letters, and in Latin, where the digits, the spaces and the signs are. The small ones first. (The Dial's
+// faces wait for their file, font-display: block: preloaded, the wait is a moment at most.)
+const preload = lang === 'ru'
+  ? [fonts['inter-tight-cyr'], fonts['inter-tight-lat'], fonts['roboto-flex-label-cyr'], fonts['roboto-flex-label-lat'], fonts['roboto-flex-cyr'], fonts['roboto-flex-lat']]
+  : [fonts['inter-tight-lat'], fonts['roboto-flex-label-lat'], fonts['roboto-flex-lat']];
+---
+<!doctype html>
+<html lang={lang} data-door={!bare && !gate ? 'none' : undefined}>
+  <head>
+    <meta charset="utf-8" />
+    {/* Page changes cross-fade (the rules are in global.css and nav.css). The opt-in stands here, first in the head:
+        read late, in a stylesheet, the browser had sometimes not seen it when the next page was asked for. */}
+    <style is:inline>@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } }</style>
+    {/* (interactive-widget: when the phone's keyboard opens, the page's own height shrinks with it, so a window's
+        buttons stay above the keyboard) */}
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <title>{fullTitle}</title>
+    {description && <meta name="description" content={description} />}
+    <meta name="theme-color" content="#0e0d0d" />
+    {noindex && <meta name="robots" content="noindex" />}
+    <link rel="canonical" href={abs(path)} />
+    <link rel="alternate" hreflang="ru" href={abs(altPath(path, 'ru'))} />
+    <link rel="alternate" hreflang="en" href={abs(altPath(path, 'en'))} />
+    <link rel="alternate" hreflang="x-default" href={abs(altPath(path, 'ru'))} />
+    <meta property="og:title" content={fullTitle} />
+    {description && <meta property="og:description" content={description} />}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="HOTLAND" />
+    <meta property="og:url" content={abs(path)} />
+    <meta property="og:locale" content={lang === 'ru' ? 'ru_RU' : 'en_US'} />
+    <meta property="og:image" content={abs(`/og/hotland-${lang}.jpg`)} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={lang === 'ru' ? 'HOTLAND. Только между нами' : 'HOTLAND. Just between us'} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    {preload.map((href) => <link rel="preload" as="font" type="font/woff2" href={href} crossorigin />)}
+
+    {/* the concrete of the 18+ door and of the page itself, found otherwise only after the stylesheet */}
+    {!bare && <link rel="preload" as="image" href="/img/concrete/concrete.webp" />}
+    {!bare && <link rel="preload" as="image" href="/img/concrete/mottle.webp" />}
+    {/* what one page needs first (the home page's poster, HeroPreload.astro) */}
+    <slot name="head" />
+    {/* Dev and preview builds: which version of each contested part shows (Luka's or Gio's, data/variants.ts) */}
+    {VTEST && <script is:inline set:html={vChooser} />}
+    {VTEST && <style is:inline set:html={vHide} />}
+    <script is:inline>
+      (function (r) {
+        r.classList.add('js');
+        // The 18+ question comes on every visit: a new tab, a link opened from a messenger, or coming back after half an
+        // hour away (a visit, as analytics count one); moving between pages within a visit doesn't ask again. The
+        // answer lives in this tab only (AgeGate.astro) with the time of the last page seen. (It used to be kept for
+        // good, so a returning visitor never saw the question again: that old answer is cleared.)
+        try {
+          localStorage.removeItem('age_ok');
+          var ok = Number(sessionStorage.getItem('age_ok'));
+          if (ok && Date.now() - ok < 30 * 60 * 1000) { r.classList.add('age-ok'); sessionStorage.setItem('age_ok', String(Date.now())); }
+        } catch (e) {}
+        // A page that carries a header but no door (a document the door links to) is simply open: nothing is noted,
+        // so the next page still asks.
+        if (r.getAttribute('data-door') === 'none') r.classList.add('age-ok');
+        // The home page entrance plays in full once per session (global.css, Home hero).
+        try { if (/^\/(ru|en)\/?$/.test(location.pathname)) { if (sessionStorage.getItem('hl-hero-seen')) r.classList.add('hero-again'); sessionStorage.setItem('hl-hero-seen', '1'); } } catch (e) {}
+        // While a page change runs, the parts kept still (the lily, the sections, the dock) trade their glass blur for a
+        // solid tint (global.css, html.vt): Safari pictured the blur as a square past their round edges. Set as the
+        // old page is pictured and as the new one appears; gone when the change ends, or on coming Back to the page.
+        addEventListener('pageswap', function (e) { if (e.viewTransition) r.classList.add('vt'); });
+        addEventListener('pagereveal', function (e) {
+          if (!e.viewTransition) return;
+          r.classList.add('vt');
+          e.viewTransition.finished.then(function () { r.classList.remove('vt'); }, function () { r.classList.remove('vt'); });
+        });
+        addEventListener('pageshow', function (e) { if (e.persisted) r.classList.remove('vt'); });
+        // Motion (scripts/motion.ts) only for visitors who haven't asked for less, and only if it starts in time: within
+        // 3 seconds of the page being free to begin, that is of the 18+ answer where the question shows (nothing waits
+        // to be revealed behind it, and on a slow line the scripts may arrive while it is up), or of the page itself.
+        if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          r.classList.add('motion');
+          // The 18+ door as a place (src/door3d, AgeGate.astro): where the question will show and the browser can draw
+          // in three dimensions (?door=2d in the address keeps the flat door; so does a visitor saving data).
+          try { if (!r.classList.contains('age-ok') && window.WebGL2RenderingContext && !/[?&]door=2d\b/.test(location.search) && !(navigator.connection && navigator.connection.saveData)) r.classList.add('d3'); } catch (e) {}
+          var arm = function () { setTimeout(function () { if (!r.classList.contains('motion-ready')) r.classList.remove('motion'); }, 3000); };
+          if (r.classList.contains('age-ok')) arm();
+          else {
+            addEventListener('hotland:gate', arm, { once: true });
+            addEventListener('DOMContentLoaded', function () { if (!document.getElementById('gate')) arm(); }, { once: true });
+          }
+        }
+        // Arriving through the gallery's lens (GalleryTune.astro): this page opens out of the lens (tune.css). Where
+        // the browser animates between pages, as a view transition of the type "lens"; elsewhere, a dark veil
+        // that opens from the same spot. The note is read once and only for a few seconds.
+        try {
+          var lens = JSON.parse(sessionStorage.getItem('hl-lens') || 'null');
+          sessionStorage.removeItem('hl-lens');
+          if (lens && Date.now() - lens.t < 5000 && r.classList.contains('motion')) {
+            // the opening grows from the ring round the lens to the screen's farthest corner; the ring flies out with it
+            var lx = lens.x / 100 * innerWidth, ly = lens.y / 100 * innerHeight;
+            var far = Math.max(Math.hypot(lx, ly), Math.hypot(innerWidth - lx, ly), Math.hypot(lx, innerHeight - ly), Math.hypot(innerWidth - lx, innerHeight - ly)) + 40;
+            r.style.setProperty('--lens-x', lens.x + '%');
+            r.style.setProperty('--lens-y', lens.y + '%');
+            r.style.setProperty('--lens-r', lens.r + 'px');
+            r.style.setProperty('--lens-rf', Math.round(far) + 'px');
+            r.style.setProperty('--lens-blast', (far / Math.max(20, lens.r)).toFixed(3));
+            r.classList.add('lens-in');
+            addEventListener('pagereveal', function (e) {
+              if (e.viewTransition) { r.classList.add('lens-vt'); e.viewTransition.types.add('lens'); }
+            }, { once: true });
+          }
+        } catch (e) {}
+        // Arriving from the other language (scripts/site.ts noted where you were): the page opens at the same place,
+        // is drawn only once it's there (the end of the body, #hl-end), and the change is the 'lang' cross-fade;
+        // what is on screen is simply there, without its entrance (scripts/motion.ts, while .lang-in lasts).
+        try {
+          var sw = JSON.parse(sessionStorage.getItem('hl-lang') || 'null');
+          sessionStorage.removeItem('hl-lang');
+          if (sw && Date.now() - sw.t < 8000 && sw.to === location.pathname) {
+            window.__hlLang = sw;
+            r.classList.add('lang-in');
+            // (and if the 18+ door still stands, it stands as it did: styles/gate.css)
+            r.classList.add('door-still');
+            if (sw.i >= 0) {
+              var hold = document.createElement('link');
+              hold.rel = 'expect';
+              hold.href = '#hl-end';
+              hold.setAttribute('blocking', 'render');
+              document.head.appendChild(hold);
+            }
+            addEventListener('pagereveal', function (e) { if (e.viewTransition) e.viewTransition.types.add('lang'); }, { once: true });
+          }
+        } catch (e) {}
+      })(document.documentElement);
+    </script>
+    {schema && <script type="application/ld+json" set:html={JSON.stringify(schema)} />}
+  </head>
+  <body class:list={{ bare }} data-wa-hello={ui[lang].waHello} data-wa-context={waContext}>
+    <svg class="svg-defs" aria-hidden="true" focusable="false">
+      <defs>
+        {/* steel (the emblem, the old wordmark, the gallery's clip) and the name on the wall: once polished
+            gradients, now one flat colour each (2026-11-21, «Между»: no chrome, nothing glossy). The two ids stay,
+            so the parts that still paint with url(#g-metal) and url(#g-steel) keep working: blackened steel's bright
+            edge, and the logo's own pale grey */}
+        <linearGradient id="g-metal" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#9ba0a7" />
+          <stop offset="1" stop-color="#9ba0a7" />
+        </linearGradient>
+        <linearGradient id="g-steel" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#b0b1b3" />
+          <stop offset="1" stop-color="#b0b1b3" />
+        </linearGradient>
+        {/* the club's logo: the gradients its glowing sign is drawn with (Logo.astro, the door), and the two fades
+            that shorten the sign where the whole needle (five capitals each way) has no room. A capital is 47.4 of
+            the artwork's units, and both fades are centred on the capitals' middle (y 280.8):
+            "short", where the name stands in a plate (the header): full to 95 units, gone by 150, so the needle
+            breaks through the plate's edge above and below and dies away just outside it;
+            "tight", where other things stand close above and below (the footer's card, a line of text): full to
+            59, gone by 85, so it stays within about a capital of the name */}
+        <Fragment set:html={signGlow.defs + logoLight.defs + flowerGlow.defs} />
+        <linearGradient id="hl-fade" gradientUnits="userSpaceOnUse" x1="0" y1="130.8" x2="0" y2="430.8">
+          <stop offset="0" stop-color="#fff" stop-opacity="0" /><stop offset=".183" stop-color="#fff" /><stop offset=".817" stop-color="#fff" /><stop offset="1" stop-color="#fff" stop-opacity="0" />
+        </linearGradient>
+        <mask id="hl-short" maskUnits="userSpaceOnUse" x="280" y="128" width="150" height="306"><rect x="280" y="128" width="150" height="306" fill="url(#hl-fade)" /></mask>
+        <linearGradient id="hl-fade-t" gradientUnits="userSpaceOnUse" x1="0" y1="195.8" x2="0" y2="365.8">
+          <stop offset="0" stop-color="#fff" stop-opacity="0" /><stop offset=".153" stop-color="#fff" /><stop offset=".847" stop-color="#fff" /><stop offset="1" stop-color="#fff" stop-opacity="0" />
+        </linearGradient>
+        <mask id="hl-tight" maskUnits="userSpaceOnUse" x="280" y="190" width="150" height="182"><rect x="280" y="190" width="150" height="182" fill="url(#hl-fade-t)" /></mask>
+        {/* the lily and the old wordmark, written once and referenced where they show: only the footer's hidden
+            version v5 uses them now (FooterNight.astro), so they are in the page only when that version is */}
+        {showV('footer', 'v5') && <symbol id="hl-lily" viewBox="0 0 256 256"><path fill-rule="evenodd" d={LILY} /></symbol>}
+        {showV('footer', 'v5') && <symbol id="hl-word" viewBox={WORDMARK_BOX}><path fill-rule="evenodd" d={WORDMARK} /></symbol>}
+        {/* the red that stays (styles/colour.css): the picture goes grey, except where it is red (red light, red
+            velvet, a red coat), which keeps its colour; orange keeps a little, pink, purple and blue none */}
+        <filter id="keep-red" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+          <feColorMatrix in="SourceGraphic" type="matrix" values="0.2126 0.7152 0.0722 0 0 0.2126 0.7152 0.0722 0 0 0.2126 0.7152 0.0722 0 0 0 0 0 1 0" result="grey" />
+          <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 4 -4 -2 0 -0.3" result="red" />
+          <feComposite in="SourceGraphic" in2="red" operator="in" result="kept" />
+          <feMerge><feMergeNode in="grey" /><feMergeNode in="kept" /></feMerge>
+        </filter>
+      </defs>
+    </svg>
+    {!bare && gate && <AgeGate lang={lang} />}
+    {!bare && <a class="skip" href="#main">{lang === 'ru' ? 'К содержанию' : 'Skip to content'}</a>}
+    {!bare && <Header lang={lang} solid={solidHeader} />}
+    <main id="main" tabindex="-1"><slot /></main>
+    {!bare && <Footer lang={lang} cta={closing} />}
+    {!bare && <MobileBar lang={lang} />}
+    <SiteSwitch />
+    {!bare && <Ask lang={lang} />}
+    {!bare && <Apply lang={lang} />}
+    {!bare && <Book lang={lang} />}
+    <script>import '../scripts/site';</script>
+    <script>import '../scripts/motion';</script>
+    <!-- arriving from the other language: back to the same place before the page is first drawn (see the head) -->
+    <script is:inline>
+      (function () {
+        var sw = window.__hlLang;
+        if (!sw || sw.i < 0) return;
+        var place = function () {
+          var main = document.getElementById('main');
+          var ft = document.querySelector('footer.ft');
+          var blocks = [].slice.call(main ? main.children : []).concat(ft ? [ft] : []).filter(function (el) { return el.offsetHeight > 0; });
+          var b = blocks[sw.i];
+          if (!b) return;
+          var r = b.getBoundingClientRect();
+          window.scrollTo({ top: Math.round(r.top + scrollY + sw.f * r.height), behavior: 'instant' });
+        };
+        place();
+        // once the fonts and pictures settle the page's heights, again, unless you have already moved on
+        var moved = false;
+        ['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach(function (t) { addEventListener(t, function () { moved = true; }, { once: true, passive: true }); });
+        var again = function () { if (!moved) place(); };
+        if (document.fonts) document.fonts.ready.then(again);
+        addEventListener('load', again, { once: true });
+      })();
+    </script>
+    <i id="hl-end" hidden></i>
+  </body>
+</html>

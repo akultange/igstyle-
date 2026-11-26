@@ -1,0 +1,156 @@
+---
+// Booking request form. Sends to /api/booking (the server function posts it to the managers' Telegram).
+// If sending fails, the visitor gets the same request ready to send in WhatsApp (or Telegram).
+// No date or time to fill in: the manager agrees those when they get in touch. Coming from a poster, the form
+// says which night it is for and passes it on. Personal data is never put in the URL.
+// No longer used: the booking dialog (Book.astro) replaced it on 2026-11-13; kept, as the client hides rather than deletes.
+// «Между» (2026-11-21): the kinds are words in square tiles, the chosen one framed in shirt white over its lit seam
+// (global.css, Forms), as the dialog's are; the glossy 3D icons they carried (a coupe, lips, a peach...) are gone.
+// The fields are lines, the button the site's main one; what it asks, checks and sends is unchanged.
+import { type Lang, ui, tr } from '../data/i18n';
+import { bookingTypes, events } from '../data/content';
+import { site } from '../data/site';
+interface Props { lang: Lang; type?: string; occasion?: string; compact?: boolean }
+const { lang, type = 'table', occasion = 'none', compact = false } = Astro.props;
+const t = ui[lang];
+const f = t.form;
+// the nights a poster can book: date → name
+const nights = Object.fromEntries(events.map((e) => [e.date, tr(e.title, lang)]));
+const occ = Object.entries(f.occasions);
+// (only the policy's own name in the consent's sentence is the link, as in the dialog: Book.astro)
+const [, consentA, consentLink, consentB] =
+  f.consent.match(/^(.*?)(политику конфиденциальности|the privacy policy)(.*)$/) ?? f.consent.match(/^(.*\s)(\S+\s+\S+)()$/) ?? ['', '', f.consent, ''];
+import { show } from '../data/variants';
+---
+<form class="form" id="book-form" data-booking data-thanks={`/${lang}/booking/thanks/`} data-sending={f.sending} data-wa={site.whatsapp} data-nights={JSON.stringify(nights)} novalidate>
+  {!compact && (
+    <fieldset>
+      <legend class="label">{f.type}</legend>
+      <div class="choice choice-tiles">
+        {bookingTypes.map((b) => (
+          <label><input type="radio" name="type" value={b.id} checked={b.id === type} /><span>{tr(b.label, lang)}</span></label>
+        ))}
+      </div>
+    </fieldset>
+  )}
+  {compact && <input type="hidden" name="type" value={type} />}
+  <p class="form-night" data-night hidden></p>
+  <input type="hidden" name="night" value="" />
+  <div class="fields">
+    <div class="field"><label for="bf-guests">{f.guests}</label><input id="bf-guests" name="guests" type="number" min="1" max="200" value="2" required /></div>
+    <div class="field">
+      <label for="bf-occ">{f.occasion}</label>
+      <select id="bf-occ" name="occasion">{occ.map(([k, v]) => <option value={k} selected={k === occasion}>{v}</option>)}</select>
+    </div>
+    <div class="field"><label for="bf-name">{f.name}</label><input id="bf-name" name="name" autocomplete="name" required /></div>
+    <div class="field"><label for="bf-phone">{f.phone}</label><input id="bf-phone" name="phone" type="tel" autocomplete="tel" required /></div>
+    <div class="field">
+      <label for="bf-msg">{f.messenger}</label>
+      <select id="bf-msg" name="messenger"><option>WhatsApp</option><option>Telegram</option><option>{f.call}</option></select>
+    </div>
+    <div class="field full"><label for="bf-wishes">{f.wishes}</label><textarea id="bf-wishes" name="wishes"></textarea></div>
+  </div>
+  <div class="hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off" /></label></div>
+  <label class="consent"><input type="checkbox" name="consent" required /><span>{consentA}<a href={`/${lang}/privacy/`}>{consentLink}</a>{consentB}</span></label>
+  <div class="btns">
+    <button class="btn btn-crimson" type="submit">{f.submit}</button>
+  </div>
+  <p class="form-error" role="alert" hidden></p>
+  <div class="form-fallback" role="alert" hidden>
+    <p class="t-m">{f.failTitle}</p>
+    <p class="body">{f.failText}</p>
+    <div class="btns">
+      <a class="btn btn-crimson" data-fallback-wa href={site.whatsapp} target="_blank" rel="noopener">{f.sendWa}</a>
+      {show('contact', 'luka') && <a class="btn btn-line" data-v="contact:luka" href={site.telegram} target="_blank" rel="noopener">Telegram</a>}
+      {show('contact', 'gio') && <a class="btn btn-line" data-v="contact:gio" href={site.phoneHref}>{site.phone}</a>}
+    </div>
+  </div>
+</form>
+
+<script>
+  import { track } from '../scripts/track';
+
+  document.querySelectorAll<HTMLFormElement>('form[data-booking]').forEach((form) => {
+    const started = Date.now();
+    // Preselect the booking type from ?type=…, and take the night from ?date=YYYY-MM-DD, as a poster does
+    // (no personal data in the URL). The night is not a field: a line above the form names it.
+    const query = new URLSearchParams(location.search);
+    const pre = query.get('type');
+    if (pre) {
+      const r = form.querySelector<HTMLInputElement>(`input[name="type"][value="${CSS.escape(pre)}"]`);
+      if (r) r.checked = true;
+    }
+    const ru = document.documentElement.lang === 'ru';
+    const nights: Record<string, string> = JSON.parse(form.dataset.nights || '{}');
+    const day = query.get('date') || '';
+    const today = new Date().toISOString().slice(0, 10);
+    const nightLine = form.querySelector<HTMLElement>('[data-night]');
+    const nightIn = form.querySelector<HTMLInputElement>('input[name="night"]');
+    if (/^\d{4}-\d{2}-\d{2}$/.test(day) && day >= today && nightLine && nightIn) {
+      const [y, m, d] = day.split('-').map(Number);
+      const when = new Intl.DateTimeFormat(ru ? 'ru-RU' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(y, m - 1, d));
+      const name = nights[day];
+      nightIn.value = [name, when].filter(Boolean).join(', ');
+      nightLine.innerHTML = `<span>${ru ? 'Вечер' : 'Night'}</span> <b></b>`;
+      nightLine.querySelector('b')!.textContent = nightIn.value;
+      nightLine.hidden = false;
+    }
+    const err = form.querySelector<HTMLElement>('.form-error');
+    const fallback = form.querySelector<HTMLElement>('.form-fallback');
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+
+    // Everything the managers need, readable as a message.
+    const collect = () => {
+      const fd = new FormData(form);
+      const checked = form.querySelector<HTMLInputElement>('input[name="type"]:checked');
+      const occ = form.querySelector<HTMLSelectElement>('select[name="occasion"]');
+      return {
+        type: String(fd.get('type') || ''),
+        typeLabel: checked?.nextElementSibling?.textContent?.trim() || String(fd.get('type') || ''),
+        night: String(fd.get('night') || ''), guests: String(fd.get('guests') || ''),
+        occasion: String(fd.get('occasion') || ''), occasionLabel: occ?.selectedOptions[0]?.textContent?.trim() || '',
+        name: String(fd.get('name') || ''), phone: String(fd.get('phone') || ''), messenger: String(fd.get('messenger') || ''),
+        wishes: String(fd.get('wishes') || ''), website: String(fd.get('website') || ''),
+      };
+    };
+    const asMessage = (d: ReturnType<typeof collect>) => [
+      ru ? 'Здравствуйте. Хочу забронировать в HOTLAND:' : 'Hello, I’d like to book at HOTLAND:',
+      [d.typeLabel, d.night, `${ru ? 'гостей' : 'guests'}: ${d.guests}`].filter(Boolean).join(', '),
+      d.occasion && d.occasion !== 'none' ? d.occasionLabel : '',
+      `${d.name}, ${d.phone}`,
+      d.wishes,
+    ].filter(Boolean).join('\n');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!form.checkValidity()) {
+        form.querySelector<HTMLElement>(':invalid')?.focus();
+        if (err) { err.hidden = false; err.textContent = ru ? 'Укажите имя и телефон и подтвердите, что вам есть 18.' : 'Please enter your name and phone number, and confirm you’re 18 or over.'; }
+        return;
+      }
+      if (err) err.hidden = true;
+      const data = collect();
+      const label = button?.textContent || '';
+      if (button) { button.disabled = true; button.textContent = form.dataset.sending || '…'; }
+      try {
+        const r = await fetch('/api/booking', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ ...data, elapsed: Date.now() - started, lang: document.documentElement.lang, page: location.pathname }),
+        });
+        const res = await r.json().catch(() => ({}));
+        if (r.ok && res.ok) { track('booking_sent'); location.href = form.dataset.thanks!; return; }
+        throw new Error(res.error || String(r.status));
+      } catch {
+        track('booking_failed');
+        // Hand the same request to WhatsApp, so the visitor doesn't lose what they typed.
+        const wa = fallback?.querySelector<HTMLAnchorElement>('[data-fallback-wa]');
+        if (wa) wa.href = `${form.dataset.wa}?text=${encodeURIComponent(asMessage(data))}`;
+        wa?.addEventListener('click', () => track('booking_whatsapp'), { once: true });
+        if (fallback) { fallback.hidden = false; fallback.scrollIntoView({ block: 'center' }); }
+      } finally {
+        if (button) { button.disabled = false; button.textContent = label; }
+      }
+    });
+  });
+</script>

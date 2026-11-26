@@ -1,0 +1,30 @@
+{
+  "name": "club-site",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "build:preview": "SITE_URL=${SITE_URL:-https://hotland.club-site.workers.dev} PUBLIC_NOINDEX=1 astro build",
+    "build:timeweb": "SITE_URL=${SITE_URL:-https://cp482107.tw1.ru} PUBLIC_NOINDEX=1 astro build",
+    "build:github": "SITE_URL=${SITE_URL:-https://akultange.github.io} PUBLIC_NOINDEX=1 astro build && node tools/build/github-pages.mjs",
+    "build:prod": "astro build",
+    "deploy": "npm run build:preview && wrangler deploy",
+    "check": "astro check && tsc -p worker",
+    "deploy:mezhdu": "SITE_URL=${SITE_URL:-https://hotland-mezhdu.club-site.workers.dev} PUBLIC_NOINDEX=1 PUBLIC_SITE_SWITCH=1 astro build && wrangler deploy -c wrangler.mezhdu.jsonc"
+  },
+  "dependencies": {
+    "astro": "^5.0.0",
+    "gsap": "^3.15.1",
+    "lenis": "^1.3.27",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@cloudflare/workers-types": "^5.20261113.1",
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.157.0"
+  }
+}

@@ -1,0 +1,22 @@
+---
+// The club's flower, glowing: a lily of three blades in the sign's own light. It is the club's emblem where the name
+// has no room or is not wanted: the header's plate, the phone menu's, the site's icon. The club's own artwork
+// ("Flower Glow": data/art.ts, flowerGlow, written from the club's SVG by tools/logo/art.py): the red glow it throws
+// on the wall behind it, and the lily itself, peach where it is hottest and falling to red at its tips. Its
+// gradients are set into every page once (Base.astro, .svg-defs).
+//
+// The picture's box is the lily's own (48 by 141 of the artwork's units), so the flower sits and is sized like a
+// letter; the glow is drawn outside the box (it reaches about one lily's width to each side and a quarter of its
+// height above and below). `glow={false}` sets the lily without the glow on the wall.
+// `height` is the lily's height in px (or leave it to CSS: .flower { height }).
+import { flowerGlow as F } from '../data/art';
+interface Props { height?: number; glow?: boolean; label?: boolean; class?: string }
+const { height, glow = true, label = false, class: cls } = Astro.props;
+// (where the lily stands in the club's file, which is the glow's box: 166.46 by 216.16)
+const BOX = '59.21 40.23 48.03 141.04';
+---
+<svg class:list={['flower', cls]} viewBox={BOX} style={height ? `height:${height}px` : undefined}
+  role={label ? 'img' : undefined} aria-label={label ? 'HOTLAND' : undefined} aria-hidden={label ? undefined : 'true'} focusable="false">
+  {glow && <g class="flower-aura" set:html={F.aura} />}
+  <g class="flower-lily" set:html={F.lily} />
+</svg>

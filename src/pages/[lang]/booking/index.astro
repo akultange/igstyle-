@@ -1,0 +1,118 @@
+---
+// The booking page. The booking itself is the full-screen dialog (Book.astro), which opens straight away here; the
+// page under it is what stays when it is closed: the page's name with the three questions in a sentence and the
+// button that opens the dialog again, then an evening at a table (the club's photograph, the dialog's own picture)
+// beside the call-back card and the terms in short.
+// (2026-11-22, the final pass: the table and its lamp drawn in a case of lacquer black read as a placeholder; the
+// photograph took its place. The lamp is the dialog's sign that a request has gone, and the thanks page's.)
+import Base from '../../../layouts/Base.astro';
+import Logo from '../../../components/Logo.astro';
+import PageTitle from '../../../components/PageTitle.astro';
+import Photo from '../../../components/Photo.astro';
+import { type Lang, ui, langPaths } from '../../../data/i18n';
+import { site } from '../../../data/site';
+import { media } from '../../../data/content';
+import { show } from '../../../data/variants';
+import { keepShort } from '../../../data/format';
+
+export const getStaticPaths = langPaths;
+const lang = Astro.params.lang as Lang;
+const f = ui[lang].form;
+const ru = lang === 'ru';
+const L = ru
+  ? {
+      title: 'Бронь',
+      description: 'Бронь стола, ложи у сцены или отдельного кабинета в HOTLAND: три вопроса, затем звонок менеджера.',
+      sub: 'Стол в зале, ложа у сцены <em>или отдельный кабинет</em>',
+      lead: 'Три вопроса: что бронируете, сколько вас и как с вами связаться. Менеджер перезвонит и подтвердит бронь.',
+      book: 'Забронировать',
+      alt: 'За столом: руки в тёмных костюмах поднимают бокалы виски над ведром со льдом',
+      ask: 'Менеджер перезвонит или ответит на вопрос.',
+      callback: 'Заказать звонок', question: 'Задать вопрос',
+    }
+  : {
+      title: 'Booking',
+      description: 'Book a table, a booth by the stage or a private room at HOTLAND: three questions, then a call from your manager.',
+      sub: 'A table in the main room, a booth by the stage <em>or a private room</em>',
+      lead: 'Three questions: what you’re booking, how many of you and how to reach you. Your manager calls back to confirm.',
+      book: 'Book',
+      alt: 'At the table: hands in dark suits raise glasses of whisky over the ice bucket',
+      ask: 'Your manager can call you back or answer a question.',
+      callback: 'Request a call', question: 'Ask a question',
+    };
+---
+<Base lang={lang} title={L.title} description={L.description} closing={false}>
+  <!-- The booking is the full-screen dialog (Book.astro), three short steps; arriving here opens it straight away,
+       with this page's ?type=, ?date= and ?occasion=. Closed, the button under the page's name opens it again. -->
+  <PageTitle title={L.title} sub={L.sub} lead={L.lead}>
+    <button class="btn btn-crimson" type="button" data-book aria-haspopup="dialog">{L.book}</button>
+  </PageTitle>
+
+  <section class="sec bkp">
+    <div class="wrap g12 bkp-in">
+      <!-- an evening at a table: the page's picture -->
+      <div class="bkp-shot">
+        <Photo src={media('party-2-bachelor.webp')} alt={L.alt} eager />
+      </div>
+      <aside class="stack bkp-side">
+        <div class="invite">
+          <Logo height={13} sign="tight" />
+          <!-- (the contact is settled on Luka's, the call back: data/variants.ts; the phone number's version stays here, hidden) -->
+          {show('contact', 'luka') && (
+            <div class="vx-part" data-v="contact:luka">
+              <p class="t-s" set:html={keepShort(L.ask, lang)} />
+              <div class="btns invite-ask">
+                <!-- (frames: «Забронировать» stays the page's one main button) -->
+                <button class="btn btn-line btn-sm" type="button" data-contact="callback">{L.callback}</button>
+                <button class="btn btn-line btn-sm" type="button" data-contact="question">{L.question}</button>
+              </div>
+              <p class="t-s invite-or">{f.faster}</p>
+            </div>
+          )}
+          {show('contact', 'gio') && (
+            <div class="vx-part" data-v="contact:gio">
+              <p class="t-s">{f.faster}</p>
+              <a class="phone" href={site.phoneHref}>{site.phone}</a>
+            </div>
+          )}
+          <div class="btns invite-msg">
+            <a class="btn btn-line btn-sm" href={site.whatsapp} target="_blank" rel="noopener">WhatsApp</a>
+            <a class="btn btn-line btn-sm" href={site.telegram} target="_blank" rel="noopener">Telegram</a>
+          </div>
+        </div>
+        <div class="stack fine">
+          <h2 class="t-m">{f.termsTitle}</h2>
+          <div class="rows">{f.terms.map((x) => <div class="row"><span class="k" set:html={keepShort(x, lang)} /></div>)}</div>
+          <a class="lnk" href={`/${lang}/terms/`}>{f.allTerms}</a>
+        </div>
+      </aside>
+    </div>
+  </section>
+</Base>
+
+<style>
+  /* The page's picture and the card beside it, right under the page's name: the name is the section's heading, so
+     the content starts the heading gap under it (global.css, .ptitle + .sec; the terms' own small heading is not the
+     section's). A computer: the picture on the left, seven columns, a little wider than tall, and it stays in view,
+     under the header, while the taller column beside it passes (the left half of the screen is never left empty);
+     the card and the terms on the right, four columns. A phone: the picture, then the card, then the terms. */
+  :global(.ptitle) + .bkp { padding-top: var(--head-gap); }
+  .bkp-shot { grid-column: 1 / span 7; }
+  .bkp-side { grid-column: 9 / span 4; gap: 56px; }
+  /* (an upright photograph in a frame a little wider than tall: the frame keeps its middle band, the raised glasses
+     with the ice bucket under them and the lamp behind) */
+  .bkp-shot :global(.photo) { aspect-ratio: 5 / 4; }
+  .bkp-shot :global(.photo img) { object-position: 50% 42%; }
+  @media (min-width: 900px) and (min-height: 600px) { .bkp-shot { position: sticky; top: calc(var(--hdr) + 32px); align-self: start; } }
+  /* The card beside the picture, square-cut like every plate. Its buttons stand in one column of one width: the two
+     requests one under the other, the two messengers side by side under them, each half that width. (Left to wrap
+     by themselves, the two requests stacked at two different widths.) */
+  .invite { justify-self: stretch; } /* (as wide as its column, whatever its words: the English ones left it narrower) */
+  .invite .t-s { text-wrap: balance; }
+  .invite .btns { display: grid; gap: 10px; width: min(100%, 264px); }
+  .invite .invite-msg { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .invite .btn { padding-inline: 10px; }
+  /* the terms in short are read, so they are the text face at its reading size (the shared rows set them a step
+     smaller) */
+  .fine .row .k { font-size: 16px; }
+</style>

@@ -1,0 +1,76 @@
+/* The troupe: the six acts as a wall of portraits (Troupe.astro, ArtistCard.astro). Loaded after global.css (Base.astro).
+   Desktop: three columns hung at different heights, like pictures on a gallery wall; the script in
+   Troupe.astro lets them drift a little apart while the page scrolls. Phones: two columns, the right one
+   lower. Each portrait is a print cut from the newspaper, as every photograph on the site is (cut.css on .pt-frame:
+   the torn edge, its fibre, the dot screen, the fall into the page at its foot). The hang uses `top`, never
+   `translate` (the reveal animations use `translate`, and GSAP moves the items with `transform`). (The artists page
+   is hidden since 2026-11-13; until 2026-11-22 the portraits had no frame and faded into the black on every side.) */
+
+/* ---------- The wall ---------- */
+.troupe {
+  --tr-cols: 3;
+  --tr-col-gap: clamp(28px, 4.6vw, 76px);
+  --tr-row-gap: clamp(56px, 6.4vw, 104px);
+  --tr-drop-2: min(11vw, 158px);
+  --tr-drop-3: min(4.5vw, 65px);
+  display: grid; grid-template-columns: repeat(var(--tr-cols), minmax(0, 1fr)); gap: var(--tr-row-gap) var(--tr-col-gap);
+  margin: 0; padding: 0 0 var(--tr-drop-2); list-style: none;
+}
+.tr-item { position: relative; min-width: 0; }
+.tr-item[data-col="2"] { top: var(--tr-drop-2); }
+.tr-item[data-col="3"] { top: var(--tr-drop-3); }
+
+/* ---------- One act: portrait, then its name and one line ---------- */
+.troupe .pt { display: grid; gap: 0; align-content: start; color: var(--fg); }
+.troupe .pt-frame { aspect-ratio: 3 / 4; }
+/* The portraits are shot on a flat black of their own (#090909). So that no picture ever shows its edge, that
+   black becomes the page's: a touch of contrast takes it down to true black, and a layer of the page colour
+   lifts it back up to the page (on the charcoal home section) or leaves it black (on black pages). */
+.troupe .pt-frame :is(img, video) { filter: contrast(1.08) brightness(1); }
+.troupe .pt-frame::after { content: ''; position: absolute; inset: 0; z-index: 2; background: var(--bg); mix-blend-mode: lighten; pointer-events: none; }
+.troupe .pt-frame img { transition: transform 1.2s cubic-bezier(.2, .7, .2, 1), filter .6s ease .12s; }
+.troupe .pt-frame .loop { transition: opacity .7s ease, transform 1.2s cubic-bezier(.2, .7, .2, 1), filter .6s ease .12s; }
+
+.troupe .pt-cap {
+  display: grid; grid-template-columns: minmax(0, 1fr); align-items: baseline; gap: 10px;
+  max-width: none; margin-top: -14px; padding-right: 4%;
+}
+.troupe .pt-name {
+  font: 500 clamp(23px, 2.05vw, 31px)/1.05 var(--f-text); letter-spacing: -.01em;
+  color: var(--fg); transition: color .35s ease;
+}
+.troupe .pt-text { margin: 0; font: 400 16px/1.6 var(--f-text); color: var(--fg-2); max-width: 40ch; }
+
+/* the act whose film is playing takes the light (on a phone: the one that settled in view), and so does the
+   one the keyboard is on */
+.troupe .pt-frame.looping ~ .pt-cap .pt-name, .troupe .pt:focus-visible .pt-name { color: #fff; }
+/* the name always stays upright (the older card rule in global.css would slant it on hover) */
+.troupe .pt:hover .pt-name { font-style: normal; }
+@media (hover: hover) and (pointer: fine) {
+  /* with a mouse the hover stays quiet: the name stays upright and only comes up to full white (also while the
+     act's film plays under the pointer), and the portrait leans in a touch */
+  .troupe .pt:hover .pt-name, .troupe .pt:hover .pt-frame.looping ~ .pt-cap .pt-name { color: #fff; }
+  .troupe .pt:hover .pt-frame :is(img, .loop) { transform: scale(1.03); }
+  /* one act at a time: while the mouse is on a portrait, the others step back into the dark (their light is
+     turned down, so their black stays exactly the page's) */
+  .troupe:has(.pt:hover) .tr-item:not(:hover) .pt-frame :is(img, video) { filter: contrast(1.08) brightness(.42); transition-delay: 0s; }
+}
+@media (hover: none) {
+  .troupe .pt:hover .pt-frame img { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .troupe .pt:hover .pt-frame :is(img, .loop) { transform: none; }
+}
+
+/* ---------- Phones and small tablets: two columns, the right one hangs lower ---------- */
+@media (max-width: 899px) {
+  .troupe { --tr-cols: 2; --tr-col-gap: clamp(10px, 2.6vw, 24px); --tr-row-gap: clamp(36px, 8vw, 64px); --tr-drop: clamp(70px, 12vw, 108px); padding-bottom: var(--tr-drop); }
+  .tr-item[data-col] { top: 0; }
+  .tr-item:nth-child(even) { top: var(--tr-drop); }
+  /* the last act, when it hangs in the lower column, sits at the foot of its row: when its line is shorter than its
+     neighbour's, its words still end where the wall's room for the drop ends, so no hidden air comes under it */
+  .tr-item:last-child:nth-child(even) { align-self: end; }
+  .troupe .pt-cap { display: block; margin-top: -6px; padding-right: 0; }
+  .troupe .pt-name { display: inline; font-size: clamp(22px, 4.4vw, 30px); line-height: 1.08; }
+  .troupe .pt-text { margin-top: 8px; font-size: clamp(15px, 2.4vw, 16px); line-height: 1.5; }
+}

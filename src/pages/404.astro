@@ -1,0 +1,51 @@
+---
+import Base from '../layouts/Base.astro';
+import LineArt from '../components/LineArt.astro';
+// (a missing page offers the ways back in, not a table: without the closing «Ваш стол уже ждёт»)
+// The closed door, drawn (LineArt, 2026-11-21: it was the glossy 3D keyhole): the concrete leaves, the red seam of
+// light between them, the sealed pouches on the counter, on a plate torn out all round as the page after "No" has
+// it (cut.css, .ab-plate). The words say the rest.
+---
+<Base lang="ru" title="Страница не найдена" description="Такой страницы нет. This page does not exist." noindex closing={false}>
+  <section class="thanks thanks-lost">
+    <div class="wrap stack center">
+      <figure class="lost-door ab-plate"><LineArt name="door" /></figure>
+      <h1 class="t-xl">Эта дверь <em>закрыта</em></h1>
+      {/* the page serves both languages: the line in Russian, and the same in English, more quietly, under it
+          (each sentence keeps to one line, so the line can break only between the two) */}
+      <p class="lead lost-lead">
+        <span><span class="lost-nw">Такой страницы нет.</span> <span class="lost-nw">Остальные открыты.</span></span>
+        <span class="lost-en" lang="en"><span class="lost-nw">This door is closed.</span> <span class="lost-nw">The others are open.</span></span>
+      </p>
+      <div class="btns">
+        <a class="btn btn-crimson" href="/ru/booking/">Забронировать стол</a>
+        <a class="btn btn-line" href="/ru/program/">Афиша</a>
+        <a class="btn btn-line" href="/ru/">Главная</a>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style is:global>
+  /* A page that isn't there, set as the thank-you page is (pages/[lang]/booking/thanks.astro): the drawing, the
+     two words, one line about it and the ways back in, one under another on the page's middle line. The drawing
+     stands on a plate of black stock torn out all round, as on the page after "No" (cut.css tears .ab-plate; the
+     fourth tear is torn on every side): lacquer, with a mat of air round the drawing. */
+  .thanks-lost .stack { gap: clamp(20px, 2vw, 28px); }
+  .thanks-lost .lost-door {
+    --tear: var(--tear-4); --tear-in: var(--tear-4-in); --cut-lean: -.6deg;
+    width: min(100%, 560px); margin: 0 0 clamp(4px, 1vw, 12px); padding: clamp(18px, 2.6vw, 36px);
+    background: var(--lacquer);
+  }
+  /* (the Dial's own space is narrow: the three words stand a little further apart, so they never read as one) */
+  .thanks-lost .t-xl { text-wrap: balance; font-size: clamp(88px, 11vw, 168px); word-spacing: .1em; }
+  .lost-lead { display: grid; justify-items: center; gap: 6px; }
+  .lost-nw { white-space: nowrap; }
+  .lost-en { font-size: 16px; line-height: 1.5; color: var(--ash); }
+  /* the three ways back: a phone gets one column of plates of one width, a wider screen one row */
+  .thanks-lost .btns { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; width: min(100%, 320px); margin-top: 8px; }
+  @media (min-width: 600px) {
+    .thanks-lost .btns { display: flex; flex-wrap: nowrap; justify-content: center; gap: 14px; width: auto; }
+  }
+  @media (max-width: 599px) { .thanks-lost { padding-top: calc(var(--hdr) + 32px); } }
+</style>

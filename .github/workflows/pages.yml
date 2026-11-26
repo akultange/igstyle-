@@ -1,0 +1,58 @@
+# Every push to main builds the site and publishes it on GitHub Pages: https://akultange.github.io/hotlandbeta/, or, in
+# the repository hotland-latest (LUKA LATEST, this branch's copy for review), https://akultange.github.io/hotland-latest/,
+# or, in igstyle- (the version in the Immersive Garden manner), https://akultange.github.io/igstyle-/, the two copies
+# for review with the switch between the versions showing (SiteSwitch.astro).
+# (Settings → Pages → Source: GitHub Actions). Actions → this workflow → Run workflow publishes it again by hand.
+name: GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# one publish at a time; a newer push replaces one still waiting
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - id: pages
+        uses: actions/configure-pages@v5
+      - run: npm ci
+      # the photos' smaller copies, made once and kept between runs
+      - uses: actions/cache@v5
+        with:
+          path: node_modules/.cache/hotland-images
+          key: images-${{ hashFiles('public/media/**', 'public/img/**', 'tools/build/assets.mjs') }}
+          restore-keys: images-
+      - run: npm run build:github
+        env:
+          SITE_URL: ${{ steps.pages.outputs.origin }}
+          PAGES_BASE: ${{ steps.pages.outputs.base_path }}
+          PUBLIC_SITE_SWITCH: ${{ (github.event.repository.name == 'hotland-latest' || github.event.repository.name == 'igstyle-') && '1' || '' }}
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

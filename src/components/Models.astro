@@ -1,0 +1,427 @@
+---
+// The artists: the faces of HOTLAND as a row of tall portraits to slide through, each with her name and two
+// lines about her. STAND-INS for the presentation: the portraits are AI photographs (public/media/model-NN-*.webp,
+// 3:4 like the card), and the stage names and lines are ours. Swap all three for the club's own artists, their stage
+// names and their words before launch (and measure where their eyes are: `eyes`).
+//
+// The row scrolls on its own (scroll snap: a finger, a trackpad), a mouse can drag it, and the square buttons
+// under the row (beside the line and the count) and the arrow keys (on the focused row) move one artist at a time. One artist stands in the
+// light: the counter and the line under the row follow her. Without scripts the row still scrolls and the
+// controls are hidden. Desktop shows three and a half portraits, phones about one and a third.
+// With a mouse the portrait under the pointer steps into the light: it lifts, grows and leans a little toward the
+// pointer and the photograph zooms. A click or a tap (or Enter on the row) opens her
+// profile: the portrait flies out of the row, her name
+// stands huge behind it, with her two lines and the booking button; arrows, a swipe or the keys go to the next
+// one, Esc or a pull down closes it, and the row waits on her. On a phone the profile fills the screen like a
+// story: tap the left third to go back, the rest to go on.
+// Some have a second, hotter photograph (`hot`): it shows while the pointer is on her (from 900 px wide), and on a
+// tablet while her portrait is pressed and held (scripts/hot.ts). Her profile opens on whichever photograph the card
+// is showing. A phone has no hover of any kind; there her story opens on the first photograph and brings in the
+// second a moment later, for each artist (2026-11-13, the client: "whatever we do on hover").
+// Styles: styles/models.css.
+import Photo from './Photo.astro';
+import ArtistStory from './ArtistStory.astro';
+import { type Lang } from '../data/i18n';
+import { artists, artistFrames, type Frame } from '../data/artists';
+import '../styles/models.css';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const ru = lang === 'ru';
+const n2 = (i: number) => String(i).padStart(2, '0');
+
+const models = artists;
+const total = models.length;
+const frames = artistFrames;
+/** The card's framing as CSS variables (styles/models.css): her eyes' place on the card, then each photo's zoom
+ *  and her eyes' place in it. */
+const frameVars = (f: Frame) =>
+  [`--ox:${f.ox}`, `--oy:${f.oy}`, `--az:${f.a.z}`, `--aex:${f.a.x}`, `--aey:${f.a.y}`, ...(f.b ? [`--bz:${f.b.z}`, `--bex:${f.b.x}`, `--bey:${f.b.y}`] : [])].join(';');
+---
+<section
+  class="sec mdl"
+  id="models"
+  aria-roledescription={ru ? 'карусель' : 'carousel'}
+  aria-labelledby="models-title"
+  data-models
+  data-live-tpl={ru ? 'Артистка {i} из {n}' : 'Artist {i} of {n}'}
+>
+  <!-- the heading row as every section's (.bighead.bh-line): the title and its line; the two square buttons that turn
+       the row are in the bar under it, beside the line and the count -->
+  <div class="wrap"><div class="bighead bh-line mdl-head">
+    <h2 class="t-l" id="models-title">{ru ? 'Артистки' : 'Artists'}</h2>
+    <div class="bighead-side">
+      <p class="body mdl-lead">{ru ? 'Лица HOTLAND. Знакомьтесь, остальное на сцене.' : 'The faces of HOTLAND. Say hello here; the rest happens on stage.'}</p>
+    </div>
+  </div></div>
+
+  <div class="mdl-track" id="models-track" role="group" tabindex="0" aria-label={ru ? 'Артистки, листайте стрелками' : 'Artists, use the arrow keys'} data-track data-lenis-prevent-horizontal>
+    <div class="mdl-list">
+      {models.map((m, i) => (
+        <div class:list={['mdl-card', { 'is-active': i === 0 }]} role="group" aria-roledescription={ru ? 'слайд' : 'slide'} aria-label={ru ? `${m.name.ru}, ${i + 1} из ${total}` : `${m.name.en}, ${i + 1} of ${total}`} data-card data-hot={m.hot ? `/media/${m.hot}.webp` : undefined}>
+          <div class="mdl-shot" style={frameVars(frames[i])}>
+            <Photo ratio="3/4" src={`/media/${m.photo}.webp`} alt={m.alt[lang]} />
+            <button type="button" class="mdl-open" data-open tabindex={i === 0 ? 0 : -1} aria-haspopup="dialog" aria-label={ru ? `Открыть: ${m.name.ru}` : `Open: ${m.name.en}`}>
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg>
+            </button>
+          </div>
+          <div class="mdl-cap">
+            <div class="mdl-row">
+              <h3 class="mdl-name">{m.name[lang]}</h3>
+            </div>
+            <p class="mdl-text">{m[lang][0]}<br />{m[lang][1]}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <div class="wrap mdl-foot">
+    <span class="mdl-line" aria-hidden="true"><i data-fill></i></span>
+    <span class="mdl-count" aria-hidden="true"><span class="mdl-now"><b data-now>01</b></span><span class="mdl-of">/&nbsp;{n2(total)}</span></span>
+    <div class="mdl-nav">
+      <button type="button" class="btn btn-line mdl-arrow" data-prev aria-controls="models-track" aria-disabled="true" aria-label={ru ? 'Предыдущая артистка' : 'Previous artist'}>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 12H5M11 6l-6 6 6 6" /></svg>
+      </button>
+      <button type="button" class="btn btn-line mdl-arrow" data-next aria-controls="models-track" aria-disabled="false" aria-label={ru ? 'Следующая артистка' : 'Next artist'}>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 12h15M13 6l6 6-6 6" /></svg>
+      </button>
+    </div>
+  </div>
+  <p class="sr-only" aria-live="polite" data-live></p>
+
+  <ArtistStory lang={lang} />
+</section>
+
+<script>
+  // The slider. State is one number, `active`: the model in the light. The row's resting places ("stops") are
+  // the scroll positions that put a portrait at the start of the row; near the end several models share the
+  // last stop (on a desktop the last four are all in view there), so the buttons can still step through them
+  // one by one while the row stays put. A scroll or a drag that comes to rest on another stop hands the light
+  // to the first portrait there.
+  // While the row is moved by a script or dragged, scroll snap is off (.is-free); it comes back when it rests.
+  import { gsap } from 'gsap';
+  import { hotPhoto } from '../scripts/hot';
+  import { profile, type StoryItem } from '../scripts/story';
+
+  const root = document.documentElement;
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const mouse = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const pad2 = (n: number) => String(n).padStart(2, '0');
+
+  document.querySelectorAll<HTMLElement>('[data-models]').forEach((sec) => {
+    const track = sec.querySelector<HTMLElement>('[data-track]');
+    const cards = Array.from(sec.querySelectorAll<HTMLElement>('[data-card]'));
+    const prev = sec.querySelector<HTMLElement>('[data-prev]');
+    const next = sec.querySelector<HTMLElement>('[data-next]');
+    const now = sec.querySelector<HTMLElement>('[data-now]');
+    const fill = sec.querySelector<HTMLElement>('[data-fill]');
+    const live = sec.querySelector<HTMLElement>('[data-live]');
+    if (!track || cards.length < 2 || !prev || !next || !now || !fill || !live) return;
+
+    const n = cards.length;
+    const opens = cards.map((c) => c.querySelector<HTMLButtonElement>('[data-open]'));
+    const tpl = sec.dataset.liveTpl || '{i} / {n}';
+    const clamp = (i: number) => Math.max(0, Math.min(n - 1, i));
+    let active = 0;
+    let said = 0; // the model the live region last named (for screen readers)
+    let glideTween: gsap.core.Tween | null = null;
+    let down = false;
+    let moved = false;
+    let hoverOff = () => {};
+    let openProfile: (i: number, from?: HTMLElement | null) => void = () => {};
+
+    /* ---------- where things are ---------- */
+    const max = () => Math.max(0, track.scrollWidth - track.clientWidth);
+    /** The stop that brings portrait i to the start of the row (the last stop is the end of the row). */
+    const stop = (i: number) => Math.min(max(), Math.max(0, cards[i].offsetLeft - cards[0].offsetLeft));
+    /** The first portrait at the stop nearest to x. */
+    const nearest = (x: number) => {
+      let best = 0;
+      let gap = Infinity;
+      for (let i = 0; i < n; i++) {
+        const d = Math.abs(stop(i) - x);
+        if (d < gap - 0.5) { gap = d; best = i; }
+      }
+      return best;
+    };
+    /** Who should be in the light for the row as it is now: the current model if the row is at her stop. */
+    const pick = () => {
+      const i = nearest(track.scrollLeft);
+      return Math.abs(stop(i) - stop(active)) < 1 ? active : i;
+    };
+
+    /* ---------- the light, the counter, the line, the buttons ---------- */
+    const set = (i: number, say = false) => {
+      i = clamp(i);
+      const dir = Math.sign(i - active);
+      active = i;
+      cards.forEach((c, k) => c.classList.toggle('is-active', k === i));
+      opens.forEach((b, k) => { if (b) b.tabIndex = k === i ? 0 : -1; }); // one tab stop: the model in the light
+      fill.style.transform = `scaleX(${((i + 1) / n).toFixed(4)})`;
+      prev.setAttribute('aria-disabled', String(i === 0));
+      next.setAttribute('aria-disabled', String(i === n - 1));
+      const txt = pad2(i + 1);
+      if (now.textContent !== txt) {
+        now.textContent = txt;
+        if (!still && dir) gsap.fromTo(now, { yPercent: 80 * dir, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.55, ease: 'expo.out', overwrite: true });
+      }
+      if (say) {
+        said = i;
+        live.textContent = tpl.replace('{i}', String(i + 1)).replace('{n}', String(n));
+      }
+    };
+
+    /* ---------- moving the row ---------- */
+    const rest = () => {
+      track.classList.remove('is-free');
+      const i = pick();
+      set(i, i !== said); // a swipe or a drag that ended on another model says so too
+    };
+    const glide = (x: number) => {
+      glideTween?.kill();
+      glideTween = null;
+      const from = track.scrollLeft;
+      if (Math.abs(x - from) < 1) { rest(); return; }
+      track.classList.add('is-free');
+      if (still) { track.scrollLeft = x; rest(); return; }
+      const o = { x: from };
+      glideTween = gsap.to(o, {
+        x,
+        duration: Math.min(1.05, 0.6 + Math.abs(x - from) / 2600),
+        ease: 'power3.out',
+        onUpdate: () => { track.scrollLeft = o.x; },
+        onComplete: () => { glideTween = null; rest(); },
+      });
+    };
+    const go = (i: number) => {
+      set(clamp(i), true);
+      glide(stop(active));
+    };
+    const halt = () => {
+      if (!glideTween) return;
+      glideTween.kill();
+      glideTween = null;
+      track.classList.remove('is-free');
+    };
+
+    prev.addEventListener('click', () => { if (active > 0) go(active - 1); });
+    next.addEventListener('click', () => { if (active < n - 1) go(active + 1); });
+    track.addEventListener('keydown', (e) => {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target === track) {
+        e.preventDefault();
+        openProfile(active, cards[active].querySelector<HTMLElement>('.photo'));
+        return;
+      }
+      const keys: Record<string, number> = { ArrowRight: active + 1, ArrowLeft: active - 1, Home: 0, End: n - 1 };
+      const to = keys[e.key];
+      if (to === undefined) return;
+      e.preventDefault();
+      go(to);
+    });
+    // a click or a tap (not a drag) on a portrait opens her profile; the row brings her into the light underneath
+    cards.forEach((c, i) => c.addEventListener('click', () => {
+      const from = c.querySelector<HTMLElement>('.photo');
+      if (i !== active) go(i);
+      openProfile(i, from);
+    }));
+
+    // a finger, a trackpad or a wheel: follow along, and settle once the row is at rest
+    let queued = 0;
+    let quiet = 0;
+    const settleSoon = () => {
+      clearTimeout(quiet);
+      quiet = window.setTimeout(() => { if (!glideTween && !down) rest(); }, 140);
+    };
+    track.addEventListener('scroll', () => {
+      if (glideTween) return;
+      if (!queued) queued = requestAnimationFrame(() => { queued = 0; if (!glideTween) set(pick()); });
+      settleSoon();
+    }, { passive: true });
+    // a sideways swipe takes the row back from a glide (scrolling the page up or down leaves it alone)
+    track.addEventListener('wheel', (e) => { if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) halt(); }, { passive: true });
+    track.addEventListener('touchstart', halt, { passive: true });
+
+    /* ---------- a mouse can drag the row (no throw library: a short glide in the direction of the throw) ---------- */
+    if (mouse) {
+      track.classList.add('can-drag');
+      let id = 0;
+      let x0 = 0;
+      let s0 = 0;
+      let lx = 0;
+      let lt = 0;
+      let v = 0;
+      let from = 0;
+      const up = (e: PointerEvent) => {
+        if (!down || e.pointerId !== id) return;
+        down = false;
+        track.classList.remove('is-drag');
+        if (!moved) return;
+        if (performance.now() - lt > 90) v = 0; // held still before letting go: no throw
+        const dx = e.clientX - x0;
+        let i = nearest(track.scrollLeft - v * 240);
+        const start = stop(from);
+        // a real drag always moves at least one stop on
+        if (Math.abs(stop(i) - start) < 1 && Math.abs(dx) > 40) {
+          if (dx < 0) {
+            const j = cards.findIndex((_, k) => stop(k) > start + 1);
+            if (j >= 0) i = j;
+          } else {
+            for (let k = n - 1; k >= 0; k--) if (stop(k) < start - 1) { i = k; break; }
+          }
+        }
+        glide(stop(i));
+      };
+      track.addEventListener('pointerdown', (e) => {
+        if (e.pointerType !== 'mouse' || e.button !== 0) return;
+        halt();
+        down = true;
+        moved = false;
+        id = e.pointerId;
+        x0 = lx = e.clientX;
+        s0 = track.scrollLeft;
+        lt = performance.now();
+        v = 0;
+        from = active;
+      });
+      track.addEventListener('pointermove', (e) => {
+        if (!down || e.pointerId !== id) return;
+        if (!(e.buttons & 1)) { up(e); return; } // the button came up somewhere we didn't hear it
+        const dx = e.clientX - x0;
+        if (!moved) {
+          if (Math.abs(dx) < 5) return;
+          moved = true;
+          hoverOff();
+          track.classList.add('is-free', 'is-drag');
+          try { track.setPointerCapture(id); } catch { /* the pointer is already gone */ }
+        }
+        track.scrollLeft = s0 - dx;
+        const t = performance.now();
+        v = 0.7 * ((e.clientX - lx) / Math.max(1, t - lt)) + 0.3 * v;
+        lx = e.clientX;
+        lt = t;
+      });
+      track.addEventListener('pointerup', up);
+      track.addEventListener('pointercancel', up);
+      // a drag is not a click on the portrait under the pointer
+      track.addEventListener('click', (e) => {
+        if (!moved) return;
+        e.preventDefault();
+        e.stopPropagation();
+        moved = false;
+      }, true);
+      track.addEventListener('dragstart', (e) => e.preventDefault());
+    }
+
+    // a new size (a phone turned, a window resized): keep the model in the light where she was
+    let lastW = track.clientWidth;
+    new ResizeObserver(() => {
+      if (track.clientWidth === lastW) return;
+      lastW = track.clientWidth;
+      halt();
+      track.classList.add('is-free');
+      track.scrollLeft = stop(active);
+      requestAnimationFrame(() => track.classList.remove('is-free'));
+    }).observe(track);
+
+    // the second photographs (before the row goes live, so each breathes in step with its first: scripts/hot.ts)
+    cards.forEach(hotPhoto);
+    set(0);
+    sec.classList.add('is-live');
+
+    /* ---------- with a mouse: the portrait under the pointer steps into the light ---------- */
+    if (mouse) {
+      // (narrower than 900 px, the phone's breakpoint, there is no hover at all, as on a phone: 2026-11-13)
+      const wide = matchMedia('(min-width: 900px)');
+      const rest = (card: HTMLElement) => {
+        card.classList.remove('is-hover', 'is-tilting');
+        const shot = card.querySelector<HTMLElement>('.mdl-shot');
+        shot?.style.setProperty('--rx', '0deg');
+        shot?.style.setProperty('--ry', '0deg');
+      };
+      hoverOff = () => cards.forEach(rest);
+      let px = -1, py = -1, rq = 0;
+      cards.forEach((card) => {
+        const shot = card.querySelector<HTMLElement>('.mdl-shot');
+        if (!shot) return;
+        card.addEventListener('pointerenter', (e) => {
+          if (e.pointerType !== 'mouse' || down || !wide.matches) return;
+          card.classList.add('is-hover');
+          px = e.clientX;
+          py = e.clientY;
+        });
+        card.addEventListener('pointermove', (e) => {
+          if (e.pointerType !== 'mouse' || moved || !wide.matches) return;
+          // back after a scroll or a drag: the portrait lights up again
+          if (!down && !card.classList.contains('is-hover')) card.classList.add('is-hover');
+          px = e.clientX;
+          py = e.clientY;
+          if (still) return;
+          const r = shot.getBoundingClientRect();
+          const x = (e.clientX - r.left) / r.width;
+          const y = (e.clientY - r.top) / r.height;
+          card.classList.add('is-tilting');
+          shot.style.setProperty('--ry', `${((x - 0.5) * 9).toFixed(2)}deg`);
+          shot.style.setProperty('--rx', `${((0.5 - y) * 7).toFixed(2)}deg`);
+        });
+        card.addEventListener('pointerleave', () => rest(card));
+      });
+      wide.addEventListener('change', () => { if (!wide.matches) hoverOff(); });
+      // the page moved under a still pointer: the light moves to the portrait now under it, and goes the moment none
+      // is, rather than stay on the wrong portrait
+      addEventListener('scroll', () => {
+        if (down || rq || !cards.some((c) => c.classList.contains('is-hover'))) return;
+        rq = requestAnimationFrame(() => {
+          rq = 0;
+          const under = document.elementFromPoint(px, py)?.closest<HTMLElement>('.mdl-card');
+          if (!under || !cards.includes(under)) { hoverOff(); return; }
+          cards.forEach((c) => { if (c !== under) rest(c); });
+          under.classList.add('is-hover');
+        });
+      }, { passive: true });
+    }
+
+    /* ---------- the profile ---------- */
+    const dlg = sec.querySelector<HTMLElement>('[data-mdv]');
+    const raw = sec.querySelector<HTMLElement>('[data-mdv-data]');
+    const items: StoryItem[] = raw ? JSON.parse(raw.textContent || '[]') : [];
+    if (dlg && items.length === n) {
+      document.body.append(dlg); // full screen above everything, whatever the section is doing
+      /** The row waits on model i (no glide): where the profile flies back to. */
+      const jump = (i: number) => {
+        halt();
+        set(i);
+        track.classList.add('is-free');
+        track.scrollLeft = stop(i);
+        requestAnimationFrame(() => track.classList.remove('is-free'));
+      };
+      openProfile = profile(dlg, items, {
+        jump,
+        photo: (i) => cards[i].querySelector<HTMLElement>('.photo'),
+        back: (i) => opens[i] || track,
+        leave: () => hoverOff(),
+      });
+    }
+
+    /* ---------- the entrance: the portraits come in from the right, the buttons and the line follow ---------- */
+    // (The buttons only grow: their own opacity says whether they can be pressed, so their group fades instead.)
+    if (!still && root.classList.contains('motion') && track.getBoundingClientRect().top > innerHeight * 0.85) {
+      const buttons = [prev, next];
+      const nav = prev.parentElement as HTMLElement;
+      const line = fill.parentElement as HTMLElement;
+      gsap.set(cards, { x: 150, opacity: 0 });
+      gsap.set(nav, { opacity: 0 });
+      gsap.set(buttons, { scale: 0.6 });
+      gsap.set(line, { scaleX: 0, transformOrigin: '0 50%' });
+      const io = new IntersectionObserver((entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        gsap.timeline({ onComplete: () => gsap.set([...cards, ...buttons, nav, line], { clearProps: 'transform,opacity' }) })
+          .to(cards, { x: 0, opacity: 1, duration: 1.3, ease: 'expo.out', stagger: 0.06 }, 0)
+          .to(nav, { opacity: 1, duration: 0.6, ease: 'power2.out' }, 0.2)
+          .to(buttons, { scale: 1, duration: 0.8, ease: 'back.out(1.7)', stagger: 0.08 }, 0.2)
+          .to(line, { scaleX: 1, duration: 1.3, ease: 'expo.inOut' }, 0.25);
+      }, { rootMargin: '0px 0px -12% 0px' });
+      io.observe(track);
+    }
+  });
+</script>

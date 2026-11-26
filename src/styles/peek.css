@@ -1,0 +1,109 @@
+/* ---------- The gallery in brief (home and the show page; GalleryPeek.astro) ----------
+   The heading row as every section's (.bh-line: the title, the line with the count, the link), then the
+   prints: hung to dry on a fine steel wire that runs edge to edge and sags a little in the middle, each held by a
+   small steel clip, a little crooked. The line is one screen at most.
+
+   How a print finds the wire: the wire is a parabola, y = sag × 4f(1 − f) at the fraction f of the line's width
+   (the SVG's quadratic curve is exactly that), so a print at --f hangs its clip at that height. Each print's place
+   along the wire (--f), its width (--w, in --u units) and its tilt (--r) are set below for each screen size.
+   --u is a width unit that also minds the screen's height, so on a short wide screen the prints stay in view.
+   (This take is out of the page since 2026-11-12, the film strip won: GalleryFilmStrip.astro. 2026-11-21,
+   «Между»: the prints lost their gloss and their shadows, and their paper is the shirt's white.) */
+.gpk {
+  --wy: 22px;                                  /* the wire's ends, from the top of the line */
+  --sag: clamp(34px, 4.2vw, 64px);             /* how far the wire dips in the middle */
+  --u: min(1vw, 1.55svh);
+  --gpk-paper: clamp(5px, .5vw, 8px);              /* the white edge of the print */
+}
+
+/* the line's top --wy above the wire's ends, and its last 24px under the lowest print (room for the prints'
+   swing), are not air: both are taken back, so the wire starts the heading gap under the heading row and the
+   next section's air starts at the prints' feet (never more than the heading gap, so the line never reaches over
+   the heading row's link) */
+.gpk-run { position: relative; margin: calc(-1 * min(var(--wy), var(--head-gap))) 0 -24px; }
+.gpk-line {
+  position: relative; width: 100%;
+  /* the lowest print: the middle one, 18u wide at 3:4 (24u of picture), hanging from the bottom of the sag */
+  height: calc(var(--wy) + var(--sag) + 25px + 5.4 * var(--gpk-paper) + 24 * var(--u) + 18px);
+}
+.gpk-wire { position: absolute; left: 0; top: var(--wy); width: 100%; height: var(--sag); overflow: visible; pointer-events: none; }
+/* (the wire is plain blackened steel's bright edge: 2026-11-22, its polished highlight along the middle is gone) */
+.gpk-wire path { fill: none; stroke: var(--steel-hi); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+
+/* a print: its top is the point where the clip hangs on the wire; it hangs, tilted, from there */
+.gpk-print {
+  --pw: calc(var(--w) * var(--u));
+  position: absolute; z-index: 1; left: calc(var(--f) * 100%); top: calc(var(--wy) + var(--sag) * 4 * var(--f) * (1 - var(--f)));
+  display: block; width: var(--pw);
+  translate: -50% 0; rotate: var(--r); transform-origin: 50% 0;
+  transition: rotate .8s var(--ease-back), translate .6s var(--ease-out), scale .6s var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+/* the clip: the top of its wire loop sits on the wire; its jaws bite the top of the print */
+.gpk-clip { position: absolute; z-index: 2; left: 50%; top: -2px; width: 27px; height: 39px; translate: -50% 0; overflow: visible; }
+.gpk-clip-arm { fill: none; stroke: url(#g-metal); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.gpk-clip-jaw { fill: url(#g-metal); stroke: rgba(0, 0, 0, .35); stroke-width: .6; }
+.gpk-clip-fold { stroke: rgba(0, 0, 0, .38); stroke-width: 1; }
+/* the print itself: a photograph on matte paper with a narrow white edge, square-cut */
+.gpk-paper {
+  display: block; margin-top: 25px; padding: var(--gpk-paper) var(--gpk-paper) calc(var(--gpk-paper) * 4.4);
+  background: var(--shirt);
+}
+.gpk-img { position: relative; display: block; aspect-ratio: var(--ar); overflow: hidden; background: var(--lacquer); }
+.gpk-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+@media (hover: hover) {
+  .gpk-print:hover { z-index: 3; rotate: 0deg; translate: -50% -6px; scale: 1.035; }
+}
+.gpk-print:active { scale: .98; }
+
+/* as the line comes into view the prints swing on their clips once, one after another, and settle */
+html.motion .gpk-line:not(.is-in) .gpk-print { opacity: 0; }
+html.motion .gpk-line.is-in .gpk-print { animation: gpk-hang 1.9s var(--ease-out) calc(var(--i) * .11s) backwards; }
+@keyframes gpk-hang {
+  0% { opacity: 0; rotate: calc(var(--r) + 11deg); translate: -50% -18px; }
+  14% { opacity: 1; }
+  32% { rotate: calc(var(--r) - 6deg); translate: -50% 0; }
+  55% { rotate: calc(var(--r) + 2.6deg); }
+  78% { rotate: calc(var(--r) - .9deg); }
+  100% { rotate: var(--r); translate: -50% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.motion .gpk-line .gpk-print { opacity: 1; animation: none; }
+  .gpk-print { transition: none; }
+}
+
+/* ---------- Where each print hangs ---------- */
+/* desktop: five along the wire */
+.gpk-print:nth-child(2) { --f: .1;  --w: 16;   --r: -3.4deg; }
+.gpk-print:nth-child(3) { --f: .3;  --w: 17;   --r: 2.4deg; }
+.gpk-print:nth-child(4) { --f: .5;  --w: 18;   --r: -1.4deg; }
+.gpk-print:nth-child(5) { --f: .7;  --w: 16;   --r: 3deg; }
+.gpk-print:nth-child(6) { --f: .9;  --w: 16.5; --r: -2.4deg; }
+
+/* tablets: four, a little larger */
+@media (max-width: 1099px) {
+  .gpk { --u: min(1vw, 1.3svh); }
+  .gpk-line { height: calc(var(--wy) + var(--sag) + 25px + 5.4 * var(--gpk-paper) + 32 * var(--u) + 18px); }
+  .gpk-print:nth-child(2) { --f: .13; --w: 21; --r: -3deg; }
+  .gpk-print:nth-child(3) { --f: .38; --w: 22; --r: 2.2deg; }
+  .gpk-print:nth-child(4) { --f: .62; --w: 21; --r: -1.6deg; }
+  .gpk-print:nth-child(5) { --f: .87; --w: 21; --r: 2.8deg; }
+  .gpk-print:nth-child(6) { display: none; }
+}
+
+/* phones: the wire runs on past the screen's edge; swipe along it */
+@media (max-width: 699px) {
+  .gpk { --u: 1vw; --sag: 40px; --wy: 18px; }
+  .gpk-run {
+    overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; scroll-snap-type: x proximity;
+    -webkit-mask-image: var(--peek-fade); mask-image: var(--peek-fade);
+  }
+  .gpk-run::-webkit-scrollbar { display: none; }
+  .gpk-line { width: 250vw; height: calc(var(--wy) + var(--sag) + 25px + 5.4 * var(--gpk-paper) + 63vw + 14px); }
+  .gpk-print { scroll-snap-align: center; }
+  .gpk-print:nth-child(2) { --f: .1;  --w: 40; --r: -3deg; }
+  .gpk-print:nth-child(3) { --f: .3;  --w: 42; --r: 2.4deg; }
+  .gpk-print:nth-child(4) { --f: .5;  --w: 40; --r: -1.6deg; }
+  .gpk-print:nth-child(5) { --f: .7;  --w: 40; --r: 2.6deg; }
+  .gpk-print:nth-child(6) { display: block; --f: .9; --w: 41; --r: -2.2deg; }
+}

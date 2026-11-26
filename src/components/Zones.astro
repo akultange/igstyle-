@@ -1,0 +1,46 @@
+---
+// The club's rooms (membership page; styles in styles/zones.css): a plain list, the way a good hotel lists its rooms,
+// beside one photograph of the hall during the show. «Между», 2026-11-21: the doorway with its photographs, the room's
+// colour washing the wall and the stage held on screen while the page scrolled through it are gone; the rooms are
+// named, numbered and booked. Each row: the room's number in the Dial, large and hairline; its name and its one line
+// in the text face; and the link that opens the booking form with its own choice made (`book`), whose words name what
+// you book. The whole row answers to the pointer, and a line of light runs along its rule. (2026-11-22: the hall's
+// photograph beside the list, torn like every picture on the site, so the rooms are seen as well as named.)
+import Photo from './Photo.astro';
+import { type Lang, tr } from '../data/i18n';
+import { zones, media } from '../data/content';
+import { keepShort } from '../data/format';
+import '../styles/zones.css';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const ru = lang === 'ru';
+const pad2 = (n: number) => String(n).padStart(2, '0');
+// a hyphenated word never breaks at its hyphen ("караоке-зал")
+const nb = (s: string) => s.replace(/(\S)-(?=\S)/g, '$1\u2011');
+const hall = {
+  img: 'gallery-20-laser-hall.webp',
+  alt: { ru: 'Главный зал во время шоу: лазеры, круглые сцены, люстры', en: 'The main room during the show: lasers, round stages, chandeliers' },
+};
+---
+<section class="sec zones" id="zones" aria-labelledby="zones-h">
+  <div class="wrap">
+    <div class="bighead bh-line">
+      <h2 class="t-l" id="zones-h">{ru ? 'Зоны клуба' : 'The club’s rooms'}</h2>
+      <div class="bighead-side"><p class="body">{ru ? 'Любую из них можно забронировать заранее.' : 'Any of them can be booked ahead.'}</p></div>
+    </div>
+    <div class="zones-in">
+      <ol class="rows zones-list">
+        {zones.map((z, i) => (
+          <li class="row zone">
+            <span class="zone-no" aria-hidden="true">{pad2(i + 1)}</span>
+            <h3 class="zone-name">{nb(tr(z.title, lang))}</h3>
+            <p class="zone-text" set:html={keepShort(nb(tr(z.text, lang)), lang)} />
+            <a class="lnk zone-go" href={`/${lang}/booking/?type=${z.book}`}>{tr(z.cta, lang)}<span class="sr-only">: {tr(z.title, lang)}</span></a>
+          </li>
+        ))}
+      </ol>
+      <Photo class="zones-pic" src={media(hall.img)} alt={tr(hall.alt, lang)} pos="56% 50%" />
+    </div>
+  </div>
+</section>

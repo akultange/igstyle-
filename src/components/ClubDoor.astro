@@ -1,0 +1,103 @@
+---
+// The club's door, in an arch. It stood in the About page's contacts, which now show the home page's block
+// (Visit.astro), so it is on no page at the moment; kept in case it comes back.
+// Outside: the black door, the velvet rope and snow on the cobbles, a film that plays while it is on screen. Point at it, tap it or press it with the keyboard and
+// you step inside: the view moves into the door, a little warm light spills out, and the hostess opens it
+// from within, her own film playing. Leave (or tap again) and you are back on the street.
+// No words on the pictures: the hint sits under the arch. Without scripts it is the still of the door; with
+// reduced motion the two views simply swap and nothing plays. Styles: styles/about.css (Door).
+import { visit, night, media } from '../data/content';
+import { type Lang, tr } from '../data/i18n';
+import '../styles/about.css';
+interface Props { lang: Lang; class?: string }
+const { lang, class: cls = '' } = Astro.props;
+const ru = lang === 'ru';
+const host = night.acts[0]; // the hostess in black satin, opening the doors from inside
+const label = ru
+  ? `${tr(visit.shot.alt, lang)}. Загляните внутрь: за дверью встречает хостес.`
+  : `${tr(visit.shot.alt, lang)}. Take a peek inside: the hostess meets you behind the door.`;
+---
+<figure class:list={['ab-door', cls]} data-door data-rise>
+  <button class="ab-arch" type="button" aria-pressed="false" aria-label={label}>
+    <span class="ab-arch-layer ab-arch-out">
+      <img src={media(visit.shot.img)} alt="" width="1100" height="1473" loading="lazy" decoding="async" />
+      {visit.shot.loop && <video muted loop playsinline preload="none" aria-hidden="true" data-src={media(visit.shot.loop)}></video>}
+    </span>
+    <span class="ab-arch-layer ab-arch-in">
+      <img src={media(host.imgPhone)} alt="" width="720" height="900" loading="lazy" decoding="async" />
+      <video muted loop playsinline preload="none" aria-hidden="true" data-src={media(host.filmPhone)}></video>
+    </span>
+    <span class="ab-arch-spill" aria-hidden="true"></span>
+  </button>
+  <figcaption class="ab-door-cap" aria-hidden="true">
+    <i class="ab-door-dot"></i>
+    <span class="ab-cap-out">{ru ? 'Загляните внутрь' : 'Take a peek inside'}</span>
+    <span class="ab-cap-in">{ru ? 'Внутри вас уже встречают' : 'Someone is waiting for you inside'}</span>
+  </figcaption>
+</figure>
+
+<script>
+  // Outside or inside: one film plays at a time, only while the door is on screen, never for reduced motion
+  // or when the phone asks to save data. A mouse opens the door by pointing at it; touch and keyboard toggle.
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const saveData = Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData);
+
+  document.querySelectorAll<HTMLElement>('[data-door]').forEach((door) => {
+    const btn = door.querySelector<HTMLButtonElement>('.ab-arch');
+    if (!btn) return;
+    const outside = door.querySelector<HTMLVideoElement>('.ab-arch-out video');
+    const inside = door.querySelector<HTMLVideoElement>('.ab-arch-in video');
+    let open = false;
+    let seen = false;
+    let pointer = '';
+    let timer = 0;
+
+    const film = (v: HTMLVideoElement) => {
+      if (!v.getAttribute('src') && v.dataset.src) v.src = v.dataset.src;
+      return v;
+    };
+    // (an iPhone in Low Power Mode refuses to start a film without a touch: the next tap starts it)
+    let refused = false;
+    const sync = () => {
+      if (still || saveData) return;
+      const on = open ? inside : outside;
+      const off = open ? outside : inside;
+      off?.pause();
+      if (!on) return;
+      if (!seen) { on.pause(); return; }
+      film(on).play()
+        .then(() => { refused = false; on.classList.add('on'); })
+        .catch((err: DOMException) => { if (err?.name === 'NotAllowedError') refused = true; });
+    };
+    addEventListener('touchend', () => { if (refused && seen) sync(); }, { passive: true });
+    const set = (v: boolean) => {
+      if (v === open) return;
+      open = v;
+      door.classList.toggle('is-open', v);
+      btn.setAttribute('aria-pressed', String(v));
+      sync();
+    };
+
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(([e]) => { seen = e.isIntersecting; sync(); }, { threshold: 0.3 }).observe(door);
+    }
+    btn.addEventListener('pointerdown', (e) => { pointer = e.pointerType; });
+    btn.addEventListener('pointerenter', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      clearTimeout(timer);
+      timer = window.setTimeout(() => set(true), 70);
+    });
+    btn.addEventListener('pointerleave', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      clearTimeout(timer);
+      timer = window.setTimeout(() => set(false), 220);
+    });
+    btn.addEventListener('click', (e) => {
+      // a mouse already opened it by pointing; a click keeps it open. Touch and keys (detail 0) toggle.
+      const mouseClick = pointer === 'mouse' && e.detail > 0;
+      pointer = '';
+      if (mouseClick) { clearTimeout(timer); set(true); return; }
+      set(!open);
+    });
+  });
+</script>

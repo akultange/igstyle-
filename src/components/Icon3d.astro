@@ -1,0 +1,30 @@
+---
+// The 3D icons (chrome and crimson: a stiletto, cherries, lips, a key…) were retired on 2026-11-19: the club asked
+// for a gentlemen's club's language, not a strip club's. Where a small icon marked a choice or a link, the words
+// now stand alone. Where one big icon held a moment (the thank-you page, the 404), the club's own emblem stands in:
+// its glowing flower (Flower.astro, the club's "Flower Glow" artwork), the same one that stands in the header.
+// (For a day that place held a thin drawn line of red light; the club's own mark is the better thing to stand
+// there.)
+// The component keeps its name and props, so every place that used an icon still builds; the pictures themselves
+// stay in public/img/icons.
+import Flower from './Flower.astro';
+interface Props {
+  name: 'stiletto' | 'cherries' | 'coupe' | 'lips' | 'peach' | 'mic' | 'pole' | 'key' | 'keyhole' | 'emblem';
+  size?: number;
+  alt?: string;
+  eager?: boolean;
+  class?: string;
+}
+const { class: cls = '' } = Astro.props;
+const moment = cls.split(' ').includes('moment-ic');
+---
+{moment && <Flower class="moment-flower" />}
+
+<style is:global>
+  /* (the lily's height; its glow reaches about a quarter of that above and below it, and a lily's width to each
+     side, so the mark is given that much air of its own) */
+  .moment-flower.flower { height: clamp(112px, 12vw, 168px); margin: clamp(24px, 3vw, 40px) auto clamp(20px, 2.4vw, 32px); }
+  /* it comes up once, out of the dark */
+  @media (prefers-reduced-motion: no-preference) { .moment-flower { animation: moment-flower-in 1.2s var(--ease-out) both; } }
+  @keyframes moment-flower-in { from { opacity: 0; scale: .92; } }
+</style>

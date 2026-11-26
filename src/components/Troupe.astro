@@ -1,0 +1,45 @@
+---
+// The troupe: the six acts of the show hung like portraits on a gallery wall. Only the wall: the page
+// brings its own heading. Desktop: three columns hung at different heights that drift a little apart as
+// the page scrolls. Phones: two columns, the right one lower. Styles: styles/troupe.css.
+// The acts stay in reading order (left to right, row by row); `data-col` is the desktop column. No numbers
+// beside the names (as on the artists' cards: the client had those taken off).
+import type { Lang } from '../data/i18n';
+import { acts } from '../data/content';
+import ArtistCard from './ArtistCard.astro';
+import '../styles/troupe.css';
+interface Props { lang: Lang; href?: string }
+const { lang, href } = Astro.props;
+---
+<ol class="troupe" role="list" data-troupe>
+  {acts.map((a, i) => (
+    <li class="tr-item" data-col={(i % 3) + 1}>
+      <ArtistCard a={a} lang={lang} href={href} />
+    </li>
+  ))}
+</ol>
+
+<script>
+  // Desktop only, and not for reduced motion: the three columns drift at slightly different speeds while
+  // the wall passes (about 40px either way at most). GSAP moves the items with `transform`; the hang
+  // itself is `top` in troupe.css, and the reveal animations use `translate`, so nothing collides.
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  gsap.registerPlugin(ScrollTrigger);
+
+  const DRIFT = { 1: 16, 2: 40, 3: 26 } as const; // px either way, per column
+
+  document.querySelectorAll<HTMLElement>('[data-troupe]').forEach((wall) => {
+    gsap.matchMedia().add('(min-width: 900px) and (prefers-reduced-motion: no-preference)', () => {
+      ([1, 2, 3] as const).forEach((col) => {
+        const items = wall.querySelectorAll<HTMLElement>(`.tr-item[data-col="${col}"]`);
+        if (!items.length) return;
+        gsap.fromTo(
+          items,
+          { y: DRIFT[col] },
+          { y: -DRIFT[col], ease: 'none', scrollTrigger: { trigger: wall, start: 'top bottom', end: 'bottom top', scrub: true } },
+        );
+      });
+    });
+  });
+</script>

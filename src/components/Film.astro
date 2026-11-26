@@ -1,0 +1,25 @@
+---
+// A film that plays, muted and looping, while it is on screen (scripts/site.ts); its first frame is the
+// poster. Phones can get a portrait cut. With reduced motion only the poster shows.
+interface Props {
+  src: string;
+  poster: string;
+  srcPhone?: string;
+  posterPhone?: string;
+  alt?: string;
+  ratio?: string;
+  ratioPhone?: string;
+  class?: string;
+}
+const { src, poster, srcPhone, posterPhone, alt = '', ratio = '16/9', ratioPhone, class: cls = '' } = Astro.props;
+const style = `--r:${ratio};--r-phone:${ratioPhone || ratio}`;
+---
+<figure class:list={['fig', 'film', cls]}>
+  <div class="photo" style={style}>
+    <video muted loop playsinline preload="none" poster={poster} data-autoplay data-poster-phone={posterPhone} aria-label={alt || undefined} aria-hidden={alt ? undefined : 'true'}>
+      {srcPhone && <source src={srcPhone} type="video/mp4" media="(max-width: 899px) and (orientation: portrait)" />}
+      <source src={src} type="video/mp4" />
+    </video>
+    {posterPhone && <script is:inline>(function (v) { if (matchMedia('(max-width: 899px) and (orientation: portrait)').matches) v.poster = v.dataset.posterPhone; })(document.currentScript.previousElementSibling);</script>}
+  </div>
+</figure>

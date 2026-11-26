@@ -1,0 +1,19 @@
+---
+// A small switch between the versions of a part of the site (data/variants.ts), like the hero's v1 | v2 | v3 once:
+// a smoked strip with one hairline at the top left of the part (global.css; its parent needs .vx-host). Dev and
+// preview builds only, and only
+// while the part isn't settled; otherwise (and in a production build) it renders nothing here, not even its script
+// (scripts/variant-switch.ts). Every switch for the same part moves together.
+import { VARIANTS, choosing, type VarName } from '../data/variants';
+interface Props { name: VarName; class?: string }
+const { name, class: cls = '' } = Astro.props;
+const v = VARIANTS[name];
+---
+{choosing(name) && (
+  <div class:list={['vx-switch', cls]} role="group" aria-label={`${v.label} (testing)`} data-vx={name}>
+    <span>{v.label}:</span>
+    {v.opts.map(([opt, label]) => <button type="button" data-vx-set={`${name}:${opt}`}>{label}</button>)}
+  </div>
+)}
+
+{choosing(name) && <script>import '../scripts/variant-switch';</script>}

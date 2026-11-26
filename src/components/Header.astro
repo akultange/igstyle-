@@ -1,0 +1,208 @@
+---
+// Header (2026-11-20, the designer's fourth take; dressed in «Между», 2026-11-21). Desktop: one bar the width of the
+// window with the club's logo at its centre: HOTLAND with the red needle at the L, as the club drew it (Logo.astro;
+// it took the lily's place). The sections stand either side of it in the footer's order, Home and the next two on
+// the left and the other three on the right, in the Label's small capitals. The language is at the far left, plain
+// (РУС / ENG), and "Book" at the far right, as the cuff. A hairline runs the full width along the bar's lower edge,
+// and the current section is lit on it: a short seam of the light under the word (red; amber after 04:00, through
+// html[data-hour]). Under the mouse a chalk line glides along the hairline from word to word. Over the top of a page
+// the bar is clear, only its line across; once the page moves under it, the bar is smoked: solid, a little
+// translucent, never blurred.
+// Phones: the logo at the centre and "Menu" on the right, over the same line, with the current section's seam lit
+// on the line where its word stands on a desktop (the first three left of the logo, the others right of it). The
+// menu is a full-screen sheet: the language, the logo and the cross on its top row (where the header's row was),
+// then the sections in large type (the current one lit the same way), booking, address, hours and the ways to reach
+// the club.
+import { type Lang, ui, altPath } from '../data/i18n';
+import { site } from '../data/site';
+import Logo from './Logo.astro';
+import Ic from './FooterIcon.astro';
+interface Props { lang: Lang; solid?: boolean }
+const { lang } = Astro.props;
+const t = ui[lang];
+const ru = lang === 'ru';
+const path = Astro.url.pathname;
+// About and Contacts are one page now (/about/, with #contacts); /contacts/ redirects there
+// (the show page, /artists/, is hidden at the client's request: pages/[lang]/_artists.astro)
+const keys = ['program', 'vip', 'menu', 'gallery', 'about'] as const;
+// (the membership page's key is still vip, as in the strings; its address is /membership/)
+const items = keys.map((k) => ({ k, href: `/${lang}/${k === 'vip' ? 'membership' : k}/`, label: t.nav[k] }));
+const active = (href: string) => path.startsWith(href);
+const home = path === `/${lang}/`;
+// the header's six, Home first; the logo stands between the third and the fourth
+const links = [
+  { href: `/${lang}/`, label: ru ? 'Главная' : 'Home', on: home },
+  ...items.map((i) => ({ href: i.href, label: i.label, on: active(i.href) })),
+];
+const [left, right] = [links.slice(0, 3), links.slice(3)];
+// where the current section stands among the six: on a phone its seam is lit at that place on the line, on the
+// logo's right from the fourth on (-1: a page that is none of them, booking or a document, lights nothing)
+const at = links.findIndex((l) => l.on);
+const hours = `${site.hours[0].open}–${site.hours[0].close}`;
+const homeLabel = `${site.name}, ${ru ? 'главная' : 'home'}`;
+const langs = [
+  { code: 'ru', label: 'Рус', href: altPath(path, 'ru') },
+  { code: 'en', label: 'Eng', href: altPath(path, 'en') },
+] as const;
+import { show } from '../data/variants';
+---
+<header class="hdr" id="hdr">
+  <span class="hdr-bar" aria-hidden="true">{at >= 0 && <span class:list={['hdr-at', { 'hdr-at-r': at > 2 }]} style={`--at:${at}`}></span>}</span>
+  <div class="hdr-in">
+    <div class="seg hdr-lang" role="group" aria-label={ru ? 'Язык' : 'Language'}>
+      {langs.map((l) => <a href={l.href} class:list={{ on: lang === l.code }} hreflang={l.code} lang={l.code} aria-current={lang === l.code ? 'true' : undefined}>{l.label}</a>)}
+    </div>
+    <nav class="hdr-nav" aria-label={ru ? 'Разделы' : 'Sections'}>
+      <span class="hdr-hl" aria-hidden="true"></span>
+      <div class="hdr-links hdr-links-l">
+        {left.map((l) => (
+          <a href={l.href} class:list={{ on: l.on }} aria-current={l.on ? 'page' : undefined}>
+            {l.on && <span class="hdr-light" aria-hidden="true"></span>}<span class="hdr-tx">{l.label}</span>
+          </a>
+        ))}
+      </div>
+      <a class="hdr-name" href={`/${lang}/`} aria-label={homeLabel}><Logo sign="tight" /></a>
+      <div class="hdr-links hdr-links-r">
+        {right.map((l) => (
+          <a href={l.href} class:list={{ on: l.on }} aria-current={l.on ? 'page' : undefined}>
+            {l.on && <span class="hdr-light" aria-hidden="true"></span>}<span class="hdr-tx">{l.label}</span>
+          </a>
+        ))}
+      </div>
+    </nav>
+    <div class="hdr-r">
+      <a class="btn btn-sm hdr-book" href={`/${lang}/booking/`}>{t.book}</a>
+      <button class="hdr-menu" type="button" aria-expanded="false" aria-controls="mnav" data-open><span>{t.menuOpen}</span><i aria-hidden="true"></i></button>
+    </div>
+  </div>
+</header>
+
+<div class="mnav" id="mnav" hidden data-lenis-prevent role="dialog" aria-modal="true" aria-label={t.menuOpen}>
+  <div class="mnav-top">
+    <div class="seg" role="group" aria-label={ru ? 'Язык' : 'Language'}>
+      {langs.map((l) => <a href={l.href} class:list={{ on: lang === l.code }} hreflang={l.code} lang={l.code} aria-current={lang === l.code ? 'true' : undefined}>{l.label}</a>)}
+    </div>
+    <a class="hdr-name" href={`/${lang}/`} aria-label={homeLabel}><Logo sign="tight" /></a>
+    <button class="hdr-menu is-close" type="button" data-close><span>{t.menuClose}</span><i aria-hidden="true"></i></button>
+  </div>
+  <div class="mnav-body">
+    <nav class="mnav-links" aria-label={ru ? 'Разделы' : 'Sections'}>
+      <a href={`/${lang}/`} class:list={{ on: home }} aria-current={home ? 'page' : undefined} style="--i:0"><span>{ru ? 'Главная' : 'Home'}</span></a>
+      {items.map((i, n) => (
+        <a href={i.href} class:list={{ on: active(i.href) }} aria-current={active(i.href) ? 'page' : undefined} style={`--i:${n + 1}`}>
+          <span>{i.label}</span>
+        </a>
+      ))}
+    </nav>
+    <div class="mnav-info">
+      <a class="btn btn-crimson mnav-book" style="--i:8" href={`/${lang}/booking/`}>{t.bookTable}</a>
+      <div class="mnav-visit" style="--i:9">
+        <p>{site.address[lang]}</p>
+        <p>{ru ? 'Каждую ночь' : 'Every night'} {hours}</p>
+        {show('contact', 'gio') && <a class="mnav-phone" data-v="contact:gio" href={site.phoneHref}>{site.phone}</a>}
+      </div>
+      <!-- the ways to reach the club: four plain frames, two to a row, each with its line icon -->
+      <div class="mnav-msg" style="--i:10">
+        {show('contact', 'luka') && <button class="mnav-act" type="button" data-contact="callback" data-v="contact:luka"><Ic name="phone" /><span>{ru ? 'Заказать звонок' : 'Request a call'}</span></button>}
+        {show('contact', 'luka') && <button class="mnav-act" type="button" data-contact="question" data-v="contact:luka"><Ic name="ask" /><span>{ru ? 'Задать вопрос' : 'Ask a question'}</span></button>}
+        <a class="mnav-act" href={site.whatsapp} target="_blank" rel="noopener"><Ic name="whatsapp" /><span>{t.whatsapp}</span></a>
+        <a class="mnav-act" href={site.telegram} target="_blank" rel="noopener"><Ic name="telegram" /><span>{t.telegram}</span></a>
+      </div>
+      <a class="mnav-careers" style="--i:11" href={`/${lang}/careers/`}>{t.footer.careers}<span aria-hidden="true">→</span></a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const root = document.documentElement;
+
+  // 1. The bar: clear over the top of the page, smoked once the page moves under it.
+  const hdr = document.getElementById('hdr');
+  if (hdr) {
+    let queued = false;
+    const tint = () => { queued = false; hdr.classList.toggle('is-scrolled', scrollY > 2); };
+    addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(tint); } }, { passive: true });
+    tint();
+  }
+
+  // 2. Desktop sections: a chalk line on the hairline snaps to the link under the mouse (or the keyboard focus). It
+  //    moves link to link, never with the pointer itself, and fades when the pointer leaves. (It waits a moment
+  //    before fading, so that crossing the logo from one side to the other is one glide, not a fade and a jump.)
+  const nav = document.querySelector<HTMLElement>('.hdr-nav');
+  const hl = nav?.querySelector<HTMLElement>('.hdr-hl');
+  if (nav && hl) {
+    let shown = false;
+    let fading = 0;
+    const place = (a: HTMLElement) => {
+      hl.style.setProperty('--x', `${a.offsetLeft}px`);
+      hl.style.setProperty('--w', `${a.offsetWidth}px`);
+    };
+    const moveTo = (a: HTMLElement) => {
+      clearTimeout(fading);
+      if (!shown) {
+        hl.classList.add('jump'); // appear in place, then glide from there
+        place(a);
+        void hl.offsetWidth;
+        hl.classList.remove('jump');
+      } else place(a);
+      hl.classList.add('on');
+      shown = true;
+    };
+    const hide = () => {
+      clearTimeout(fading);
+      hl.classList.remove('on');
+      shown = false;
+    };
+    const hideSoon = () => { clearTimeout(fading); fading = window.setTimeout(hide, 220); };
+    nav.querySelectorAll<HTMLAnchorElement>('.hdr-links a').forEach((a) => {
+      a.addEventListener('pointerenter', (e) => { if (e.pointerType !== 'touch') moveTo(a); });
+      a.addEventListener('pointerleave', hideSoon);
+      a.addEventListener('focus', () => { if (a.matches(':focus-visible')) moveTo(a); });
+    });
+    nav.addEventListener('focusout', (e) => { if (!nav.contains(e.relatedTarget as Node | null)) hide(); });
+  }
+
+  // 3. Phone menu.
+  const mnav = document.getElementById('mnav');
+  const opener = document.querySelector<HTMLButtonElement>('[data-open]');
+  let closing = 0;
+  const setOpen = (open: boolean, instant = false) => {
+    if (!mnav) return;
+    clearTimeout(closing);
+    if (open) {
+      mnav.classList.remove('closing');
+      mnav.hidden = false;
+    } else if (!instant && root.classList.contains('motion')) {
+      // the sheet lifts away like a curtain before it goes
+      mnav.classList.add('closing');
+      closing = window.setTimeout(() => { mnav.hidden = true; mnav.classList.remove('closing'); }, 340);
+    } else {
+      mnav.hidden = true;
+      mnav.classList.remove('closing');
+    }
+    document.body.style.overflow = open ? 'hidden' : '';
+    // (while the sheet is open, the header under it is no part of its own in a page change: nav.css)
+    root.classList.toggle('mnav-open', open);
+    opener?.setAttribute('aria-expanded', String(open));
+    dispatchEvent(new CustomEvent('menu:toggle', { detail: open })); // motion.ts pauses smooth scrolling
+    if (instant) return;
+    if (open) mnav.querySelector<HTMLElement>('[data-close]')?.focus();
+    else opener?.focus();
+  };
+  opener?.addEventListener('click', () => setOpen(true));
+  mnav?.querySelector('[data-close]')?.addEventListener('click', () => setOpen(false));
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && mnav && !mnav.hidden) setOpen(false); });
+  // Keep the keyboard inside the open sheet.
+  mnav?.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return;
+    const stops = Array.from(mnav.querySelectorAll<HTMLElement>('a[href], button')).filter((el) => el.getClientRects().length);
+    const first = stops[0];
+    const last = stops[stops.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+  // Close the menu if the window grows past the phone layout.
+  matchMedia('(min-width: 900px)').addEventListener('change', (e) => { if (e.matches && mnav && !mnav.hidden) setOpen(false); });
+  // Coming back with the browser's Back button: the page returns as it was left, so shut the sheet at once.
+  addEventListener('pageshow', (e) => { if (e.persisted && mnav && !mnav.hidden) setOpen(false, true); });
+</script>

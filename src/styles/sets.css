@@ -1,0 +1,162 @@
+/* =====================================================================
+   Bottle sets (TableSets.astro). Loaded after global.css (Base.astro).
+   Three sets on one lit stage. Each bottle stands big on the black, all three on the same floor line, each
+   in its own spotlight: a soft cone of light from above and a pool of light on the floor. The top set closes
+   the row a size larger, in a brighter light. The photographs blend in "lighten", so their near-black grounds
+   vanish into the page and the light behind them shows through; their edges fade out (no frames).
+   Text stays under the pictures, never on them.
+   «Между» (2026-11-21): the spotlights are a plain white light, never crimson or pink; the photographs are in black
+   and white like every picture on the site (--grade, global.css); the price is the Dial (the price is the point);
+   the dots under the phone's row are hairlines, the one in front lit.
+   Stage units (as in the component): a stage is 100 wide and 74 tall, the floor line 58 from its top, the
+   spotlights hang 74 above it. Widths below are shares of the stage's width, heights of its height
+   (58 / 74 = 78.38%). The stage is cut close over the bottles; the beams and the top set reach above it
+   (nothing clips them on desktop). The stages create no stacking context of their own, so the photographs
+   blend with the light of the whole row and a neighbour's black never cuts a beam.
+   One screen: the section fits a 1440x900 screen (and 1280x800) whole, with the bottles at full size. The
+   heading is one short row over the first two sets, the stage starts right under it, and the words under
+   each bottle are set close.
+   Per set (inline, from the component): --i its place, --f its floor line (share of the photo's height),
+   --w the set's width (share of the photo's width), --s its size on the stage, --top where its photo's top
+   goes, --ba the beam's half-angle.
+   ===================================================================== */
+
+.ts { overflow-x: clip; --ts-gap: clamp(24px, 3vw, 48px); }
+
+/* ---------- The heading row (desktop): every section's .bighead.bh-line, held over the first two sets only,
+   so the top set's sparkler rises beside it; the lead may run 0.3 of a column into the third, short of
+   the sparks (they start 0.36 of a column in). ---------- */
+@media (min-width: 900px) {
+  .ts .bighead { max-width: calc((100% - 2 * var(--ts-gap)) * .7667 + 2 * var(--ts-gap)); }
+  .ts .bighead-side .body { text-wrap: balance; }
+  .ts-keep { white-space: nowrap; } /* "Сет выносят": the first line ends on the sentence, not on its first word */
+}
+@media (max-width: 899px) { .ts .bighead-side .body { text-wrap: pretty; } }
+
+/* ---------- The row: three sets, their lines aligned across the row ---------- */
+.ts-row {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto auto auto 1fr auto;
+  column-gap: var(--ts-gap);
+}
+.ts-item {
+  display: grid; grid-row: span 5; grid-template-rows: subgrid; row-gap: 0; align-content: start; min-width: 0;
+  /* the light: a soft white spot for each, the top set's a step brighter (white light on a black stage: the
+     colour of the site's light, red and amber, is kept for its seams, its lasers and its room) */
+  --beam: .55; --pool: .55; --bright: 1; --lift: 1;
+  --beam-c: rgba(236, 236, 232, .1);
+  --pool-hot: rgba(236, 236, 232, .26); --pool-c: rgba(236, 236, 232, .08);
+}
+.ts-top {
+  --beam: 1; --pool: 1;
+  --beam-c: rgba(236, 236, 232, .15);
+  --pool-hot: rgba(236, 236, 232, .4); --pool-c: rgba(236, 236, 232, .12);
+}
+
+/* ---------- The stage ---------- */
+.ts-stage { position: relative; aspect-ratio: 100 / 74; }
+/* the spotlight's cone: from a lamp hanging above the stage (out of sight) down to the floor; the box runs
+   from 20 above the stage down to the floor (78 tall), the lamp 54 above the box */
+.ts-beam {
+  position: absolute; left: -25%; right: -25%; top: -27.03%; height: 105.41%; pointer-events: none;
+  background: conic-gradient(from calc(180deg - var(--ba, 16deg)) at 50% -69.23%, transparent, var(--beam-c) calc(var(--ba, 16deg) * .7), var(--beam-c) calc(var(--ba, 16deg) * 1.3), transparent calc(var(--ba, 16deg) * 2) 360deg);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, .4) 24%, #000 50%, #000 84%, rgba(0, 0, 0, .55) 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, .4) 24%, #000 50%, #000 84%, rgba(0, 0, 0, .55) 100%);
+  opacity: var(--beam); transform-origin: 50% 0;
+  transition: opacity .7s ease calc(var(--dl, 0s) + var(--back, 0s)), scale 1.1s var(--ease-out) var(--dl, 0s);
+}
+/* the pool of light on the floor */
+.ts-pool {
+  position: absolute; left: 50%; top: 78.38%; width: calc(var(--w, .7) * var(--s, 1) * 125%); height: 24.32%; pointer-events: none;
+  translate: -50% -50%;
+  background: radial-gradient(closest-side, var(--pool-hot), var(--pool-c) 42%, transparent);
+  opacity: var(--pool);
+  transition: opacity .8s ease calc(var(--dl, 0s) + var(--back, 0s)), scale 1.2s var(--ease-out) var(--dl, 0s);
+}
+/* the top set is brought out on fire: while you look at it (the pointer or keyboard focus on it; on a phone, as it
+   comes to the front) its floor light flickers twice, like the sparkler's. Nothing loops on its own. */
+@keyframes ts-fire { 0%, 100% { filter: brightness(1); } 18% { filter: brightness(.84); } 34% { filter: brightness(.97); } 52% { filter: brightness(.88); } 71% { filter: brightness(1.04); } 86% { filter: brightness(.92); } }
+@media (prefers-reduced-motion: no-preference) {
+  .ts-top:is(:hover, :focus-within) .ts-pool, .ts.ts-follow .ts-top.on .ts-pool { animation: ts-fire 3.4s ease-in-out 2; }
+}
+/* the photograph, placed so that its floor line sits on the stage's; "lighten" lets the light behind show
+   through its black ground (crushed to true black by the contrast, so no box shows) */
+.ts-fig {
+  position: absolute; z-index: 1; left: 50%; top: var(--top, 0%);
+  width: calc(var(--s, 1) * 100%); aspect-ratio: 1100 / 821; margin: 0;
+  translate: -50% 0; scale: var(--lift); transform-origin: 50% calc(var(--f, .8) * 100%);
+  mix-blend-mode: lighten;
+  transition: scale 1.2s var(--ease-out);
+}
+.ts-shot {
+  position: absolute; inset: 0; overflow: hidden;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 7%, #000 76%, transparent 100%), linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(180deg, transparent 0%, #000 7%, #000 76%, transparent 100%), linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  mask-composite: intersect;
+  /* (its own filter takes the place of the site's grade, so it starts with it: black and white, then the light) */
+  filter: var(--grade) brightness(var(--bright));
+  transition: filter .7s ease calc(var(--dl, 0s) + var(--back, 0s)), translate 1.4s var(--ease-out) var(--dl, 0s);
+}
+.ts-shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+/* ---------- The words under each bottle, set close ---------- */
+.ts-title { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 18px; margin-top: 2px; }
+.ts-name { font: 500 clamp(27px, 2.25vw, 36px)/1.05 var(--f-text); letter-spacing: -.012em; transition: color .3s; }
+/* the price is the point: the Dial */
+.ts-price {
+  font: var(--dial-wght) clamp(56px, 4.4vw, 72px)/.82 var(--f-flex); font-stretch: var(--dial-wdth); font-variant-numeric: tabular-nums lining-nums;
+  white-space: nowrap; padding-right: .04em; color: var(--fg);
+}
+.ts-what { margin-top: 10px; font: 400 16px/1.55 var(--f-text); color: var(--fg-2); max-width: 38ch; text-wrap: pretty; }
+.ts-perks { margin-top: 12px; gap: 5px; line-height: 1.5; align-self: start; color: var(--fg); text-wrap: pretty; }
+.ts-foot { margin-top: 22px; align-self: end; }
+.ts-what { --j: 1; }
+.ts-perks { --j: 2; }
+.ts-foot { --j: 3; }
+.ts-item > :not(.ts-stage) { transition: opacity .9s ease var(--dlt, 0s), translate 1.1s var(--ease-out) var(--dlt, 0s); }
+
+/* ---------- Desktop: the light goes to the set under the pointer or in keyboard focus ---------- */
+@media (hover: hover) and (min-width: 900px) {
+  /* the light comes back to the top set a beat after the pointer leaves, so crossing the gap between two
+     sets doesn't flash it (a transition takes the delay of the state it goes to) */
+  .ts-item { --back: .3s; }
+  .ts-row:has(.ts-item:hover, .ts-item :focus-visible) .ts-item { --beam: .08; --pool: .14; --bright: .5; --back: 0s; }
+  .ts-row:has(.ts-item:hover, .ts-item :focus-visible) .ts-item:is(:hover, :has(:focus-visible)) { --beam: 1; --pool: 1; --bright: 1.04; --lift: 1.025; }
+  .ts-item:hover .ts-name { color: #fff; } /* the name only brightens: it stays upright and white */
+}
+
+/* ---------- The entrance: the stage is dark, then the lights come up one set after another ---------- */
+html.motion .ts.ts-dark .ts-beam { opacity: 0; scale: 1 .2; }
+html.motion .ts.ts-dark .ts-pool { opacity: 0; scale: .4 1; }
+html.motion .ts.ts-dark .ts-shot { filter: var(--grade) brightness(.05); translate: 0 2.5%; }
+html.motion .ts.ts-dark .ts-item > :not(.ts-stage) { opacity: 0; translate: 0 24px; }
+.ts.ts-cue .ts-item { --dl: calc(var(--i) * .24s); --back: 0s; }
+.ts.ts-cue .ts-top { --dl: calc(var(--i) * .24s + .12s); }
+.ts.ts-cue .ts-item > :not(.ts-stage) { --dlt: calc(var(--dl) + .3s + var(--j, 0) * .07s); }
+
+/* ---------- Phones: a swipe row with snap; the set in front is lit, the dots follow ---------- */
+.ts-dots { display: none; }
+@media (max-width: 899px) {
+  /* the row scrolls, so it clips: its top padding holds the beams' fade-in from the lamps above (all but its
+     faintest first stretch, so the sets stay close under their heading) */
+  .ts .bighead { margin-bottom: 0; }
+  .ts-row {
+    grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: min(82vw, 420px); column-gap: 14px;
+    overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none;
+    margin: 0 calc(-1 * var(--pad)); padding: calc(min(82vw, 420px) * .1) var(--pad) 0; scroll-padding-inline: var(--pad);
+  }
+  .ts-row::-webkit-scrollbar { display: none; }
+  .ts-row { -webkit-mask-image: var(--peek-fade); mask-image: var(--peek-fade); padding-inline-end: calc(100vw - min(82vw, 420px) - var(--pad)); }
+  .ts-item { scroll-snap-align: start; }
+  .ts.ts-follow .ts-item:not(.on) { --beam: .08; --pool: .15; --bright: .42; }
+  .ts.ts-follow .ts-item.on { --beam: 1; --pool: 1; }
+  /* the dots: hairlines, the set in front's a seam of the light */
+  .ts-dots { display: flex; align-items: center; gap: 6px; height: 2px; margin-top: 26px; }
+  .ts-dots i { width: 16px; height: 1px; background: var(--rule-2); transition: width .5s var(--ease-out), background-color .5s; }
+  .ts-dots i.on { width: 34px; height: var(--seam); background: var(--lit-core); box-shadow: var(--seam-glow); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ts-fig, .ts-shot, .ts-beam, .ts-pool { transition-property: opacity, filter; }
+  .ts-fig { scale: 1; }
+}

@@ -1,0 +1,26 @@
+{
+  // HOTLAND on Cloudflare: static pages from dist/ plus a small server function (worker/index.ts)
+  // for /api/booking, /api/careers and /api/event. Everything else is served straight from dist/.
+  // Once a minute the same function collects the requests waiting on the Russian copy (Timeweb) and posts them
+  // to the managers' Telegram, which servers in Russia can't reach.
+  // Build with `npm run build:preview`, or `npm run deploy` to build and publish.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hotland",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-03",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page"
+  },
+  // Workers Logs: form outcomes and anonymous button taps (Cloudflare dashboard → hotland → Logs)
+  "observability": { "enabled": true },
+  // the Russian copy's outbox (public/api/index.php); with the real domain, change it here
+  "vars": { "OUTBOX_URL": "https://cp482107.tw1.ru/api/outbox" },
+  "triggers": { "crons": ["* * * * *"] },
+  // requests from one address, per minute: the forms (a person sends one or two) and the anonymous counts
+  "ratelimits": [
+    { "name": "FORMS", "namespace_id": "1701", "simple": { "limit": 3, "period": 60 } },
+    { "name": "COUNTS", "namespace_id": "1702", "simple": { "limit": 60, "period": 60 } }
+  ]
+}

@@ -1,0 +1,23 @@
+---
+// One act of the show: its portrait, with no frame, fading into the black (the act's short film plays
+// over it on hover with a mouse, and when it settles in view on a phone: scripts/site.ts), then the
+// act's name (after its number, if one is passed) and one line about it. Laid out by the troupe wall
+// (Troupe.astro, troupe.css), which passes no number.
+import { type Lang, tr } from '../data/i18n';
+import { media, type ShowAct } from '../data/content';
+import { keepShort } from '../data/format';
+import '../styles/troupe.css';
+interface Props { a: ShowAct; lang: Lang; href?: string; num?: number }
+const { a, lang, href, num } = Astro.props;
+const Tag = href ? 'a' : 'div';
+---
+<Tag class="pt" href={href}>
+  <div class="pt-frame" data-loop={a.loop ? media(a.loop) : undefined}>
+    <img src={media(a.img)} alt={tr(a.alt, lang)} width="1100" height="1467" loading="lazy" decoding="async" />
+  </div>
+  <div class="pt-cap body">
+    {num !== undefined && <span class="pt-no" aria-hidden="true">{lang === 'ru' ? '№' : 'No.'}&nbsp;{String(num).padStart(2, '0')}</span>}
+    <span class="pt-name">{tr(a.title, lang)}</span>
+    <p class="pt-text" set:html={keepShort(tr(a.text, lang), lang)} />
+  </div>
+</Tag>

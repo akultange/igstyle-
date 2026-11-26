@@ -1,0 +1,236 @@
+---
+// The menu page: the page's header (as every page's), then the bar card: three tabs (bar, kitchen, entry and
+// shows), pinned under the header while you read, the chosen list set large in two columns, and beside it the tab's
+// drawing, which stays in view (styles/menu.css). Then the hookah lounge (the bottle sets are hidden for now).
+// Without scripts the three lists simply follow one another, each under its own heading.
+// (2026-11-22, the client's call: no photograph beside the list. The tab's line drawing stands there, large (the
+// glass for the bar, the cloche lifted off a warm dish for the kitchen, the cigar for the night and its show; 2026-11-23,
+// Luka: the cigar belongs to the entrance and the show, not the kitchen; LineArt.astro),
+// and draws itself again, the pen first and the light last, whenever its tab is chosen. The bar's list leads with
+// the spirits, whisky first: content.ts.)
+import Base from '../../layouts/Base.astro';
+import Photo from '../../components/Photo.astro';
+import PageTitle from '../../components/PageTitle.astro';
+import LineArt from '../../components/LineArt.astro';
+import '../../styles/menu.css'; // after the layout, so it follows global.css
+import { type Lang, tr, langPaths } from '../../data/i18n';
+import { barMenu, bar, kitchen, entryShows, hookah, media, type Item } from '../../data/content';
+import { keepShort } from '../../data/format';
+
+export const getStaticPaths = langPaths;
+const lang = Astro.params.lang as Lang;
+const ru = lang === 'ru';
+/** A price as the menu sets it: the number, its rouble sign a little quieter and «от» / "from" quieter still; or
+ *  "on request". (HTML: our own figures only.) */
+const cost = (x: Item) => {
+  if (x.price === null) return tr(barMenu.onRequest, lang);
+  const from = x.from ? '<span class="pr-from">' + (ru ? 'от' : 'from') + '</span>' : '';
+  return from + x.price.toLocaleString(ru ? 'ru-RU' : 'en-GB') + '<span class="pr-cur"> ₽</span>';
+};
+/** The few words under a name, and the house cocktails' mark. */
+const own = ru ? 'фирменный' : 'signature';
+const tabs = [
+  { id: 'bar', label: tr(barMenu.tabs.bar, lang), art: 'glass' },
+  { id: 'kitchen', label: tr(barMenu.tabs.kitchen, lang), art: 'cloche' },
+  { id: 'entry', label: tr(barMenu.tabs.entry, lang), art: 'cigar' },
+] as const;
+---
+<Base lang={lang} title={tr(barMenu.title, lang)} description={tr(barMenu.lead, lang)}>
+  <!-- the page's header, as every page's: its name, its second line and a short lead -->
+  <PageTitle title={tr(barMenu.title, lang)} sub={tr(barMenu.sub, lang)} lead={tr(barMenu.intro, lang)} />
+
+  <!-- the bar card: the tabs (pinned while you read), the chosen list, and its drawing beside it -->
+  <section class="sec bm" id="menu">
+    <div class="wrap bm-in">
+      <!-- the tab's drawing: one for each tab, the three in one place, the chosen one shown and drawn again
+           (decoration: the tabs say everything) -->
+      <div class="bm-media" aria-hidden="true">
+        <div class="bm-draw">
+          {tabs.map((x, i) => <LineArt name={x.art} class={i === 0 ? 'bm-art on' : 'bm-art'} />)}
+        </div>
+      </div>
+
+      <i class="bm-pin" aria-hidden="true"></i>
+      <div class="bm-tabs">
+        <div class="tabs" role="tablist" aria-label={ru ? 'Разделы меню' : 'Menu sections'}>
+          <span class="tabs-ink" aria-hidden="true"></span>
+          {tabs.map((x, i) => (
+            <button type="button" role="tab" id={`tab-${x.id}`} aria-controls={x.id} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>{x.label}</button>
+          ))}
+        </div>
+      </div>
+
+      <div class="bm-panels">
+        <div class="bm-panel" id="bar" role="tabpanel" aria-labelledby="tab-bar">
+          <h2 class="bm-panel-h">{tabs[0].label}</h2>
+          <div class="bm-cols">
+            {bar.map((c) => (
+              <div class="mgroup">
+                <h3 class="mgroup-h">{tr(c.title, lang)}</h3>
+                {c.items.map((it) => (
+                  <div class="mrow">
+                    <span class="nm">{tr(it.name, lang)}</span>
+                    {it.vol && <span class="vol">{tr(it.vol, lang)}</span>}
+                    <span class:list={['pr', { req: it.price === null }]} set:html={cost(it)} />
+                    {(it.desc || it.own) && <small class="ds">{it.desc && <span class="desc">{tr(it.desc, lang)}</span>}{it.own && <span class="own">{own}</span>}</small>}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div class="bm-panel" id="kitchen" role="tabpanel" aria-labelledby="tab-kitchen">
+          <h2 class="bm-panel-h">{tabs[1].label}</h2>
+          <div class="bm-cols">
+            {kitchen.map((it) => (
+              <div class="mrow"><span class="nm">{tr(it.name, lang)}</span><span class:list={['pr', { req: it.price === null }]} set:html={cost(it)} />{it.desc && <small class="ds">{tr(it.desc, lang)}</small>}</div>
+            ))}
+          </div>
+        </div>
+
+        <div class="bm-panel" id="entry" role="tabpanel" aria-labelledby="tab-entry">
+          <h2 class="bm-panel-h">{tabs[2].label}</h2>
+          <div class="mrows">
+            {entryShows.map((it) => (
+              <div class="mrow"><span class="nm">{tr(it.name, lang)}</span><span class:list={['pr', { req: it.price === null }]} set:html={cost(it)} />{it.desc && <small class="ds">{tr(it.desc, lang)}</small>}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <p class="bm-note">{tr(barMenu.note, lang)}</p>
+    </div>
+  </section>
+  <script is:inline>
+    // The bar card's tabs (runs at once, so the page never shows all three lists first).
+    (() => {
+      const bm = document.currentScript && document.currentScript.previousElementSibling;
+      if (!bm || !bm.classList.contains('bm')) return;
+      const root = document.documentElement;
+      const tabs = Array.from(bm.querySelectorAll('[role="tab"]'));
+      const panels = tabs.map((t) => document.getElementById(t.getAttribute('aria-controls')));
+      // (one photograph and one drawing a tab, in the tabs' order)
+      const imgs = Array.from(bm.querySelectorAll('.bm-ph'));
+      const arts = Array.from(bm.querySelectorAll('.bm-art'));
+      const ink = bm.querySelector('.tabs-ink');
+      // The chosen tab's drawing draws itself again, the pen first and the light last, as LineArt.astro draws a
+      // drawing the first time it comes into view (styles/lineart.css). Only with motion (html.motion), and only
+      // once it has been drawn the first time: until then LineArt's own script is waiting to draw it.
+      const timers = new WeakMap();
+      const redraw = (svg) => {
+        if (!root.classList.contains('motion') || !svg.classList.contains('la-done')) return;
+        const box = svg.viewBox.baseVal;
+        const r = svg.getBoundingClientRect();
+        const px = box && box.width && r.width ? Math.min(r.width / box.width, r.height / box.height) : 0;
+        if (!px) return;
+        clearTimeout(timers.get(svg));
+        svg.classList.remove('la-done');
+        svg.style.setProperty('--la-u', (1 / px).toFixed(4));
+        timers.set(svg, setTimeout(() => svg.classList.add('la-done'), 2300));
+      };
+      const moveInk = () => {
+        const t = tabs.find((x) => x.getAttribute('aria-selected') === 'true');
+        if (!t || !ink) return;
+        ink.style.setProperty('--x', t.offsetLeft + 'px');
+        ink.style.setProperty('--w', t.offsetWidth + 'px');
+      };
+      const select = (tab, focus) => {
+        let changed = false;
+        tabs.forEach((t, i) => {
+          const on = t === tab;
+          if (on && t.getAttribute('aria-selected') !== 'true') changed = true;
+          t.setAttribute('aria-selected', on ? 'true' : 'false');
+          t.tabIndex = on ? 0 : -1;
+          panels[i].hidden = !on;
+          if (imgs[i]) {
+            imgs[i].classList.toggle('on', on);
+            if (on) imgs[i].removeAttribute('aria-hidden'); else imgs[i].setAttribute('aria-hidden', 'true');
+          }
+          if (arts[i]) {
+            arts[i].classList.toggle('on', on);
+            if (on && changed) redraw(arts[i]);
+          }
+        });
+        if (focus) tab.focus();
+        moveInk();
+      };
+      bm.classList.add('tabbed');
+      select(tabs.find((t) => '#' + t.getAttribute('aria-controls') === location.hash) || tabs[0], false);
+      const list = bm.querySelector('.bm-panels');
+      const bar = bm.querySelector('.bm-tabs');
+      // the header's height (var(--hdr)): where the pinned tabs stand while the header is out
+      const hdrHeight = () => {
+        const probe = document.createElement('div');
+        probe.style.cssText = 'position:absolute;visibility:hidden;height:var(--hdr)';
+        document.body.append(probe);
+        const h = probe.offsetHeight;
+        probe.remove();
+        return h;
+      };
+      tabs.forEach((t, i) => {
+        t.addEventListener('click', () => {
+          select(t, false);
+          // If the list was scrolled past, the new list opens from its first item, just under the pinned tabs (where
+          // it stands before any scrolling). Going back up brings the header back, and the tabs move down under it,
+          // so aim for where they will be, not where they are now; and bring the header back at once, so it is so.
+          if (getComputedStyle(bar).position !== 'sticky') return;
+          const under = hdrHeight() + bar.offsetHeight + (parseFloat(getComputedStyle(list).marginTop) || 24);
+          const top = list.getBoundingClientRect().top;
+          if (top >= under - 1) return;
+          root.classList.remove('hdr-hide');
+          scrollTo({ top: Math.max(0, Math.round(scrollY + top - under)), behavior: 'smooth' });
+        });
+        t.addEventListener('keydown', (e) => {
+          const n = { ArrowRight: (i + 1) % tabs.length, ArrowLeft: (i - 1 + tabs.length) % tabs.length, Home: 0, End: tabs.length - 1 }[e.key];
+          if (n === undefined) return;
+          e.preventDefault();
+          select(tabs[n], true);
+        });
+      });
+      addEventListener('resize', moveInk);
+      if (document.fonts) document.fonts.ready.then(moveInk);
+      if ('IntersectionObserver' in window) {
+        // Stuck or not: the tabs are stuck once the mark standing where they start has gone up under the header.
+        // Only then do they carry the matte band behind them and under the header (menu.css, .is-stuck).
+        const pin = bm.querySelector('.bm-pin');
+        let watch = null;
+        const watchPin = () => {
+          if (watch) watch.disconnect();
+          const h = hdrHeight();
+          watch = new IntersectionObserver(([e]) => bar.classList.toggle('is-stuck', !e.isIntersecting && e.boundingClientRect.top < h + 1), { rootMargin: `-${h + 1}px 0px 0px 0px` });
+          watch.observe(pin);
+        };
+        watchPin();
+        let w = innerWidth;
+        addEventListener('resize', () => { if (innerWidth !== w) { w = innerWidth; watchPin(); } });
+      }
+    })();
+  </script>
+
+  {/* Bottle sets (TableSets.astro) are hidden at the client's request (2026-11-13); the component stays: to bring
+      them back, import it and put <TableSets lang={lang} /> here */}
+
+  <!-- Hookah lounge -->
+  <section class="sec soot" id="hookah">
+    <div class="wrap g12" style="align-items: center">
+      <div style="grid-column: 1 / span 5">
+        <Photo src={media(hookah.shot.img)} loop={hookah.shot.loop && media(hookah.shot.loop)} alt={tr(hookah.shot.alt, lang)} ratio="4/5" />
+      </div>
+      <div class="stack" style="grid-column: 7 / span 6">
+        <h2 class="t-l" set:html={tr(hookah.title, lang)} />
+        <p class="body" style="text-wrap: pretty" set:html={keepShort(tr(hookah.lead, lang), lang)} />
+        <div style="width: 100%">
+          <h3 class="mgroup-h">{tr(hookah.flavorsTitle, lang)}</h3>
+          <ul class="lily-list two">{hookah.flavors.map((f) => <li>{tr(f, lang)}</li>)}</ul>
+        </div>
+        <div class="mrows hk-offers" style="width: 100%; margin-top: 0">
+          {hookah.offers.map((it) => (
+            <div class="mrow"><span class="nm">{tr(it.name, lang)}</span><span class="pr" set:html={cost(it)} />{it.desc && <small class="ds">{tr(it.desc, lang)}</small>}</div>
+          ))}
+        </div>
+        <a class="btn btn-crimson" href={`/${lang}/booking/?type=lounge`}>{tr(hookah.cta, lang)}</a>
+      </div>
+    </div>
+  </section>
+</Base>

@@ -1,0 +1,1452 @@
+/* =====================================================================
+   HOTLAND — Just between us
+   Design system v8: «Между», Between (2026-11-21, the direction board the designer approved after the owner asked
+   for less pink and more whisky: a gentlemen's club, not a strip club; premium, never glossy; underground,
+   techno, industrial).
+   Black first. Leather black is the ground (the concrete's texture lies over it, as before), lacquer is depth,
+   graphite and blackened steel are panels and controls, a field of bead-blasted steel carries the membership
+   sections. Words are shirt white; the quieter ones ash. Nothing burgundy, pink, purple, peach or brown.
+   Colour only arrives as light, through a gap: red (the door's seam, the lasers, the current page's line, keyboard
+   focus, the needle in the logo) and amber (the room, the glass, a booked table, the whole site after 04:00).
+   Light is never a fill, a wash, a glow behind words or a button's colour. Red and amber meet at the door.
+   Three voices: Dial, Label, Text (Type, below). The logo is the club's own (Logo.astro).
+   Square corners, 1px lines, no shadows under interface parts, no frosted glass: matte black or smoked, one hairline.
+   A photograph or film is black and white (--grade), in colour, or black and white with the club's red kept, by its
+   own light (colour.css). Line art (LineArt.astro) stands in where a photograph is wrong.
+   Surfaces: leather (default) · graphite concrete (.soot) · the steel field (.cloth) · blackened steel (.velvet / .plate)
+   ===================================================================== */
+
+:root {
+  /* the air above and below every section: the same everywhere, and enough that where one section ends and the
+     next begins is never in doubt (twice this between two sections) */
+  --sec-y: clamp(80px, 9vw, 148px);
+  /* the air between a section's heading row and what it heads: a fraction of the air between two sections, so a
+     heading always reads as belonging to the section under it, never to the one above */
+  --head-gap: clamp(20px, 2.1vw, 32px);
+  /* a swipe row on a phone: the next card peeking in at the right fades into the black, so its words never end
+     sliced mid-word at the screen's edge (the row's own padding keeps the card in front clear of it) */
+  --peek-fade: linear-gradient(90deg, #000 calc(100% - 60px), rgba(0, 0, 0, 0));
+
+  /* ---------- Colour: black first ----------
+     Every grey is neutral or a little cool. Words on these grounds: shirt 11 to 17:1; ash 5.3 to 6.3:1 on leather,
+     lacquer, graphite and the steel field, but under 4.5:1 on steel and on concrete (there, --fg-2 or shirt). */
+  --leather: #0e0d0d;  /* the ground of every page: black calf */
+  --lacquer: #050506;  /* depth: behind the door, inside a poster, a matte panel */
+  --graphite: #1a1b1f; /* a section or a panel set apart */
+  --steel: #2c2e32;    /* blackened steel: controls, the dock, a card made of metal */
+  --steel-hi: #9ba0a7; /* steel's one bright edge; small marks (arrows, counters, separators) */
+  --concrete: #4a4b4e; /* the door and the wall: formwork concrete (until 2026-11-21 this name was a grey for words: those are --ash now) */
+  --shirt: #ecece8;    /* shirt white: the words, and the cuff */
+  --ash: #8c8f94;      /* the quieter words: notes, captions, the second half of a title */
+
+  /* ---------- Light: red and amber are light, and only light ----------
+     Never a fill, a wash, a glow behind words or a button's colour. A line of light is drawn in its core colour with
+     its own colour as a bloom (--seam-glow); a point of light (a lamp, a dot) the same way. */
+  --light: #ff2d2d;      /* red: the door's seam, the lasers, the current page's line, keyboard focus, the logo's needle */
+  --light-core: #ffe4de; /* the white-hot middle of a line of red light */
+  --amber: #e3963a;      /* amber: the room, the glass, a booked table, the site after 04:00 */
+  --amber-core: #ffdcab; /* the white-hot middle of a line of amber light */
+  --seam: 2px;           /* the thickness of a line of light (a hairline is --hair) */
+  /* The light of the hour. The door's script sets html[data-hour] from Moscow time and the club's own hours: open
+     (the show: red, lasers), late (after 04:00: amber), closed (after 06:00 until the club opens: the door alone).
+     A part follows the hour through these, and never reads the clock itself:
+     --lit, --lit-core  the light of lines (the current page, a chosen row, a button's seam, focus): red, amber when late
+     --lasers           1 while the show runs, 0 otherwise: multiply a laser's opacity by it
+     --room             0 while the show runs, 1 after 04:00: the room's amber (the bar, the tables, the glass)
+     --seam-glow        the bloom round a line drawn in --lit-core (box-shadow), following the hour
+     These are the open state; the hours change them below (Light of the hour). With no script, and for anyone who
+     asks for less motion, the site stays open. */
+  --lit: var(--light);
+  --lit-core: var(--light-core);
+  --lasers: 1;
+  --room: 0;
+  --seam-glow: 0 0 3px 0 var(--lit), 0 0 10px 1px color-mix(in srgb, var(--lit) 55%, transparent);
+
+  /* ---------- Older names, kept where their meaning holds ---------- */
+  --black: var(--leather);      /* the page's ground */
+  --white: var(--shirt);
+  --ink: var(--lacquer);        /* words on a light band (the cuff) */
+  --char: var(--graphite);      /* a card */
+  --char-2: var(--steel);
+  --silver: var(--steel-hi);    /* a mark in steel */
+  --red: var(--light);          /* the light's older name, kept for the rules that draw lines with it */
+  --red-text: var(--steel-hi);  /* small marks that used to be red words (arrows, counters, separators) are steel */
+  --quiet: var(--ash);          /* the quiet half of a two-part title */
+  --error: var(--shirt);        /* what a form says when something is wrong: white words beside a line of red light (.form-error), never pink */
+  /* Retired (2026-11-21): burgundy and the polished-steel gradients. They stay only so the parts not yet restyled
+     don't break, and each now paints flat and neutral. Don't use them: each part takes its own out. */
+  --bordeaux: var(--steel);
+  --bordeaux-lit: var(--steel);
+  --bordeaux-deep: var(--graphite);
+  --red-deep: var(--lacquer);
+  --metal: linear-gradient(var(--shirt), var(--shirt));
+  --metal-read: var(--metal);
+  --steel-type: var(--metal);
+  --steel-dim: linear-gradient(var(--ash), var(--ash));
+  --sheen: linear-gradient(transparent, transparent);
+  --sheen-soft: var(--sheen);
+
+  /* ---------- Surfaces ---------- */
+  /* brushed steel: a material for a part made of steel (a card), never a light surface */
+  --brushed: url('/img/metal/brushed.webp');
+  /* concrete: two maps laid over a surface's own colour (background-blend-mode: overlay): the stone itself
+     (grain, pores, hairline cracks; tools/concrete.py) and, much larger, its clouds, so the repeat never shows */
+  --stone: url('/img/concrete/mottle.webp'), url('/img/concrete/concrete.webp');
+  --stone-size: 1800px auto, 640px auto;
+  /* a smoked panel: solid and a little translucent, never blurred, with one hairline (--rule-2) */
+  --smoke: rgba(5, 5, 6, .88);
+
+  /* ---------- Type: three voices ----------
+     (2026-11-23, the client: too many types; «Ваш стол уже ждёт» is the one he likes. The Poster, Roboto Flex 1000
+     at width 151, is retired.)
+     Dial    Roboto Flex, width 25, capitals, tabular figures: the one display voice, for short words only. Page titles
+             (giant, hairline), section headings of one to three words, big numbers. Never a sentence, a quote, a
+             lead, a caption, a list item or a longer heading: those are the text.
+     Label   Roboto Flex Label 600, width 40, capitals tracked +6%, 11 to 15px and never larger: navigation, buttons,
+             short dates, prices in lists, serial numbers.
+     Text    Inter Tight 400 and 500, sentence case, from 16px (17 to 18 for a lead, 18 for long reading on a
+             desktop): everything a guest reads, and the small headings where the Dial would be too thin to read (a
+             sub-heading, a card's title, a list item's name, a dialog's heading, a heading of four words or more).
+     The order on every page: the page's name (Dial, giant) → a section's heading (Dial, large, short) → a
+     sub-heading (Text 500) → the words (Text 400) → small capitals (Label).
+     The Dial's scale: four steps, each a size and its weight. The smaller the step, the heavier, so the strokes still
+     read on black. (2026-11-23, Luka: the hairline at the giant sizes drew strokes one or two pixels wide that broke
+     into steps on an ordinary screen, «pixelated». Every Dial is now light, never hairline: about 280 for the giant
+     words, 320 to 340 for the heads and the numbers, so a stroke is never under three pixels where it is tall.)
+       page     a page's name (.t-xl)                                  clamp(120px, 17vw, 260px)  280
+       closing  the closing card's title (.cta-h), by the card's width   up to 220px              280
+       head     a section's heading (.t-l)                              --dial-head               --dial-head-wght
+       num      a big number (.fact b, a rule's numeral, a card's)      --dial-num                --dial-wght
+       num-s    a number in a row (a time, a price, a step, the phone)  --dial-num-s              --dial-num-s-wght
+     .t-dial, .t-label and .t-text set a voice whole (Voices, below); the tokens are for a part's own rules. A font
+     shorthand puts font-stretch back to normal: set the width after it. No monospace, no gradient in a letter, no
+     wide-tracked label over every block. Roboto Flex is cut at the optical size of display type, Roboto Flex Label
+     at that of small type (tools/fonts/build.py). */
+  --f-text: 'Inter Tight', 'Helvetica Neue', Arial, sans-serif;
+  --f-flex: 'Roboto Flex', 'Helvetica Neue', Arial, sans-serif;
+  --f-label: 'Roboto Flex Label', 'Roboto Flex', 'Helvetica Neue', Arial, sans-serif;
+  --dial-wdth: 25%;
+  --dial-head: clamp(60px, 6.6vw, 104px); --dial-head-wght: 340;
+  --dial-num: clamp(56px, 6.4vw, 110px); --dial-wght: 320;
+  --dial-num-s: clamp(44px, 3.6vw, 56px); --dial-num-s-wght: 340; /* (never under 44px: its narrow 0 and 1 would run together) */
+  /* a Dial title's second half: ash lifted a step, so its strokes still read (8:1 on leather and on the steel field, 7:1 on
+     graphite, 5.6:1 on steel, where ash would stand at 4.2:1) */
+  --quiet-dial: #a4a7ac;
+  --label-wght: 600; --label-wdth: 40%; --label-track: .06em;
+  /* The text face's steps (2026-11-23, the client: too many sizes; one size for one job, on every page):
+       statement  a line said aloud: the artists' quote, the gallery's last line (.t-statement)          400
+       item       an item's name (.t-m): a zone, a room, a rule, a menu's group, a panel, an act, a show,
+                  a party, a section in the footer, the address                                             500
+       item-s     a name in a small card or a list of links: a way to reach the club, a role, a film       500
+       lead       the line under a heading (.lead), a panel's words, a list's rows                         400
+       body       everything else (.body), 16px; a card's second line 15px                                 400
+     The Label has two sizes: 12px for a mark (a kicker, a volume, a tag), 13px for an action or a number in
+     a row (a button, a step, a price). */
+  --statement: clamp(28px, 2.6vw, 40px);
+  --item: clamp(22px, 1.9vw, 30px);
+  --item-s: 18px;
+  --lead: clamp(17px, 1.25vw, 18px);
+  /* (older names: every rule that named them is in the text face now; Geologica is no longer used) */
+  --sans: var(--f-text);
+  --display: var(--f-text);
+  --title: var(--f-flex);
+
+  /* ---------- Shape ----------
+     Square, everywhere: what you press and what holds things (2026-11-21: the capsules and the soft corners are
+     gone). The radius tokens stay, at 0, so every rule that rounded something is square now. No shadow under an
+     interface part, no frosted glass. */
+  --pill: 0;
+  --r-1: 0; --r-2: 0; --r-3: 0; --r-4: 0; --r-5: 0;
+  --hair: 1px; /* every rule, frame and edge */
+  /* the cuff's cut corner, the top left, at the angle of a notch lapel */
+  --cut: polygon(9px 0, 100% 0, 100% 100%, 0 100%, 0 16px);
+  /* the frame's corner (2026-11-22): the same lapel angle, at the opposite corner, bottom right */
+  --cut-2: polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 9px) 100%, 0 100%);
+  /* the arrow (2026-11-22): a long shaft and a clean, open head, drawn once and painted in any colour (a mask) */
+  --arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 12'%3E%3Cpath d='M0 6h24.6M19 .8 24.6 6 19 11.2' fill='none' stroke='%23000' stroke-width='1.5'/%3E%3C/svg%3E");
+
+  --max: 1440px;
+  --pad: clamp(16px, 3.2vw, 48px);
+  --gap: clamp(14px, 1.8vw, 28px);
+  --hdr-row: 72px;
+  --tabs: 0px;
+  --hdr: calc(var(--hdr-row) + var(--tabs));
+  /* surface tokens: leather by default */
+  --bg: var(--leather);
+  --card: var(--graphite);
+  --fg: var(--shirt);
+  --fg-2: #b5b7ba;                    /* long reading and leads, a step under shirt (9.6:1 on leather) */
+  --muted: var(--ash);
+  --rule: rgba(236, 236, 232, .13);   /* a hairline between things */
+  --rule-2: rgba(236, 236, 232, .3);  /* a hairline that frames or heads something */
+  --emblem: var(--steel-hi);
+  /* ---------- The photo grade ----------
+     (LUKA LATEST, 2026-11-23: colour is back, graded.) Every photograph and film carries the house grade in its own
+     file (tools/grade: the neon's purple and pink turned to the club's crimson and wine, its blue cooled to steel,
+     skin and lamplight kept warm), so the page adds nothing by default: saturate(1) changes nothing. A place can
+     hold its pictures back or forward (styles/colour.css). It is still the one filter on every picture's frame and
+     on every <img> and <video> outside one (Photos, below); a part that sets its own filter on a picture starts it
+     with this: filter: var(--grade) brightness(.8). */
+  --grade: saturate(1);
+  /* ---------- Line art ----------
+     The guest's world in fine chalk-white lines on black (LineArt.astro and lineart.css are the illustrator's; these
+     are only the shared colours, for a part that draws a line of its own beside it): the chalk line, a fainter one
+     for what lies further back. Amber or red only where there is light (--amber, --light). Never graded. */
+  --chalk: rgba(236, 236, 232, .88);
+  --chalk-2: rgba(236, 236, 232, .38);
+  /* motion */
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --ease-io: cubic-bezier(.77, 0, .18, 1);
+  --ease-back: cubic-bezier(.34, 1.56, .64, 1);
+  color-scheme: dark;
+}
+@media (max-width: 899px) { :root { --hdr-row: 56px; } }
+/* Light of the hour (the tokens above). Late, the line of light is amber and the lasers are off; closed, only the
+   door's seam is lit. Not for anyone who asks for less motion: they see the club open. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-hour="late"] { --lit: var(--amber); --lit-core: var(--amber-core); --lasers: 0; --room: 1; }
+  html[data-hour="closed"] { --lasers: 0; --room: 0; }
+}
+
+/* Graphite: a section set apart. Cast concrete, as the formwork left it: the panels' joints over the same stone,
+   and a few bullet holes in it, scattered where they fell (a pair close together, a single, a group of three, over a
+   tile of 1460 x 1340, so they never fall into a grid and a screen shows one or two). Each is a ragged spall a shade
+   paler than the weathered face, its crater dark above and catching the light below, the hole, and two to four
+   hairline cracks fading out of it (tools/concrete/holes.py draws them). Until 2026-11-23 the formwork's tie holes
+   stood here in their rows; the client asked for the holes a gun leaves instead: the club is for men who would know
+   the difference. */
+:root {
+  --holes: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1460' height='1340' viewBox='0 0 1460 1340'%3E%3Cdefs%3E%3CradialGradient id='b'%3E%3Cstop offset='0' stop-color='%23000' stop-opacity='.24'/%3E%3Cstop offset='.5' stop-color='%23000' stop-opacity='.07'/%3E%3Cstop offset='1' stop-color='%23000' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='s' cx='.5' cy='.44' r='.62'%3E%3Cstop offset='0' stop-color='%23000' stop-opacity='.45'/%3E%3Cstop offset='.5' stop-color='%23000' stop-opacity='.12'/%3E%3Cstop offset='.78' stop-color='%23fff' stop-opacity='.045'/%3E%3Cstop offset='1' stop-color='%23fff' stop-opacity='.08'/%3E%3C/radialGradient%3E%3ClinearGradient id='c0' gradientUnits='objectBoundingBox'%3E%3Cstop offset='0' stop-color='%23000' stop-opacity='.62'/%3E%3Cstop offset='1' stop-color='%23000' stop-opacity='0'/%3E%3C/linearGradient%3E%3ClinearGradient id='c1' gradientUnits='objectBoundingBox' x1='1' x2='0'%3E%3Cstop offset='0' stop-color='%23000' stop-opacity='.62'/%3E%3Cstop offset='1' stop-color='%23000' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg transform='translate(312.0 236.0) scale(1.22)'%3E%3Ccircle r='13' fill='url(%23b)'/%3E%3Cpath d='M6.6 -0.2L5.2 1.6L5.9 3.6L4.8 4.5L3.4 5.8L1.2 5.0L-1.0 7.2L-2.1 5.2L-5.3 5.5L-5.5 3.2L-6.3 1.2L-6.1 -0.4L-6.4 -1.4L-6.7 -3.8L-5.1 -5.0L-2.5 -5.5L-0.9 -6.1L0.4 -5.5L3.1 -6.0L4.5 -5.2L5.8 -3.5L7.2 -1.6Z' fill='url(%23s)'/%3E%3Cpath d='M6.6 -0.2L5.2 1.6L5.9 3.6L4.8 4.5L3.4 5.8L1.2 5.0L-1.0 7.2L-2.1 5.2L-5.3 5.5L-5.5 3.2L-6.3 1.2L-6.1 -0.4L-6.4 -1.4L-6.7 -3.8L-5.1 -5.0L-2.5 -5.5L-0.9 -6.1L0.4 -5.5L3.1 -6.0L4.5 -5.2L5.8 -3.5L7.2 -1.6Z' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='.5'/%3E%3Cellipse cx='.2' cy='-.9' rx='4.4' ry='3.9' fill='%23000' fill-opacity='.38'/%3E%3Cpath d='M-3.6 1.4Q0 4.4 3.6 1.4' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='1'/%3E%3Cellipse rx='2.3' ry='2.1' transform='rotate(44)' fill='%23000' fill-opacity='.9'/%3E%3Ccircle cy='.4' r='1.2' fill='%23000'/%3E%3Cpath d='M-2.0 6.4L-4.0 8.1L-5.1 10.5L-5.9 13.0L-7.4 15.2L-8.0 17.7' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M-6.0 -1.9L-7.9 -2.6L-9.3 -4.1L-11.1 -5.3L-12.5 -6.8L-13.8 -8.4' fill='none' stroke='url(%23c1)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M2.7 -6.3L3.8 -9.0L5.4 -11.5L5.6 -14.4L6.5 -17.2' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M6.7 3.6L8.8 5.5L10.0 8.2L11.6 10.6L11.9 13.5' fill='none' stroke='url(%23c1)' stroke-width='.6' stroke-linecap='round'/%3E%3C/g%3E%3Cg transform='translate(345.0 266.0) scale(1.04)'%3E%3Ccircle r='13' fill='url(%23b)'/%3E%3Cpath d='M7.4 -0.2L5.7 1.6L6.5 3.6L5.4 5.7L2.8 5.7L1.0 5.7L-0.6 6.6L-3.2 6.4L-5.4 4.9L-4.9 3.1L-6.2 2.2L-5.2 -0.1L-6.3 -2.1L-4.9 -2.7L-4.8 -5.3L-2.5 -4.7L-0.6 -7.4L1.3 -7.0L3.2 -6.7L5.2 -4.9L6.0 -3.5L6.4 -1.9Z' fill='url(%23s)'/%3E%3Cpath d='M7.4 -0.2L5.7 1.6L6.5 3.6L5.4 5.7L2.8 5.7L1.0 5.7L-0.6 6.6L-3.2 6.4L-5.4 4.9L-4.9 3.1L-6.2 2.2L-5.2 -0.1L-6.3 -2.1L-4.9 -2.7L-4.8 -5.3L-2.5 -4.7L-0.6 -7.4L1.3 -7.0L3.2 -6.7L5.2 -4.9L6.0 -3.5L6.4 -1.9Z' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='.5'/%3E%3Cellipse cx='.2' cy='-.9' rx='4.4' ry='3.9' fill='%23000' fill-opacity='.38'/%3E%3Cpath d='M-3.6 1.4Q0 4.4 3.6 1.4' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='1'/%3E%3Cellipse rx='2.3' ry='2.1' transform='rotate(72)' fill='%23000' fill-opacity='.9'/%3E%3Ccircle cy='.4' r='1.2' fill='%23000'/%3E%3Cpath d='M6.4 0.5L10.3 -1.0L14.2 -2.2L18.2 -3.2' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M-4.0 -5.8L-4.9 -7.4L-6.3 -8.6L-8.0 -9.4' fill='none' stroke='url(%23c1)' stroke-width='.6' stroke-linecap='round'/%3E%3C/g%3E%3Cg transform='translate(1122.0 418.0) scale(1.30)'%3E%3Ccircle r='13' fill='url(%23b)'/%3E%3Cpath d='M7.0 -0.2L7.7 1.6L5.7 4.1L3.6 3.9L3.3 5.7L1.4 7.3L-0.5 6.0L-3.3 5.7L-4.4 5.4L-5.5 3.9L-7.6 1.5L-6.0 -0.2L-6.4 -1.6L-5.6 -3.8L-4.3 -5.1L-3.6 -6.5L-0.5 -7.3L1.5 -7.2L3.1 -5.7L4.2 -4.5L5.1 -3.7L5.7 -1.8Z' fill='url(%23s)'/%3E%3Cpath d='M7.0 -0.2L7.7 1.6L5.7 4.1L3.6 3.9L3.3 5.7L1.4 7.3L-0.5 6.0L-3.3 5.7L-4.4 5.4L-5.5 3.9L-7.6 1.5L-6.0 -0.2L-6.4 -1.6L-5.6 -3.8L-4.3 -5.1L-3.6 -6.5L-0.5 -7.3L1.5 -7.2L3.1 -5.7L4.2 -4.5L5.1 -3.7L5.7 -1.8Z' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='.5'/%3E%3Cellipse cx='.2' cy='-.9' rx='4.4' ry='3.9' fill='%23000' fill-opacity='.38'/%3E%3Cpath d='M-3.6 1.4Q0 4.4 3.6 1.4' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='1'/%3E%3Cellipse rx='2.3' ry='2.1' transform='rotate(125)' fill='%23000' fill-opacity='.9'/%3E%3Ccircle cy='.4' r='1.2' fill='%23000'/%3E%3Cpath d='M-7.4 -1.5L-11.5 -0.3L-14.6 2.4L-17.7 5.2L-20.3 8.5' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M1.3 -7.5L1.8 -10.7L2.8 -13.9L4.8 -16.5' fill='none' stroke='url(%23c1)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M7.0 1.5L9.1 2.7L11.3 3.8L13.8 4.1L16.0 5.1L18.4 5.7' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3C/g%3E%3Cg transform='translate(760.0 1018.0) scale(1.14)'%3E%3Ccircle r='13' fill='url(%23b)'/%3E%3Cpath d='M7.9 0.4L6.3 1.6L6.0 4.3L3.9 3.8L3.7 6.5L0.5 5.3L-1.6 7.3L-2.8 5.3L-4.4 4.7L-6.6 4.8L-7.0 1.7L-6.6 -0.5L-7.3 -2.5L-5.2 -2.8L-4.6 -4.7L-2.4 -5.2L-1.0 -6.1L1.3 -5.8L3.0 -6.3L4.6 -4.4L6.3 -3.2L6.6 -1.8Z' fill='url(%23s)'/%3E%3Cpath d='M7.9 0.4L6.3 1.6L6.0 4.3L3.9 3.8L3.7 6.5L0.5 5.3L-1.6 7.3L-2.8 5.3L-4.4 4.7L-6.6 4.8L-7.0 1.7L-6.6 -0.5L-7.3 -2.5L-5.2 -2.8L-4.6 -4.7L-2.4 -5.2L-1.0 -6.1L1.3 -5.8L3.0 -6.3L4.6 -4.4L6.3 -3.2L6.6 -1.8Z' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='.5'/%3E%3Cellipse cx='.2' cy='-.9' rx='4.4' ry='3.9' fill='%23000' fill-opacity='.38'/%3E%3Cpath d='M-3.6 1.4Q0 4.4 3.6 1.4' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='1'/%3E%3Cellipse rx='2.3' ry='2.1' transform='rotate(3)' fill='%23000' fill-opacity='.9'/%3E%3Ccircle cy='.4' r='1.2' fill='%23000'/%3E%3Cpath d='M2.1 -7.0L3.1 -10.5L4.9 -13.7L6.9 -16.8' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M6.1 3.2L8.1 5.7L11.0 6.9L14.1 7.2' fill='none' stroke='url(%23c1)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M-3.9 5.0L-6.2 6.7L-9.1 7.1L-11.9 7.8' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3C/g%3E%3Cg transform='translate(818.0 1046.0) scale(1.00)'%3E%3Ccircle r='13' fill='url(%23b)'/%3E%3Cpath d='M7.2 0.1L7.1 2.0L6.1 3.6L5.4 5.8L3.0 6.8L0.4 5.7L-1.2 7.3L-2.6 4.7L-4.3 5.3L-4.8 3.4L-7.0 2.5L-8.1 -0.4L-7.4 -1.6L-4.7 -3.0L-4.8 -6.0L-3.8 -6.9L-1.1 -6.7L1.8 -7.2L2.6 -6.2L4.1 -4.5L5.6 -3.8L5.1 -1.2Z' fill='url(%23s)'/%3E%3Cpath d='M7.2 0.1L7.1 2.0L6.1 3.6L5.4 5.8L3.0 6.8L0.4 5.7L-1.2 7.3L-2.6 4.7L-4.3 5.3L-4.8 3.4L-7.0 2.5L-8.1 -0.4L-7.4 -1.6L-4.7 -3.0L-4.8 -6.0L-3.8 -6.9L-1.1 -6.7L1.8 -7.2L2.6 -6.2L4.1 -4.5L5.6 -3.8L5.1 -1.2Z' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='.5'/%3E%3Cellipse cx='.2' cy='-.9' rx='4.4' ry='3.9' fill='%23000' fill-opacity='.38'/%3E%3Cpath d='M-3.6 1.4Q0 4.4 3.6 1.4' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='1'/%3E%3Cellipse rx='2.3' ry='2.1' transform='rotate(100)' fill='%23000' fill-opacity='.9'/%3E%3Ccircle cy='.4' r='1.2' fill='%23000'/%3E%3Cpath d='M-2.9 -6.3L-6.0 -8.9L-7.5 -12.6L-10.1 -15.7' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M4.9 4.0L7.1 5.0L9.5 5.0L11.9 4.9' fill='none' stroke='url(%23c1)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M-7.0 2.3L-9.2 3.0L-11.5 3.6L-13.8 4.3' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3C/g%3E%3Cg transform='translate(786.0 1106.0) scale(1.10)'%3E%3Ccircle r='13' fill='url(%23b)'/%3E%3Cpath d='M6.8 -0.2L5.5 1.8L5.5 3.8L3.9 3.6L3.3 6.2L1.1 5.6L-0.5 6.0L-3.2 5.4L-5.2 4.9L-5.9 4.2L-7.8 1.6L-5.8 0.2L-6.9 -2.5L-4.9 -3.0L-4.9 -5.3L-3.5 -6.5L-0.4 -6.1L0.4 -6.4L3.5 -5.9L4.1 -4.9L6.4 -3.6L6.7 -1.7Z' fill='url(%23s)'/%3E%3Cpath d='M6.8 -0.2L5.5 1.8L5.5 3.8L3.9 3.6L3.3 6.2L1.1 5.6L-0.5 6.0L-3.2 5.4L-5.2 4.9L-5.9 4.2L-7.8 1.6L-5.8 0.2L-6.9 -2.5L-4.9 -3.0L-4.9 -5.3L-3.5 -6.5L-0.4 -6.1L0.4 -6.4L3.5 -5.9L4.1 -4.9L6.4 -3.6L6.7 -1.7Z' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='.5'/%3E%3Cellipse cx='.2' cy='-.9' rx='4.4' ry='3.9' fill='%23000' fill-opacity='.38'/%3E%3Cpath d='M-3.6 1.4Q0 4.4 3.6 1.4' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='1'/%3E%3Cellipse rx='2.3' ry='2.1' transform='rotate(160)' fill='%23000' fill-opacity='.9'/%3E%3Ccircle cy='.4' r='1.2' fill='%23000'/%3E%3Cpath d='M-0.1 6.5L-0.8 8.7L-0.5 11.0L-1.4 13.1L-3.2 14.4L-5.4 15.0' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M-6.9 1.5L-9.4 3.2L-10.9 5.8L-13.3 7.7L-16.2 8.5' fill='none' stroke='url(%23c1)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M3.5 -5.6L3.7 -7.3L3.2 -9.0L2.3 -10.5L0.8 -11.3' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M6.5 1.3L9.7 1.1L12.7 2.4L15.8 3.1L19.0 3.3' fill='none' stroke='url(%23c1)' stroke-width='.6' stroke-linecap='round'/%3E%3C/g%3E%3Cg transform='translate(140.0 1210.0) scale(0.98)'%3E%3Ccircle r='13' fill='url(%23b)'/%3E%3Cpath d='M7.0 -0.6L6.5 1.8L6.3 3.4L4.3 4.0L3.4 5.8L1.2 4.8L-0.7 6.3L-3.0 5.9L-5.1 5.1L-6.9 3.8L-6.6 2.0L-5.7 -0.4L-7.0 -2.2L-6.9 -3.5L-4.5 -5.6L-3.0 -6.8L-1.5 -6.7L1.1 -7.3L3.6 -6.4L5.4 -5.7L6.4 -3.6L5.0 -1.6Z' fill='url(%23s)'/%3E%3Cpath d='M7.0 -0.6L6.5 1.8L6.3 3.4L4.3 4.0L3.4 5.8L1.2 4.8L-0.7 6.3L-3.0 5.9L-5.1 5.1L-6.9 3.8L-6.6 2.0L-5.7 -0.4L-7.0 -2.2L-6.9 -3.5L-4.5 -5.6L-3.0 -6.8L-1.5 -6.7L1.1 -7.3L3.6 -6.4L5.4 -5.7L6.4 -3.6L5.0 -1.6Z' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='.5'/%3E%3Cellipse cx='.2' cy='-.9' rx='4.4' ry='3.9' fill='%23000' fill-opacity='.38'/%3E%3Cpath d='M-3.6 1.4Q0 4.4 3.6 1.4' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='1'/%3E%3Cellipse rx='2.3' ry='2.1' transform='rotate(24)' fill='%23000' fill-opacity='.9'/%3E%3Ccircle cy='.4' r='1.2' fill='%23000'/%3E%3Cpath d='M6.3 -2.7L9.6 -3.6L13.1 -3.8L16.5 -4.1' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M2.3 6.9L2.1 9.1L2.8 11.2L3.5 13.3L3.6 15.5L3.7 17.7' fill='none' stroke='url(%23c1)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M-2.9 -6.8L-4.4 -8.5L-5.6 -10.5L-6.8 -12.4' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E");
+  --holes-l: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='1900' viewBox='0 0 34 1900'%3E%3Cdefs%3E%3CradialGradient id='b'%3E%3Cstop offset='0' stop-color='%23000' stop-opacity='.24'/%3E%3Cstop offset='.5' stop-color='%23000' stop-opacity='.07'/%3E%3Cstop offset='1' stop-color='%23000' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='s' cx='.5' cy='.44' r='.62'%3E%3Cstop offset='0' stop-color='%23000' stop-opacity='.45'/%3E%3Cstop offset='.5' stop-color='%23000' stop-opacity='.12'/%3E%3Cstop offset='.78' stop-color='%23fff' stop-opacity='.045'/%3E%3Cstop offset='1' stop-color='%23fff' stop-opacity='.08'/%3E%3C/radialGradient%3E%3ClinearGradient id='c0' gradientUnits='objectBoundingBox'%3E%3Cstop offset='0' stop-color='%23000' stop-opacity='.62'/%3E%3Cstop offset='1' stop-color='%23000' stop-opacity='0'/%3E%3C/linearGradient%3E%3ClinearGradient id='c1' gradientUnits='objectBoundingBox' x1='1' x2='0'%3E%3Cstop offset='0' stop-color='%23000' stop-opacity='.62'/%3E%3Cstop offset='1' stop-color='%23000' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg transform='translate(15.0 300.0) scale(0.90)'%3E%3Ccircle r='13' fill='url(%23b)'/%3E%3Cpath d='M6.5 0.4L5.7 2.0L6.5 3.3L4.9 4.8L3.3 6.3L0.8 6.7L-0.6 6.7L-3.4 7.1L-4.1 5.1L-6.3 3.8L-6.8 2.1L-8.4 -0.4L-6.6 -1.9L-5.9 -3.0L-4.4 -4.5L-3.5 -7.2L-0.4 -6.6L1.7 -7.5L2.3 -5.8L4.1 -4.1L6.1 -3.9L5.9 -1.5Z' fill='url(%23s)'/%3E%3Cpath d='M6.5 0.4L5.7 2.0L6.5 3.3L4.9 4.8L3.3 6.3L0.8 6.7L-0.6 6.7L-3.4 7.1L-4.1 5.1L-6.3 3.8L-6.8 2.1L-8.4 -0.4L-6.6 -1.9L-5.9 -3.0L-4.4 -4.5L-3.5 -7.2L-0.4 -6.6L1.7 -7.5L2.3 -5.8L4.1 -4.1L6.1 -3.9L5.9 -1.5Z' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='.5'/%3E%3Cellipse cx='.2' cy='-.9' rx='4.4' ry='3.9' fill='%23000' fill-opacity='.38'/%3E%3Cpath d='M-3.6 1.4Q0 4.4 3.6 1.4' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='1'/%3E%3Cellipse rx='2.3' ry='2.1' transform='rotate(20)' fill='%23000' fill-opacity='.9'/%3E%3Ccircle cy='.4' r='1.2' fill='%23000'/%3E%3Cpath d='M-2.4 6.4L-5.0 8.7L-7.9 10.3L-10.7 12.3' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M-5.3 -4.3L-6.6 -6.6L-8.9 -7.9L-10.8 -9.8' fill='none' stroke='url(%23c1)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M6.2 -1.5L8.0 -3.2L10.1 -4.4L11.9 -6.2L12.7 -8.5L13.2 -10.9' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3C/g%3E%3Cg transform='translate(20.0 328.0) scale(0.78)'%3E%3Ccircle r='13' fill='url(%23b)'/%3E%3Cpath d='M6.5 0.4L7.1 2.5L5.5 3.8L5.2 4.8L2.6 5.7L0.4 6.2L-0.8 7.1L-3.0 5.5L-4.5 5.8L-6.7 4.2L-6.5 1.7L-8.2 0.6L-7.1 -1.9L-7.0 -3.7L-5.2 -5.6L-2.3 -4.9L-1.1 -6.4L0.8 -7.1L3.1 -6.0L4.2 -5.0L5.6 -3.2L5.3 -1.3Z' fill='url(%23s)'/%3E%3Cpath d='M6.5 0.4L7.1 2.5L5.5 3.8L5.2 4.8L2.6 5.7L0.4 6.2L-0.8 7.1L-3.0 5.5L-4.5 5.8L-6.7 4.2L-6.5 1.7L-8.2 0.6L-7.1 -1.9L-7.0 -3.7L-5.2 -5.6L-2.3 -4.9L-1.1 -6.4L0.8 -7.1L3.1 -6.0L4.2 -5.0L5.6 -3.2L5.3 -1.3Z' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='.5'/%3E%3Cellipse cx='.2' cy='-.9' rx='4.4' ry='3.9' fill='%23000' fill-opacity='.38'/%3E%3Cpath d='M-3.6 1.4Q0 4.4 3.6 1.4' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='1'/%3E%3Cellipse rx='2.3' ry='2.1' transform='rotate(90)' fill='%23000' fill-opacity='.9'/%3E%3Ccircle cy='.4' r='1.2' fill='%23000'/%3E%3Cpath d='M-6.4 -1.7L-10.2 -1.2L-13.6 0.6L-15.9 3.6L-17.7 7.0' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M2.2 -6.1L2.3 -7.6L1.6 -8.8L1.4 -10.2L1.1 -11.6L1.2 -13.0' fill='none' stroke='url(%23c1)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M3.5 5.6L5.4 7.5L6.2 10.2L8.0 12.3L9.7 14.4' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3C/g%3E%3Cg transform='translate(13.0 1180.0) scale(0.86)'%3E%3Ccircle r='13' fill='url(%23b)'/%3E%3Cpath d='M7.8 0.2L5.9 1.3L6.1 3.3L5.5 5.8L2.8 6.8L1.2 4.9L-1.4 7.2L-2.9 6.1L-4.1 5.3L-6.9 3.5L-7.8 1.7L-5.5 0.2L-7.1 -1.5L-6.8 -4.4L-4.7 -5.5L-2.5 -5.8L-0.9 -6.0L1.1 -5.5L3.6 -6.1L3.5 -4.1L6.1 -4.0L5.4 -1.3Z' fill='url(%23s)'/%3E%3Cpath d='M7.8 0.2L5.9 1.3L6.1 3.3L5.5 5.8L2.8 6.8L1.2 4.9L-1.4 7.2L-2.9 6.1L-4.1 5.3L-6.9 3.5L-7.8 1.7L-5.5 0.2L-7.1 -1.5L-6.8 -4.4L-4.7 -5.5L-2.5 -5.8L-0.9 -6.0L1.1 -5.5L3.6 -6.1L3.5 -4.1L6.1 -4.0L5.4 -1.3Z' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='.5'/%3E%3Cellipse cx='.2' cy='-.9' rx='4.4' ry='3.9' fill='%23000' fill-opacity='.38'/%3E%3Cpath d='M-3.6 1.4Q0 4.4 3.6 1.4' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='1'/%3E%3Cellipse rx='2.3' ry='2.1' transform='rotate(13)' fill='%23000' fill-opacity='.9'/%3E%3Ccircle cy='.4' r='1.2' fill='%23000'/%3E%3Cpath d='M4.9 -4.4L6.5 -9.3L6.9 -14.4L7.2 -19.6' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M-1.4 7.0L-2.1 9.9L-2.9 12.8L-2.2 15.7L-1.2 18.6' fill='none' stroke='url(%23c1)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M-6.2 1.1L-7.5 1.1L-8.7 1.7L-9.6 2.6L-10.5 3.6L-11.2 4.7' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M-2.5 -6.7L-3.0 -9.4L-4.3 -11.7L-4.7 -14.4L-4.5 -17.0' fill='none' stroke='url(%23c1)' stroke-width='.6' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E");
+  --holes-r: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='38' height='1900' viewBox='0 0 38 1900'%3E%3Cdefs%3E%3CradialGradient id='b'%3E%3Cstop offset='0' stop-color='%23000' stop-opacity='.24'/%3E%3Cstop offset='.5' stop-color='%23000' stop-opacity='.07'/%3E%3Cstop offset='1' stop-color='%23000' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='s' cx='.5' cy='.44' r='.62'%3E%3Cstop offset='0' stop-color='%23000' stop-opacity='.45'/%3E%3Cstop offset='.5' stop-color='%23000' stop-opacity='.12'/%3E%3Cstop offset='.78' stop-color='%23fff' stop-opacity='.045'/%3E%3Cstop offset='1' stop-color='%23fff' stop-opacity='.08'/%3E%3C/radialGradient%3E%3ClinearGradient id='c0' gradientUnits='objectBoundingBox'%3E%3Cstop offset='0' stop-color='%23000' stop-opacity='.62'/%3E%3Cstop offset='1' stop-color='%23000' stop-opacity='0'/%3E%3C/linearGradient%3E%3ClinearGradient id='c1' gradientUnits='objectBoundingBox' x1='1' x2='0'%3E%3Cstop offset='0' stop-color='%23000' stop-opacity='.62'/%3E%3Cstop offset='1' stop-color='%23000' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg transform='translate(22.0 760.0) scale(0.92)'%3E%3Ccircle r='13' fill='url(%23b)'/%3E%3Cpath d='M6.7 0.0L5.8 2.1L5.5 3.7L5.3 5.2L3.5 6.7L0.8 5.4L-0.7 6.6L-3.6 6.9L-4.3 5.2L-6.8 4.5L-6.1 2.1L-6.4 0.5L-7.3 -2.5L-6.9 -4.5L-4.1 -5.2L-3.8 -6.8L-0.6 -6.0L1.1 -5.9L2.7 -6.0L3.2 -3.9L5.7 -3.7L5.5 -1.1Z' fill='url(%23s)'/%3E%3Cpath d='M6.7 0.0L5.8 2.1L5.5 3.7L5.3 5.2L3.5 6.7L0.8 5.4L-0.7 6.6L-3.6 6.9L-4.3 5.2L-6.8 4.5L-6.1 2.1L-6.4 0.5L-7.3 -2.5L-6.9 -4.5L-4.1 -5.2L-3.8 -6.8L-0.6 -6.0L1.1 -5.9L2.7 -6.0L3.2 -3.9L5.7 -3.7L5.5 -1.1Z' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='.5'/%3E%3Cellipse cx='.2' cy='-.9' rx='4.4' ry='3.9' fill='%23000' fill-opacity='.38'/%3E%3Cpath d='M-3.6 1.4Q0 4.4 3.6 1.4' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='1'/%3E%3Cellipse rx='2.3' ry='2.1' transform='rotate(174)' fill='%23000' fill-opacity='.9'/%3E%3Ccircle cy='.4' r='1.2' fill='%23000'/%3E%3Cpath d='M-6.0 2.8L-9.2 6.9L-12.2 11.2L-14.5 15.8' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M6.3 -1.6L7.7 -3.0L9.0 -4.5L10.7 -5.5L12.6 -5.9' fill='none' stroke='url(%23c1)' stroke-width='.6' stroke-linecap='round'/%3E%3C/g%3E%3Cg transform='translate(15.0 1620.0) scale(0.82)'%3E%3Ccircle r='13' fill='url(%23b)'/%3E%3Cpath d='M6.4 -0.5L8.0 1.6L6.6 3.6L3.8 4.7L3.6 6.7L0.7 5.6L-1.2 6.4L-2.0 4.5L-5.4 5.4L-7.0 4.0L-6.3 2.3L-8.3 0.0L-6.6 -2.3L-5.7 -3.1L-5.2 -5.6L-3.6 -6.5L-0.8 -7.2L1.3 -6.6L2.7 -6.0L4.9 -5.6L5.4 -3.8L5.8 -1.4Z' fill='url(%23s)'/%3E%3Cpath d='M6.4 -0.5L8.0 1.6L6.6 3.6L3.8 4.7L3.6 6.7L0.7 5.6L-1.2 6.4L-2.0 4.5L-5.4 5.4L-7.0 4.0L-6.3 2.3L-8.3 0.0L-6.6 -2.3L-5.7 -3.1L-5.2 -5.6L-3.6 -6.5L-0.8 -7.2L1.3 -6.6L2.7 -6.0L4.9 -5.6L5.4 -3.8L5.8 -1.4Z' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='.5'/%3E%3Cellipse cx='.2' cy='-.9' rx='4.4' ry='3.9' fill='%23000' fill-opacity='.38'/%3E%3Cpath d='M-3.6 1.4Q0 4.4 3.6 1.4' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='1'/%3E%3Cellipse rx='2.3' ry='2.1' transform='rotate(12)' fill='%23000' fill-opacity='.9'/%3E%3Ccircle cy='.4' r='1.2' fill='%23000'/%3E%3Cpath d='M-6.4 0.4L-10.3 -1.6L-14.5 -2.5L-18.7 -1.5' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M5.7 -3.9L7.2 -6.1L7.8 -8.7L8.2 -11.3L9.7 -13.5' fill='none' stroke='url(%23c1)' stroke-width='.6' stroke-linecap='round'/%3E%3C/g%3E%3Cg transform='translate(23.0 1648.0) scale(0.74)'%3E%3Ccircle r='13' fill='url(%23b)'/%3E%3Cpath d='M7.3 -0.3L7.2 2.3L5.6 3.7L4.1 4.2L3.1 5.7L0.9 5.4L-0.7 6.4L-2.8 4.8L-4.1 5.1L-5.6 3.7L-6.3 1.6L-5.3 0.0L-7.7 -1.5L-5.7 -3.1L-5.2 -5.4L-2.4 -4.5L-1.0 -7.2L0.5 -5.1L2.8 -5.7L5.1 -5.4L5.5 -3.1L7.2 -1.8Z' fill='url(%23s)'/%3E%3Cpath d='M7.3 -0.3L7.2 2.3L5.6 3.7L4.1 4.2L3.1 5.7L0.9 5.4L-0.7 6.4L-2.8 4.8L-4.1 5.1L-5.6 3.7L-6.3 1.6L-5.3 0.0L-7.7 -1.5L-5.7 -3.1L-5.2 -5.4L-2.4 -4.5L-1.0 -7.2L0.5 -5.1L2.8 -5.7L5.1 -5.4L5.5 -3.1L7.2 -1.8Z' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='.5'/%3E%3Cellipse cx='.2' cy='-.9' rx='4.4' ry='3.9' fill='%23000' fill-opacity='.38'/%3E%3Cpath d='M-3.6 1.4Q0 4.4 3.6 1.4' fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='1'/%3E%3Cellipse rx='2.3' ry='2.1' transform='rotate(63)' fill='%23000' fill-opacity='.9'/%3E%3Ccircle cy='.4' r='1.2' fill='%23000'/%3E%3Cpath d='M-2.0 6.2L-3.3 8.1L-5.3 9.4L-7.6 9.8L-9.9 9.5L-12.3 9.4' fill='none' stroke='url(%23c0)' stroke-width='.6' stroke-linecap='round'/%3E%3Cpath d='M3.9 -5.9L5.4 -7.0L7.0 -8.1L7.9 -9.7' fill='none' stroke='url(%23c1)' stroke-width='.6' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E");
+}
+.soot {
+  --bg: var(--graphite); --card: #242527;
+  background-color: var(--bg);
+  background-image:
+    var(--holes),
+    linear-gradient(90deg, rgba(0, 0, 0, .34) 0 1px, rgba(255, 255, 255, .035) 1px 2px, transparent 2px),
+    linear-gradient(180deg, rgba(0, 0, 0, .3) 0 1px, rgba(255, 255, 255, .03) 1px 2px, transparent 2px),
+    var(--stone);
+  background-size: 1460px 1340px, 720px 100%, 100% 440px, var(--stone-size);
+  background-position: 0 0, 0 0, 0 0, 0 0, 0 0;
+  background-blend-mode: normal, normal, normal, overlay, overlay;
+  color: var(--fg);
+}
+/* On a phone the holes keep to the page's margins, a strip down each side, never under the words or the buttons */
+@media (max-width: 899px) {
+  .soot {
+    background-image:
+      var(--holes-l), var(--holes-r),
+      linear-gradient(90deg, rgba(0, 0, 0, .34) 0 1px, rgba(255, 255, 255, .035) 1px 2px, transparent 2px),
+      linear-gradient(180deg, rgba(0, 0, 0, .3) 0 1px, rgba(255, 255, 255, .03) 1px 2px, transparent 2px),
+      var(--stone);
+    background-size: 34px 1900px, 38px 1900px, 720px 100%, 100% 440px, var(--stone-size);
+    background-position: 0 0, 100% 620px, 0 0, 0 0, 0 0, 0 0;
+    background-repeat: repeat-y, repeat-y, repeat, repeat, repeat, repeat;
+    background-blend-mode: normal, normal, normal, normal, overlay, overlay;
+  }
+}
+/* The steel field: the membership sections only (the club's cards stand on it: vip.css). Blackened steel
+   bead-blasted to a fine matte grain, the «Выдержка 18» card's own metal, a step darker and quieter than the card so
+   the cards stand off it: the light falls off from the top, one bright edge along the top and a faint one at the
+   foot, the grain (--grain-fine, drawn: nothing to fetch) under a veil of the steel's own colour. (Until 2026-11-23
+   this was the navy cloth with its chalk stripe and twill, gone at the client's word; the class keeps the cloth's
+   name.) Only the background: the section's own padding, layout and pseudo-elements stay its own. Words on it: ash
+   keeps 5:1 at the lit top and more below it, shirt 14:1. */
+.cloth {
+  --bg: #101114;
+  --grain-fine: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.15' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 .4 0 0 0 -.19'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(180deg, rgba(236, 236, 232, .2) 0 1px, transparent 1px),
+    linear-gradient(0deg, rgba(236, 236, 232, .06) 0 1px, transparent 1px),
+    linear-gradient(180deg, rgba(236, 236, 232, .06), rgba(236, 236, 232, .018) 26%, transparent 50%, rgba(0, 0, 0, .32)),
+    linear-gradient(rgba(16, 17, 20, .3), rgba(16, 17, 20, .3)),
+    var(--grain-fine);
+  background-size: auto, auto, auto, auto, 180px 180px;
+  color: var(--fg);
+}
+/* Blackened steel: a plate set apart, matte, with its one bright edge along the top. (.velvet and .plate were the
+   light brushed plate until 2026-11-21; the site has no light surface now but the cuff.) On steel the quiet words
+   are a lighter grey: ash would stand under 4.5:1 there. */
+.velvet, .plate {
+  --bg: var(--steel); --card: rgba(236, 236, 232, .04);
+  --fg: var(--shirt); --fg-2: #c4c6c9; --muted: #b0b3b8;
+  --rule: rgba(236, 236, 232, .14); --rule-2: rgba(236, 236, 232, .32);
+  --emblem: var(--shirt);
+  background: linear-gradient(180deg, rgba(236, 236, 232, .16) 0 1px, transparent 1px) var(--steel);
+  color: var(--fg);
+}
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+/* pictures that stand as cards (not edge to edge) take the cards' corners; a hairline rim drawn over one follows */
+.pa-shot, .fig > .photo, .gxd-ph, .gxf-media { border-radius: var(--r-4); overflow: hidden; }
+.photo::after { border-radius: inherit; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; overflow-x: clip; background: var(--black); }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+/* the scrollbar's room is always kept (so nothing shifts sideways when the 18+ door goes or a window locks the
+   page), and the bar itself is a strip of steel on the concrete */
+html { scrollbar-gutter: stable; scrollbar-color: var(--steel) var(--black); }
+/* resting places on a touchscreen (SWITCHED OFF 2026-11-13: the client didn't like the snap; scripts/motion.ts no
+   longer marks anything, so these rules wait unused): a section whose content fits the screen (.snap-rest, its
+   padding taken off its snap area) settled in the middle of the screen, above the dock, when a scroll ended near it */
+html.snap-y:not(.lenis) { scroll-snap-type: y proximity; scroll-padding-bottom: var(--dock, 0px); }
+.snap-rest { scroll-snap-align: center; }
+/* (no slanted or thickened stand-ins: the face has no italic, and a weight it lacks is its nearest) */
+html { font-synthesis: none; }
+body {
+  margin: 0; color: var(--fg); font: 400 16px/1.6 var(--sans); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  background-color: var(--bg); background-image: var(--stone); background-size: var(--stone-size); background-blend-mode: overlay, overlay;
+}
+img, svg, video { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+p, h1, h2, h3, h4, figure, dl, dd, ol, ul { margin: 0; }
+h1, h2, h3, h4 { font-weight: 400; }
+::selection { background: var(--shirt); color: var(--lacquer); }
+/* keyboard focus is the red line: a line of the light round what holds it (amber after 04:00, as every line is) */
+:focus-visible { outline: var(--seam) solid var(--lit); outline-offset: 3px; }
+[hidden] { display: none !important; }
+[id] { scroll-margin-top: calc(var(--hdr) + 32px); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* the keyboard's first stop: straight to the page's content, past the header's ten links. Out of sight until it
+   holds the focus, then a band of shirt white at the top left, in the buttons' words */
+.skip { position: fixed; left: var(--pad); top: 10px; z-index: 90; display: inline-flex; align-items: center; height: 44px; padding: 0 18px; font: var(--label-wght) 13px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); text-transform: uppercase; color: var(--lacquer); background: var(--shirt); translate: 0 -80px; }
+.skip:focus-visible { translate: 0 0; outline-offset: 3px; }
+main:focus { outline: none; }
+.svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ---------- Letters that were steel ----------
+   The polished-steel gradient in letters and numerals is gone (2026-11-21: no gradient in a letter). What wore it
+   is plain shirt white; the big numbers are the Dial and the small ones the Label (their own rules, below). */
+.metal, .steel, .metal-sm { color: var(--fg); }
+
+/* ---------- A title's second half ----------
+   Two-part titles («Частная территория», «Ваш стол уже ждёт») say their second half more quietly: the same face and
+   weight, in ash; in the Dial a step lighter than ash (--quiet-dial), so its strokes still read. No colour, no
+   slant, no glow. */
+.accent, .t-xxl em, .t-xl em, .t-l em, .t-m em, .hero-tag em, .fact b i {
+  font-style: normal; color: var(--quiet); -webkit-text-fill-color: currentColor;
+}
+.t-xxl em, .t-xl em, .t-l:not(.long) em { color: var(--quiet-dial); }
+/* a point of light (a recording, a night that's on): a lamp, its core and its own small bloom */
+.rec::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 10px; border-radius: 50%; background: var(--light-core); vertical-align: 1px; box-shadow: 0 0 3px 1px var(--light), 0 0 10px 2px color-mix(in srgb, var(--light) 40%, transparent); }
+
+/* ---------- Voices ----------
+   The three voices whole (what each is for: :root, Type). A part may set one with a class, or with the tokens in its
+   own rules. (The Poster's class, .t-poster, is gone with it: 2026-11-23.) */
+/* Dial: a watch's dial, compressed capitals. Page titles, section headings of one to three words, big numbers; never
+   a sentence. Its weight follows its size (:root, Type): the hairline only at the giant sizes. */
+.t-dial { font-family: var(--f-flex); font-weight: var(--dial-wght); font-stretch: var(--dial-wdth); line-height: .8; letter-spacing: 0; font-variant-numeric: tabular-nums lining-nums; }
+/* Label: small capitals, tracked. Navigation, buttons, short dates, prices in lists, serial numbers; 11 to 15px. */
+.t-label { font-family: var(--f-label); font-weight: var(--label-wght); font-stretch: var(--label-wdth); font-size: 13px; line-height: 1.2; letter-spacing: var(--label-track); text-transform: uppercase; font-variant-numeric: tabular-nums lining-nums; }
+/* Text: everything a guest reads, in sentence case. 16px, and 18 for long reading on a desktop (.prose). */
+.t-text { font-family: var(--f-text); font-weight: 400; font-stretch: normal; font-size: 16px; line-height: 1.6; letter-spacing: 0; text-transform: none; }
+
+/* ---------- Type ----------
+   The Dial for the page's own name and a section's heading of one to three words; the text face for every word a
+   guest reads, sub-headings included (sentence case: said quietly, not shouted in capitals); the Label for
+   controls. The steps, from the top: .t-xl, .t-l, .t-m, the words (.lead, .body), the Label. */
+.label { font: 400 14px/1.45 var(--sans); color: var(--muted); }
+.label-bone { color: var(--fg); }
+.label-red { color: var(--red-text); }
+/* A page's name (.t-xl; .t-xxl the same a size up): the Dial, very large, hairline and compressed, in capitals (by
+   style, so the words stay as written for a screen reader and for search). Flat shirt white. */
+.t-xxl, .t-xl { font-family: var(--f-flex); font-weight: 280; font-stretch: var(--dial-wdth); text-transform: uppercase; letter-spacing: 0; color: var(--fg); }
+.t-xxl { font-size: clamp(96px, 19vw, 300px); line-height: .8; overflow-wrap: normal; }
+.t-xl { font-size: clamp(88px, 15vw, 240px); line-height: .8; }
+@media (max-width: 899px) { .t-xxl, .t-xl { font-weight: 280; } }
+/* A section's heading (.t-l): the Dial a clear step under the page's name, in capitals, weighted to read on black
+   (240; 280 on a phone, where it is smaller). One to three words: so narrow a face sets the longest of them some
+   300px wide, never a word to a line (balance evens one that must wrap). A heading of four words or more is .t-l.long:
+   the text face at 500, a size above a sub-heading. */
+.t-l { font-family: var(--f-flex); font-weight: var(--dial-head-wght); font-stretch: var(--dial-wdth); font-size: var(--dial-head); line-height: .86; letter-spacing: 0; text-transform: uppercase; color: var(--fg); text-wrap: balance; }
+.t-l.long { font-family: var(--f-text); font-weight: 500; font-stretch: normal; font-size: clamp(30px, 3.4vw, 52px); line-height: 1.06; letter-spacing: -.022em; text-transform: none; }
+@media (max-width: 899px) { :root { --dial-head-wght: 360; } }
+/* A sub-heading (.t-m): the text face at 500, the step between a section's heading and its words */
+.t-m { font-family: var(--f-text); font-size: var(--item); font-weight: 500; letter-spacing: -.012em; line-height: 1.15; text-wrap: balance; }
+.t-s { font: 400 var(--lead)/1.6 var(--sans); }
+.t-statement { font: 400 var(--statement)/1.25 var(--sans); letter-spacing: -.012em; color: var(--fg); max-width: 34em; }
+.t-statement em { font-style: normal; color: var(--quiet); }
+.lead { font: 400 var(--lead)/1.6 var(--sans); color: var(--fg-2); max-width: 56ch; }
+.body { font: 400 16px/1.6 var(--sans); color: var(--fg-2); max-width: 54ch; }
+/* (the line straight under a section's heading is its lead, 17 to 18px, as in every heading row: .bighead-side) */
+.t-l + .body { font-size: var(--lead); line-height: 1.6; }
+.small { font-size: 14px; line-height: 1.6; }
+.muted { color: var(--muted); }
+/* small numbers (a step's, a card's) are serial numbers: the Label */
+.n { font: var(--label-wght) 13px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); font-variant-numeric: tabular-nums lining-nums; color: var(--fg); }
+.t-xxl, .t-xl, .t-l, .ev-day, .sched-time, .mrow .pr, .dinner .price, .fact b, .invite .phone, .dl dd, .week td { font-variant-numeric: lining-nums; }
+h1, h2, .t-xxl, .t-xl, .t-l { overflow-wrap: break-word; }
+
+/* ---------- Layout ---------- */
+.wrap { width: 100%; max-width: var(--max); margin: 0 auto; padding: 0 var(--pad); }
+.sec { padding: var(--sec-y) 0; }
+.sec-t { padding: var(--sec-y) 0; } /* (a section without a heading of its own: the same air as every other) */
+.g12 { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); }
+.g12 > *, .stack { min-width: 0; }
+.stack { display: grid; gap: 24px; align-content: start; justify-items: start; }
+.center { text-align: center; justify-items: center; }
+.btns { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; }
+.head-row { margin-bottom: var(--head-gap); align-items: end; row-gap: 16px; }
+.head-gap { margin-bottom: var(--head-gap); } /* (any other heading row: the same gap as every section's) */
+/* narrower than a laptop: one column. A phone held sideways (from 640px wide, and short) keeps the columns side
+   by side, a picture beside its words, as on a laptop (landscape.css keeps the picture within the screen). */
+@media (max-width: 639px), (max-width: 899px) and (orientation: portrait), (max-width: 899px) and (min-height: 501px) {
+  .g12 { grid-template-columns: minmax(0, 1fr); row-gap: 28px; }
+  .g12 > * { grid-column: 1 / -1 !important; }
+}
+
+/* ---------- Buttons & links ----------
+   (LUKA LATEST, 2026-11-23.) Square, flat, in the Label's capitals: the main action a block of the shirt's white,
+   its words black; the second the dark, a hairline of the shirt round it; a section's way on (.lnk) the dark one,
+   small, with an arrow. No texture, no cut corner, no glass.
+   The hover is the logo: the button is written as HOTLAND's L is. The block goes black, and at its left edge the
+   club's own needle of light is struck, the very artwork of the logo's L (data/art.ts signGlow: the tapered blade,
+   the spur at its middle pointing in, its aura), standing taller than the block as the L stands above and below the
+   word; its red falls on the block's face beside it. It is struck as the sign is: the spur catches first, falters
+   once, then the blade runs up and down from it. The needle keeps the logo's own red at every hour, as the logo does.
+   The keyboard's focus lights it too and holds it; a tap lights it while pressed. (Before it, the same day: concrete
+   blocks with a seam of light under them, a grid of red joints, Gio's strike through the words, a flat blind; Gio:
+   no line, and the concrete doesn't come off.) The classes stay as every page writes them: .btn-crimson is the white
+   block (or .btn-cuff), .btn-line and .btn-silver the dark one (or .btn-frame), .btn-sm the smaller size. */
+:root {
+  --needle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 127.8 596.58'%3E%3Cdefs%3E%3CradialGradient cx='-144.98' cy='1112.8' fx='-144.98' fy='1112.8' r='.29' gradientTransform='translate(32177.6421 1150932.1147) scale(221.5026 -1034)' gradientUnits='userSpaceOnUse' id='hs1'%3E%3Cstop offset='0' stop-color='%2383030d' stop-opacity='.62'/%3E%3Cstop offset='.2' stop-color='%2368030b' stop-opacity='.46'/%3E%3Cstop offset='.42' stop-color='%234c0209' stop-opacity='.27'/%3E%3Cstop offset='.67' stop-color='%23350207' stop-opacity='.12'/%3E%3Cstop offset='1' stop-color='%23250105' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient cx='-145.56' cy='1113.07' fx='-145.56' fy='1113.07' r='.29' gradientTransform='translate(13137.1692 864046.8783) scale(89.7984 -776)' gradientUnits='userSpaceOnUse' id='hs2'%3E%3Cstop offset='0' stop-color='%23f10717' stop-opacity='.82'/%3E%3Cstop offset='.13' stop-color='%23d80715' stop-opacity='.71'/%3E%3Cstop offset='.31' stop-color='%23b90412' stop-opacity='.53'/%3E%3Cstop offset='.54' stop-color='%2398030e' stop-opacity='.28'/%3E%3Cstop offset='.77' stop-color='%237d020c' stop-opacity='.11'/%3E%3Cstop offset='1' stop-color='%23540108' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient cx='-146.66' cy='1113.22' fx='-146.66' fy='1113.22' r='.29' gradientTransform='translate(5914.1777 761746.5769) scale(39.9104 -684)' gradientUnits='userSpaceOnUse' id='hs3'%3E%3Cstop offset='0' stop-color='%23ff1820' stop-opacity='.96'/%3E%3Cstop offset='.2' stop-color='%23f3141c' stop-opacity='.88'/%3E%3Cstop offset='.43' stop-color='%23e11016' stop-opacity='.61'/%3E%3Cstop offset='.65' stop-color='%23be090f' stop-opacity='.31'/%3E%3Cstop offset='.85' stop-color='%239b070e' stop-opacity='.1'/%3E%3Cstop offset='1' stop-color='%2378060b' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient cx='-145.38' cy='1120.63' fx='-145.38' fy='1120.63' r='.29' gradientTransform='translate(17775.9597 110124.3965) scale(121.7267 -98)' gradientUnits='userSpaceOnUse' id='hs4'%3E%3Cstop offset='0' stop-color='%23e40c1b' stop-opacity='.48'/%3E%3Cstop offset='.26' stop-color='%23cc0818' stop-opacity='.36'/%3E%3Cstop offset='.5' stop-color='%23ad0511' stop-opacity='.21'/%3E%3Cstop offset='.76' stop-color='%238d050d' stop-opacity='.08'/%3E%3Cstop offset='1' stop-color='%2364030a' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient cx='-145.65' cy='1133.18' fx='-145.65' fy='1133.18' r='.29' gradientTransform='translate(13450.6657 45629.4674) scale(91.7939 -40)' gradientUnits='userSpaceOnUse' id='hs5'%3E%3Cstop offset='0' stop-color='%23fc1320' stop-opacity='.72'/%3E%3Cstop offset='.27' stop-color='%23e8111b' stop-opacity='.53'/%3E%3Cstop offset='.52' stop-color='%23ce0a14' stop-opacity='.3'/%3E%3Cstop offset='.76' stop-color='%23a10811' stop-opacity='.1'/%3E%3Cstop offset='1' stop-color='%2375040a' stop-opacity='0'/%3E%3C/radialGradient%3E%3ClinearGradient x1='80.45' y1='1575.8' x2='80.45' y2='1078.71' gradientTransform='translate(0 1629.6875) scale(1 -1)' gradientUnits='userSpaceOnUse' id='hs6'%3E%3Cstop offset='0' stop-color='%23250409' stop-opacity='.1'/%3E%3Cstop offset='.12' stop-color='%2339060c' stop-opacity='.72'/%3E%3Cstop offset='.24' stop-color='%23750710' stop-opacity='.95'/%3E%3Cstop offset='.37' stop-color='%23ca3f41'/%3E%3Cstop offset='.46' stop-color='%23d46165'/%3E%3Cstop offset='.51' stop-color='%23d46165'/%3E%3Cstop offset='.55' stop-color='%23db686e'/%3E%3Cstop offset='.63' stop-color='%23d13e47'/%3E%3Cstop offset='.73' stop-color='%238f1012'/%3E%3Cstop offset='.85' stop-color='%2356060e' stop-opacity='.88'/%3E%3Cstop offset='1' stop-color='%23250409' stop-opacity='.1'/%3E%3C/linearGradient%3E%3ClinearGradient x1='63.9' y1='1332.15' x2='105.35' y2='1332.15' gradientTransform='translate(0 1629.6875) scale(1 -1)' gradientUnits='userSpaceOnUse' id='hs7'%3E%3Cstop offset='0' stop-color='%23280007' stop-opacity='0'/%3E%3Cstop offset='.25' stop-color='%23380008' stop-opacity='.22'/%3E%3Cstop offset='.65' stop-color='%23380004' stop-opacity='.59'/%3E%3Cstop offset='1' stop-color='%23260006' stop-opacity='.68'/%3E%3C/linearGradient%3E%3ClinearGradient x1='59.69' y1='1500.45' x2='59.69' y2='1156' gradientTransform='translate(0 1629.6875) scale(1 -1)' gradientUnits='userSpaceOnUse' id='hs8'%3E%3Cstop offset='0' stop-color='%23ff171c' stop-opacity='0'/%3E%3Cstop offset='.19' stop-color='%23ff2927' stop-opacity='.34'/%3E%3Cstop offset='.35' stop-color='%23ff4c43' stop-opacity='.78'/%3E%3Cstop offset='.48' stop-color='%23ff736a' stop-opacity='.99'/%3E%3Cstop offset='.54' stop-color='%23ff746b'/%3E%3Cstop offset='.61' stop-color='%23ff534a' stop-opacity='.93'/%3E%3Cstop offset='.75' stop-color='%23ff342e' stop-opacity='.62'/%3E%3Cstop offset='1' stop-color='%23ff1a20' stop-opacity='0'/%3E%3C/linearGradient%3E%3ClinearGradient x1='60.45' y1='1329.78' x2='99.02' y2='1329.78' gradientTransform='translate(0 1629.6875) scale(1 -1)' gradientUnits='userSpaceOnUse' id='hs9'%3E%3Cstop offset='0' stop-color='%23ff5c50' stop-opacity='.56'/%3E%3Cstop offset='.24' stop-color='%23ff3f36' stop-opacity='.65'/%3E%3Cstop offset='.61' stop-color='%23ff2c29' stop-opacity='.36'/%3E%3Cstop offset='1' stop-color='%23ff2a28' stop-opacity='0'/%3E%3C/linearGradient%3E%3ClinearGradient x1='58.42' y1='1435.25' x2='58.42' y2='1222.35' gradientTransform='translate(0 1629.6875) scale(1 -1)' gradientUnits='userSpaceOnUse' id='hs10'%3E%3Cstop offset='0' stop-color='%23ff6c62' stop-opacity='0'/%3E%3Cstop offset='.37' stop-color='%23ff9e94' stop-opacity='.6'/%3E%3Cstop offset='.49' stop-color='%23ffa297' stop-opacity='.8'/%3E%3Cstop offset='.55' stop-color='%23ff9488' stop-opacity='.75'/%3E%3Cstop offset='.69' stop-color='%23ff675c' stop-opacity='.45'/%3E%3Cstop offset='1' stop-color='%23ff493f' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cellipse cx='63.9' cy='298.29' rx='63.9' ry='298.29' fill='url(%23hs1)'/%3E%3Cellipse cx='66.2' cy='301.75' rx='25.91' ry='223.86' fill='url(%23hs2)' opacity='.58'/%3E%3Cellipse cx='60.91' cy='302.91' rx='11.51' ry='197.32' fill='url(%23hs3)' opacity='.76'/%3E%3Cellipse cx='78.87' cy='302.33' rx='35.12' ry='28.27' fill='url(%23hs4)'/%3E%3Cellipse cx='80.59' cy='302.33' rx='26.48' ry='11.54' fill='url(%23hs5)'/%3E%3Cpath d='M59.24,53.89c2.13,59.48,3.85,139.39,4.98,189.19.46,21.11.43,36.23,3.71,44.54,4.2,10.56,16.35,12.75,36.96,14.55-20.27,1.86-30.51,3.88-35.15,11.27-3.51,5.56-4.03,21.66-4.57,38.57-1.62,54.23-3.34,131.14-5.94,198.96-1.75-61.7-2.72-130.07-3.07-191.26-.22-32.57-.22-84.32.05-116.17C56.56,179.26,57.51,112.22,59.24,53.89Z' fill='url(%23hs6)'/%3E%3Cpath d='M64.22,243.08c.46,21.11.43,36.23,3.71,44.54,4.2,10.56,16.35,12.75,36.96,14.55-20.27,1.86-30.51,3.88-35.15,11.27-3.51,5.56-4.03,21.66-4.57,38.57L64.22,243.08Z' fill='url(%23hs7)'/%3E%3Cpath d='M58.95,129.24c-.19,51.18-1.57,101.6-1.75,136.68-.27,33.81-.09,79.51.09,107.29.21,35.46.91,75.58,1.81,100.48.18-32.37,1.33-72.35,1.67-102.33.49-28.06,1.05-49.18,1.47-61.64.33-10.71-.57-35.89-.92-53.63C60.96,215.81,60.04,163.69,58.95,129.24Z' fill='url(%23hs8)'/%3E%3Cpath d='M60.26,285.25c5.11,9.7,15.04,15.07,37.95,16.91-19.86.6-29.24,2.94-37.76,12.4C61.22,307,61.23,295.38,60.26,285.25Z' fill='url(%23hs9)'/%3E%3Cpath d='M58.34,194.44c-.39,30.31-.44,63.25-.56,91.97-.07,34.67.13,80.23.56,120.93.21-41.83.74-83.68.74-121.05C59.06,257.95,58.78,225.48,58.34,194.44Z' fill='url(%23hs10)'/%3E%3C/svg%3E");
+  --needle-red: rgb(241 7 23); /* the logo's own red, for the light the needle throws on the block */
+}
+.btn, .lnk {
+  position: relative; isolation: isolate;
+  display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+  border: 0; border-radius: 0;
+  font: var(--label-wght) 13px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); text-transform: uppercase; white-space: nowrap;
+  color: var(--fg); -webkit-tap-highlight-color: transparent;
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px rgb(236 236 232 / .42);
+  transition: color .3s ease, background-color .3s ease, box-shadow .3s ease, scale .2s ease;
+}
+/* (going dark is at once, as a room goes dark when the sign is struck: a white block fading to black would pass
+   through grey) */
+:is(.btn, .lnk):is(:hover, :focus-visible, :active) { transition: scale .2s ease; }
+.btn { height: 52px; padding: 0 28px; }
+.btn:active, .lnk:active { scale: .98; }
+:is(.btn-crimson, .btn-cuff, .hdr-book) { color: var(--lacquer); background-color: var(--shirt); box-shadow: inset 0 0 0 1px var(--shirt); }
+/* the needle: the logo's L, standing on the block's left edge (its line 46% into the artwork, its spur half way up),
+   taller than the block by a third above and below */
+.btn::after, .lnk::after {
+  content: ''; position: absolute; z-index: 2; left: 0; top: 50%; height: 216%; aspect-ratio: 127.8 / 596.58;
+  translate: -46% -50.6%; pointer-events: none;
+  background: var(--needle) 0 0 / 100% 100% no-repeat;
+  filter: brightness(1.35) drop-shadow(0 0 2px rgb(255 40 48 / .9)) drop-shadow(0 0 7px rgb(241 7 23 / .55));
+  opacity: 0; transform-origin: 50% 50.6%;
+}
+@keyframes needle-strike {
+  0% { opacity: 0; transform: scaleY(.05); }
+  10% { opacity: 1; transform: scaleY(.05); }
+  20% { opacity: .2; transform: scaleY(.05); }
+  30% { opacity: 1; transform: scaleY(.05); }
+  72%, 100% { opacity: 1; transform: scaleY(1); }
+}
+/* lit: the block black, its hairline faint, the words white, the needle's red on the block's face beside it */
+:is(.btn, .lnk):is(:focus-visible, :active) {
+  color: var(--shirt); box-shadow: inset 0 0 0 1px rgb(236 236 232 / .2);
+  background: radial-gradient(46% 120% at 0 50%, color-mix(in srgb, var(--needle-red) 30%, transparent), color-mix(in srgb, var(--needle-red) 8%, transparent) 55%, transparent 80%) var(--lacquer);
+}
+:is(.btn, .lnk):is(:focus-visible, :active)::after { opacity: 1; }
+:is(.btn, .lnk):focus-visible { outline: none; }
+@media (hover: hover) {
+  :is(.btn, .lnk):hover {
+    color: var(--shirt); box-shadow: inset 0 0 0 1px rgb(236 236 232 / .2);
+    background: radial-gradient(46% 120% at 0 50%, color-mix(in srgb, var(--needle-red) 30%, transparent), color-mix(in srgb, var(--needle-red) 8%, transparent) 55%, transparent 80%) var(--lacquer);
+  }
+  .btn:hover::after, .lnk:hover::after { opacity: 1; animation: needle-strike .62s cubic-bezier(.5, 0, .2, 1) both; }
+}
+@media (hover: hover) and (prefers-reduced-motion: reduce) {
+  .btn:hover::after, .lnk:hover::after { animation: none; }
+}
+.btn-sm { height: 44px; padding: 0 18px; font-size: 12px; }
+/* A section's way on («Вся афиша», «Вся галерея»): the dark one, small, with an arrow drawn on it, which steps on and
+   turns white under the pointer (the arrow is the block's own background, over the needle's red) */
+.lnk {
+  height: 44px; padding: 0 52px 0 18px; font-size: 12px;
+  --arrow-steel: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 12'%3E%3Cpath d='M0 6h24.6M19 .8 24.6 6 19 11.2' fill='none' stroke='%239ba0a7' stroke-width='1.5'/%3E%3C/svg%3E");
+  --arrow-shirt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 12'%3E%3Cpath d='M0 6h24.6M19 .8 24.6 6 19 11.2' fill='none' stroke='%23ecece8' stroke-width='1.5'/%3E%3C/svg%3E");
+  background: var(--arrow-steel) calc(100% - 18px) 50% / 22px 11px no-repeat transparent;
+  transition: color .3s ease, background-color .3s ease, box-shadow .3s ease, scale .2s ease, background-position .45s var(--ease-out);
+}
+.lnk:is(:focus-visible, :active) {
+  background: var(--arrow-shirt) calc(100% - 13px) 50% / 22px 11px no-repeat, radial-gradient(46% 120% at 0 50%, color-mix(in srgb, var(--needle-red) 30%, transparent), color-mix(in srgb, var(--needle-red) 8%, transparent) 55%, transparent 80%) var(--lacquer);
+}
+@media (hover: hover) {
+  .lnk:hover { background: var(--arrow-shirt) calc(100% - 13px) 50% / 22px 11px no-repeat, radial-gradient(46% 120% at 0 50%, color-mix(in srgb, var(--needle-red) 30%, transparent), color-mix(in srgb, var(--needle-red) 8%, transparent) 55%, transparent 80%) var(--lacquer); }
+}
+/* A link in running text (.tl, and every link in a document's text): a 1px underline that catches the red */
+.tl, .prose a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .28em; text-decoration-color: var(--rule-2); transition: text-decoration-color .2s; }
+:is(.tl, .prose a):is(:hover, :focus-visible) { text-decoration-color: var(--lit); }
+
+/* ---------- Section headings ----------
+   Every section's heading row is .bighead (.bh-line): one column on one left edge, at every size. The title; under
+   it its line (two lines at most, at a reading width); under that, at most one link (.lnk, to the section's own
+   page) or the section's own controls. One thing after another, read top to bottom, nothing left floating at the
+   far side of the screen. (2026-11-13: the client found the old row, the title on the left with the line and the
+   link spread across to the right, a bad layout, and asked for one new layout for every section.) Buttons that
+   book or request something belong to the section's content, not to its heading row. No overline labels, no
+   rules above.
+   (2026-11-22: the client asked for the section's way on as a framed button at the right side; from 900px wide the
+   .lnk of a heading row stands at the row's right edge, level with the foot of its line. On a phone it stays under
+   the line.) */
+.bighead { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; row-gap: clamp(16px, 1.5vw, 22px); margin-bottom: var(--head-gap); } /* (one gap down the row: title, line, link; .shead the same) */
+.bighead-side { display: grid; justify-items: start; gap: clamp(16px, 1.5vw, 22px); }
+/* (one measure for every section's line, 56 characters: lines wrap, never balanced to a narrower box; no word alone
+   on the last line) */
+.bighead-side .body { max-width: 56ch; font-size: clamp(17px, 1.25vw, 18px); line-height: 1.6; text-wrap: pretty; }
+.bighead-side .n { font-size: 15px; }
+@media (min-width: 900px) {
+  .bighead:has(> .bighead-side > .lnk) { position: relative; }
+  .bighead > .bighead-side > .lnk { position: absolute; right: 0; bottom: 0; }
+  .bighead:has(> .bighead-side > .lnk) > .bighead-side .body { max-width: min(56ch, calc(100vw - 2 * var(--pad) - 280px)); }
+}
+/* (the plain heading with a link, SecIndex: the same order, the link under the title) */
+.shead { display: grid; justify-items: start; row-gap: clamp(16px, 1.5vw, 22px); margin-bottom: var(--head-gap); }
+
+/* ---------- Logo ----------
+   The club's logo is Logo.astro (its rules: nav.css, .logo). What stood here dressed the earlier lily-and-wordmark
+   lockup, which no page sets any more; only the two marks' own fills are kept, for the hidden footer that still
+   draws them (FooterNight.astro). */
+.emblem { fill: var(--emblem); }
+.emblem .es { stroke: var(--emblem); }
+.wordmark { display: block; width: auto; height: 20px; fill: var(--emblem); }
+
+/* ---------- Frames: hard edges, big ---------- */
+.arch, .photo { position: relative; overflow: hidden; aspect-ratio: 4 / 5; }
+.arch > video, .arch > img, .photo img, .photo > video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.photo img { transition: transform 1.2s cubic-bezier(.2, .7, .2, 1); }
+a:hover .photo img { transform: scale(1.03); }
+/* a picture we don't have yet: a matte black block in a hairline frame that says what belongs here */
+.photo.ph { display: grid; place-items: center; padding: 24px; text-align: center; background: var(--lacquer); box-shadow: inset 0 0 0 1px var(--rule); -webkit-mask-image: none; mask-image: none; }
+.ph-label { max-width: 30ch; font: 400 14px/1.5 var(--sans); color: var(--ash); }
+.cap { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 12px; }
+.mosaic { columns: 3 260px; column-gap: var(--gap); }
+.mosaic .fig { break-inside: avoid; margin-bottom: var(--gap); }
+.mosaic .cap { margin: 8px 0 14px; }
+/* three pictures at 4:3, 1:1 and 3:4: columns in that proportion (16:12:9) so all three stand the same height;
+   on phones the wide one goes on top and the other two share a row */
+.trio { display: grid; grid-template-columns: 16fr 12fr 9fr; gap: var(--gap); align-items: start; }
+@media (max-width: 899px) { .trio { grid-template-columns: 12fr 9fr; } .trio > :first-child { grid-column: 1 / -1; } }
+
+/* ---------- Photos: black and white until the new shoot ----------
+   Every photograph and film on the site is shown in black and white (2026-11-21): the pictures we have were lit in
+   pink and purple, and none of that light may reach the page. One grade (--grade, :root), put on the frame a picture
+   or a film stands in: the shared frames, and whatever element holds an <img> or a <video> directly. On the frame,
+   not on the picture, so the film playing over a photo takes it too, and so a part's own filter on its picture
+   (a hover's brightness) still ends in black and white. So: a line of light (a laser, a seam) never stands inside a
+   picture's frame, or it goes grey with it; give the picture a frame of its own. .graded puts the grade on anything
+   else that shows a photograph (a picture in a background, a canvas); .ungraded takes it off (a drawing, a mark, a
+   picture from the new shoot); an SVG picture is never graded. It holds until the new shoot: then --grade is set
+   to saturate(1), and this stays as it is.
+   The frames have no rim: their edges are hard, or fade into the black page (the big pictures that meet the
+   edge of the page: the header film, page titles, the film band). */
+.photo, .pt-frame, .cw, .ptitle-media, .film-media, .poster-shot { isolation: isolate; background: var(--lacquer); }
+:where(.photo, .pt-frame, .cw, .ptitle-media, .film-media, .poster-shot, .arch, .graded):not(.ungraded, .ungraded *) { filter: var(--grade); }
+:where(:has(> img:not([src$=".svg"], .ungraded), > video:not(.ungraded))):not(.ungraded, .ungraded *) { filter: var(--grade); }
+/* (where a script sets the frame's own filter in its style attribute, which no stylesheet outranks, the picture
+   inside takes the grade instead: the artists' stage dims its portraits that way) */
+:where([style*="filter"]) > :where(img:not([src$=".svg"]), video):not(.ungraded) { filter: var(--grade); }
+/* (a browser without :has() grades the pictures themselves) */
+@supports not selector(:has(a)) {
+  :where(img, video):not(:where(.photo, .pt-frame, .cw, .ptitle-media, .film-media, .poster-shot, .arch, .graded, .ungraded) *, .ungraded, [src$=".svg"]) { filter: var(--grade); }
+}
+/* Photographs are cut hard, as the posters are. (They used to dissolve into the page on every side, and beside the
+   square plates they read as soft blobs.) Two exceptions:
+   - a picture that is its section's last thing (the home's bar, the hookah lounge, About's right wing): its foot
+     falls into the page over its last fifth, so the section ends at the middle of that fall, a tenth of the
+     picture's height sooner; then the air under what can be seen is the section's own --sec-y. Its column takes a
+     margin-bottom of -10% of the picture's height: -12.5% of the column's width for a 4:5 picture, -13.33% for
+     3:4 (a margin's percentage is of the column's width);
+   - pictures side by side whose own dark runs to their edges (an occasion's three): a hairline says where each
+     ends, as on a poster (the line is drawn on ::after, below: Pictures with no box). */
+:is(.ab-wing-r, .menu-peek-side, #hookah .g12 > :first-child) .photo:not(.ph) {
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 80%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 80%, transparent 100%);
+}
+:is(.photo, .pt-frame, .cw, .ptitle-media, .film-media, .poster-shot) :is(img, video) { transition: transform 1.2s cubic-bezier(.2, .7, .2, 1), scale 1.2s cubic-bezier(.2, .7, .2, 1), opacity .6s ease, filter .9s ease; }
+/* masks: pictures dissolve into the page instead of ending in hard edges */
+.cw { -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 18%, #000 82%, transparent 100%); mask-image: linear-gradient(90deg, transparent 0%, #000 18%, #000 82%, transparent 100%); }
+.strip { -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 14%, #000 86%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0%, #000 14%, #000 86%, transparent 100%); }
+.film-media { -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 84%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 84%, transparent 100%); }
+/* the band under a detail page's header fades in from the black above and out below */
+.ptitle-media { -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 76%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 76%, transparent 100%); }
+@media (max-width: 899px) {
+  .cw-a, .cw-b { margin: 0; }
+}
+
+/* ---------- 3D icons (chrome and crimson, rendered offline) ----------
+   On their way out (2026-11-21): the line art (LineArt.astro) takes their places. Until it does, the grade shows
+   them in grey like every picture. */
+.ic3d { display: block; flex: none; }
+.ic3d img { display: block; width: 100%; height: auto; }
+.inside { padding-top: clamp(24px, 3vw, 48px); }
+.inside-row { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 32px var(--gap); }
+.inside-item { display: grid; justify-items: center; gap: 6px; text-align: center; color: var(--fg); }
+.inside-item .ic3d { width: min(100%, 196px); margin-bottom: 4px; transition: transform .7s var(--ease-back); }
+.inside-item:hover .ic3d { transform: translateY(-8px) rotate(-4deg) scale(1.04); }
+.inside-t { font: 500 clamp(21px, 1.8vw, 30px)/1.05 var(--display); letter-spacing: -.01em; }
+.inside-item:hover .inside-t { color: #fff; }
+.inside-s { font: 400 14px/1.4 var(--sans); color: var(--muted); }
+@media (max-width: 1099px) { .inside-row { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 44px; } }
+@media (max-width: 599px) { .inside-row { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 36px; } }
+/* beside section headings */
+.shead h2 { display: flex; align-items: center; gap: clamp(10px, 1.4vw, 22px); }
+.shead-ic { width: clamp(64px, 6.4vw, 104px); margin: -.12em 0 -.18em; }
+/* above the club formats on the About page */
+.ng-ic { width: clamp(96px, 9vw, 140px); margin: 0 0 6px -10px; }
+
+/* ---------- Facts ---------- */
+.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 var(--gap); margin-top: clamp(28px, 3.6vw, 56px); border-top: 1px solid var(--rule-2); }
+.fact { display: grid; gap: 14px; align-content: start; padding-top: 24px; }
+.fact b { font: var(--dial-wght) var(--dial-num)/.82 var(--f-flex); font-stretch: var(--dial-wdth); font-variant-numeric: tabular-nums lining-nums; white-space: nowrap; padding-right: .05em; }
+.fact b i { font-style: normal; }
+@media (max-width: 899px) { .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 32px; } }
+/* the smaller set on an event page: doors, shows, entry, dress code */
+.facts-sm { margin-top: 0; }
+.facts-sm .fact b { font-size: var(--dial-num-s); font-weight: var(--dial-num-s-wght); line-height: .9; white-space: normal; }
+.facts-btns { margin-top: clamp(36px, 4vw, 56px); }
+
+/* ---------- Program ---------- */
+.evs { border-bottom: 1px solid var(--rule-2); }
+.ev {
+  display: grid; grid-template-columns: clamp(96px, 11vw, 168px) minmax(0, 1fr) minmax(0, 36%);
+  gap: clamp(20px, 3vw, 48px); align-items: start; padding: clamp(18px, 2vw, 28px) 0; border-top: 1px solid var(--rule-2);
+}
+.ev-date { display: grid; gap: 10px; align-self: start; }
+.ev-day { font: var(--dial-wght) var(--dial-num)/.82 var(--f-flex); font-stretch: var(--dial-wdth); font-variant-numeric: tabular-nums lining-nums; padding-right: .04em; }
+.ev-body { display: grid; gap: 12px; justify-items: start; padding-top: clamp(6px, 1vw, 14px); }
+.ev-title { font: 500 clamp(28px, 3.44vw, 59px)/1.05 var(--display); letter-spacing: -.01em; transition: color .2s; }
+.ev:hover .ev-title { color: #fff; }
+.ev-date .label:last-child { color: var(--red-text); }
+.ev .photo { aspect-ratio: 16 / 10; }
+.evs.narrow .ev { grid-template-columns: clamp(80px, 8vw, 120px) minmax(0, 1fr) minmax(0, 30%); }
+.evs.narrow .ev-title { font-size: clamp(30px, 3vw, 48px); }
+.evs.narrow .ev-day { font-size: clamp(64px, 6vw, 100px); }
+@media (max-width: 699px) {
+  .ev, .evs.narrow .ev { grid-template-columns: 76px minmax(0, 1fr); }
+  .ev .photo { grid-column: 1 / -1; order: -1; }
+  .ev-day, .evs.narrow .ev-day { font-size: 64px; }
+}
+
+/* ---------- Girls: big black-and-white portraits ---------- */
+.artists { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(36px, 4vw, 56px) var(--gap); }
+.artists.three, .lookbook { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.lookbook { display: grid; gap: clamp(40px, 5vw, 72px) var(--gap); }
+@media (max-width: 1023px) {
+  .artists, .artists.three, .lookbook { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.pt { display: grid; gap: 14px; align-content: start; min-width: 0; color: var(--fg); }
+.pt-frame { position: relative; aspect-ratio: 3 / 4; overflow: hidden; -webkit-mask-image: linear-gradient(180deg, #000 68%, transparent 100%); mask-image: linear-gradient(180deg, #000 68%, transparent 100%); }
+.pt-frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 0; transition: opacity .45s, transform 1.2s cubic-bezier(.2, .7, .2, 1); }
+.pt:hover .pt-frame img { transform: scale(1.03); }
+.pt-frame .alt { opacity: 0; }
+.pt:hover .pt-frame .alt { opacity: 1; }
+.pt:hover .pt-frame img:not(.alt):has(+ .alt) { opacity: 0; }
+.pt-meta { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 12px; margin-top: -10px; min-width: 0; }
+.pt-name { font: 500 clamp(24px, 2.1vw, 32px)/1.08 var(--display); }
+.pt:hover .pt-name { color: #fff; }
+.pt-no { font: var(--label-wght) 12px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); color: var(--red-text); font-variant-numeric: tabular-nums; }
+.pt-side { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.pt-detail { display: flex; flex-wrap: wrap; gap: 12px; }
+.tonight-dot { color: var(--fg); }
+.tonight-dot::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--light-core); margin-right: 9px; vertical-align: 1px; box-shadow: 0 0 3px 1px var(--light), 0 0 10px 2px color-mix(in srgb, var(--light) 40%, transparent); }
+@media (max-width: 599px) { .pt-name { font-size: 30px; } }
+.filter { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; padding: 0 0 20px; border-bottom: 1px solid var(--rule); }
+
+/* ---------- Girls lineup on the home page: one row that scrolls sideways ---------- */
+.reel-nav { display: flex; align-items: center; gap: 10px; }
+.reel-nav .lnk { margin-left: 14px; }
+.reel-btn {
+  width: 52px; height: 52px; border-radius: 0; display: grid; place-items: center;
+  border: 1px solid var(--rule-2); color: var(--fg); font: 400 20px/1 var(--sans);
+  transition: background-color .2s, color .2s, border-color .2s, opacity .2s, scale .2s ease;
+}
+.reel-btn:active:not(:disabled) { scale: .92; }
+.reel-btn:hover:not(:disabled) { background: var(--fg); border-color: var(--fg); color: var(--ink); }
+.reel-btn:disabled { opacity: .28; cursor: default; }
+.reel {
+  --reel-pad: max(var(--pad), calc((100vw - var(--max)) / 2 + var(--pad)));
+  overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-inline: var(--reel-pad);
+  scrollbar-width: none;
+}
+.reel::-webkit-scrollbar { display: none; }
+.reel:not(.at-end) { -webkit-mask-image: linear-gradient(90deg, #000 86%, transparent 100%); mask-image: linear-gradient(90deg, #000 86%, transparent 100%); }
+.reel-track {
+  list-style: none; margin: 0; padding: 0 var(--reel-pad) 4px; width: max-content;
+  display: grid; grid-auto-flow: column; grid-auto-columns: clamp(250px, 22.5vw, 340px); gap: var(--gap);
+}
+.reel-item { scroll-snap-align: start; min-width: 0; }
+.reel .pt-meta { gap: 8px; }
+@media (max-width: 899px) {
+  .reel-btn { display: none; }
+  .reel-nav .lnk { margin-left: 0; }
+  .reel-track { grid-auto-columns: 66vw; }
+  .reel:not(.at-end) { -webkit-mask-image: none; mask-image: none; }
+}
+
+/* ---------- Offers (kept for inner pages) ---------- */
+.offers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(36px, 4vw, 56px) var(--gap); }
+.offer { display: grid; gap: 16px; align-content: start; }
+@media (max-width: 899px) { .offers { grid-template-columns: 1fr; } }
+
+/* ---------- Plate lists ---------- */
+.occ-list { list-style: none; padding: 0; width: 100%; }
+.occ-list a {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 12px 0;
+  border-bottom: 1px solid var(--rule); transition: padding .25s, color .25s;
+  font: 500 clamp(28px, 2.6vw, 42px)/1.1 var(--display);
+}
+.occ-list a::after { content: ''; display: inline-block; vertical-align: middle; flex: none; width: 26px; height: 13px; background: currentColor; -webkit-mask: var(--arrow) center / 100% 100% no-repeat; mask: var(--arrow) center / 100% 100% no-repeat; }
+.occ-list a:hover { color: #fff; }
+.occ-list a::after { color: var(--red-text); }
+.velvet-in { display: grid; justify-items: center; gap: 28px; text-align: center; }
+.occ { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.occ a { padding: 12px 18px; border: 1px solid var(--rule-2); font: 500 14px/1 var(--sans); }
+.promise-q { font: 450 clamp(28px, 3.2vw, 48px)/1.25 var(--display); max-width: 26ch; text-align: center; }
+
+/* ---------- Price lists: name, dotted leader, price ---------- */
+.mrows { display: grid; margin-top: 26px; }
+.mrow { display: flex; align-items: baseline; gap: 12px; padding: 9px 0; }
+.mrow .nm { font: 400 var(--lead)/1.4 var(--sans); color: var(--fg); }
+.mrow .nm small { display: block; margin-top: 3px; font: 400 14px/1.5 var(--sans); color: var(--muted); }
+.mrow .dots { flex: 1; min-width: 24px; border-bottom: 1px dotted var(--rule-2); transform: translateY(-6px); }
+/* (a price in a list is the Label: small capitals, tabular, so the prices stand in one column) */
+.mrow .pr { font: var(--label-wght) 13px/1.05 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; color: var(--fg); }
+.mrow .pr.req { font: 400 14px/1 var(--sans); color: var(--muted); }
+@media (max-width: 599px) { .mrow { gap: 10px; } .mrow .dots { min-width: 12px; } }
+
+/* ---------- A list's group heading (the menu page's lists and the hookah's flavours; the card itself is styled in
+   menu.css, loaded by the menu page) ---------- */
+.mgroup-h { margin-bottom: 6px; font: 500 var(--item)/1.15 var(--display); letter-spacing: -.012em; }
+
+/* tabs: a smoked panel with one hairline (solid, never blurred); the one you are on stands over a line of the light,
+   as the current page does in the header, and the line slides to it */
+.tabs {
+  position: relative; display: inline-flex; gap: 0; max-width: 100%; padding: 0 4px; overflow-x: auto; scrollbar-width: none;
+  background-color: var(--smoke); box-shadow: inset 0 0 0 1px var(--rule-2);
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tabs-ink {
+  position: absolute; bottom: 0; left: 0; height: var(--seam); width: var(--w, 0); translate: var(--x, 0) 0;
+  background: var(--lit-core); box-shadow: var(--seam-glow);
+  transition: translate .45s var(--ease-out), width .45s var(--ease-out);
+}
+.tabs button { position: relative; z-index: 1; flex: none; height: 48px; padding: 0 20px; font: var(--label-wght) 13px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); text-transform: uppercase; color: var(--ash); white-space: nowrap; transition: color .3s var(--ease-out), scale .2s ease; }
+.tabs button:active { scale: .98; }
+.tabs button:focus-visible { outline-offset: -4px; }
+.tabs button:hover { color: var(--fg); }
+.tabs button[aria-selected="true"] { color: #fff; }
+
+/* lists with the blade as the bullet (the class keeps its old name) */
+.lily-list { list-style: none; padding: 0; display: grid; gap: 10px; margin-top: 14px; color: var(--fg-2); }
+/* (the mark is a short steel dash: red is kept for light, never for ornament) */
+.lily-list li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 4px; }
+.lily-list li::before { content: ''; width: 10px; height: 1px; margin-top: .8em; background: var(--steel-hi); }
+.lily-list.two { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 24px; width: 100%; }
+@media (max-width: 399px) { .lily-list.two { grid-template-columns: 1fr; } }
+
+/* titles of the open cards: VIP cards, sets, the acts */
+/* (the item's size, the text face's steps in :root: a name under a picture or over a list, wherever it is) */
+.card-title { font: 500 var(--item)/1.15 var(--display); letter-spacing: -.012em; }
+
+/* ---------- Visit ---------- */
+.visit-addr { max-width: 18ch; font: 500 var(--item)/1.1 var(--display); overflow-wrap: normal; }
+.dl { display: grid; width: 100%; border-top: 1px solid var(--rule-2); }
+.dl > div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 15px 0; border-bottom: 1px solid var(--rule); }
+.dl dt.label { font: 400 15px/1.4 var(--sans); letter-spacing: 0; text-transform: none; color: var(--muted); }
+.dl dd { font: 400 var(--lead)/1.4 var(--sans); text-align: right; color: var(--fg); }
+@media (max-width: 599px) { .dl { grid-template-columns: 1fr; } }
+
+/* ---------- Rows, schedules, tables ---------- */
+.rows { width: 100%; border-top: 1px solid var(--rule-2); }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 24px; align-items: baseline; padding: 18px 0; border-bottom: 1px solid var(--rule); }
+.row.num { grid-template-columns: 44px minmax(0, 1fr) auto; }
+@media (max-width: 599px) { .row.num { grid-template-columns: 28px minmax(0, 1fr) auto; column-gap: 12px; } }
+.row .k { font: 400 var(--lead)/1.45 var(--sans); color: var(--fg); }
+.row .k small { display: block; margin-top: 4px; font: 400 14px/1.5 var(--sans); color: var(--muted); }
+.row .v { color: var(--fg-2); text-align: right; }
+a.row:hover .k { color: #fff; }
+.sched { width: 100%; border-top: 1px solid var(--rule-2); }
+.sched-row { display: grid; grid-template-columns: clamp(110px, 12vw, 170px) minmax(0, 1fr); gap: clamp(20px, 3vw, 48px); align-items: baseline; padding: 22px 0; border-bottom: 1px solid var(--rule); }
+.sched-time { font: var(--dial-num-s-wght) var(--dial-num-s)/.82 var(--f-flex); font-stretch: var(--dial-wdth); font-variant-numeric: tabular-nums lining-nums; }
+.sched-row .stack { gap: 10px; }
+@media (max-width: 599px) { .sched-row { grid-template-columns: 1fr; gap: 12px; } }
+.week { width: 100%; border-collapse: collapse; }
+.week th { padding: 0 16px 14px 0; text-align: left; font-weight: 500; border-bottom: 1px solid var(--rule-2); }
+.week td { padding: 20px 16px 20px 0; border-bottom: 1px solid var(--rule); vertical-align: baseline; color: var(--fg-2); }
+.week td:first-child { width: 26%; font: 500 clamp(21px, 1.97vw, 30px)/1.05 var(--display); color: var(--fg); }
+.week .theme { font: 500 clamp(19px, 1.6vw, 23px)/1.3 var(--display); color: var(--fg); }
+@media (max-width: 699px) {
+  .week thead { display: none; }
+  .week tr { display: grid; grid-template-columns: 1fr auto; gap: 6px; padding: 18px 0; border-bottom: 1px solid var(--rule); }
+  .week td { padding: 0; border: 0; width: auto !important; }
+  .week td:nth-child(2) { text-align: right; }
+  .week td:nth-child(3), .week td:nth-child(4) { grid-column: 1 / -1; }
+}
+.ngrid { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); border-top: 1px solid var(--rule-2); }
+.ngrid > div { display: grid; gap: 14px; align-content: start; padding: 26px clamp(16px, 2vw, 32px) 4px; border-left: 1px solid var(--rule); }
+.ngrid > div:first-child { border-left: 0; padding-left: 0; }
+@media (max-width: 899px) {
+  .ngrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ngrid > div { padding-bottom: 28px; border-bottom: 1px solid var(--rule); }
+  .ngrid > div:nth-child(odd) { border-left: 0; padding-left: 0; }
+}
+@media (max-width: 599px) { .ngrid { grid-template-columns: 1fr; } .ngrid > div { border-left: 0; padding-left: 0; } }
+.zz { display: grid; gap: clamp(56px, 6.4vw, 104px); }
+.zz-item { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); align-items: end; }
+.zz-item > .fig { grid-column: 1 / span 7; }
+.zz-item > .zz-txt { grid-column: 9 / span 4; display: grid; gap: 14px; padding-bottom: 8px; }
+.zz-txt .t-m { font-size: clamp(32px, 3.2vw, 54px); font-weight: 500; line-height: 1.02; letter-spacing: -.022em; }
+.zz-item:nth-child(even) > .fig { grid-column: 6 / span 7; grid-row: 1; }
+.zz-item:nth-child(even) > .zz-txt { grid-column: 1 / span 4; grid-row: 1; }
+@media (max-width: 899px) {
+  .zz-item { grid-template-columns: 1fr; row-gap: 22px; }
+  .zz-item > * { grid-column: 1 / -1 !important; grid-row: auto !important; }
+}
+.steps-inline { display: flex; flex-wrap: wrap; gap: 10px 0; font: 500 22px/1.25 var(--display); }
+.steps-inline span + span::before { content: ''; display: inline-block; vertical-align: middle; flex: none; width: 20px; height: 10px; background: var(--steel-hi); -webkit-mask: var(--arrow) center / 100% 100% no-repeat; mask: var(--arrow) center / 100% 100% no-repeat; margin: 0 14px; }
+
+.extras { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 0; margin-top: clamp(32px, 4vw, 56px); padding-top: 20px; border-top: 1px solid var(--rule-2); }
+.extras .label { margin-right: 28px; color: var(--fg); }
+.extras .x { font: 500 22px/1.25 var(--display); }
+.extras .x + .x::before { content: '·'; margin: 0 14px; color: var(--red-text); font-style: normal; }
+
+/* ---------- FAQ ---------- */
+.faq { width: 100%; }
+.faq details { border-bottom: 1px solid var(--rule); }
+.faq details:first-child { border-top: 1px solid var(--rule-2); }
+.faq summary { position: relative; padding: 22px 48px 22px 0; list-style: none; cursor: pointer; font: 500 18px/1.45 var(--sans); }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: '+'; position: absolute; right: 0; top: 50%; transform: translateY(-50%); font: 300 28px/1 var(--sans); color: var(--red-text); }
+.faq details[open] summary { font-weight: 500; }
+.faq details[open] summary::after { content: '–'; }
+.faq details p { padding: 0 0 24px; color: var(--fg-2); max-width: 62ch; }
+
+/* ---------- Forms ---------- */
+.form { display: grid; gap: 40px; width: 100%; }
+.form fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 14px; }
+.form legend { padding: 0; margin-bottom: 14px; }
+.form legend.label { font: 400 15px/1.4 var(--sans); letter-spacing: 0; text-transform: none; color: var(--fg-2); }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px var(--gap); }
+.field { display: grid; gap: 8px; }
+.field.full { grid-column: 1 / -1; }
+.field label { font: 400 14px/1.4 var(--sans); color: var(--muted); }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 6px 0 12px; border: 0; border-bottom: 1px solid var(--rule-2); border-radius: 0;
+  background: transparent; color: var(--fg); font: 400 18px/1.4 var(--sans); appearance: none; -webkit-appearance: none;
+}
+.field select { padding-right: 24px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%239ba0a7' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 4px center; }
+.field select option { background: var(--char); color: var(--fg); }
+.field textarea { min-height: 96px; resize: vertical; }
+.field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--lit); }
+.field input::-webkit-calendar-picker-indicator { filter: invert(.8); }
+/* Chosen, said one way everywhere (2026-11-21): the frame turns shirt white and its seam is lit along the lower
+   edge, as a button's is under the pointer. Never a fill. */
+.choice { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice label { position: relative; }
+.choice input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.choice span { display: inline-block; padding: 12px 18px; border: 1px solid var(--rule-2); font: 400 15px/1 var(--sans); color: var(--fg-2); transition: color .2s, border-color .2s, box-shadow .2s; }
+.choice input:checked + span { border-color: var(--shirt); color: var(--fg); box-shadow: inset 0 calc(-1 * var(--seam)) 0 var(--lit); }
+.choice input:focus-visible + span { outline: var(--seam) solid var(--lit); outline-offset: 3px; }
+/* the booking choices as tiles: the chosen one is framed in shirt white over its lit seam */
+.choice-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.choice-tiles label { display: grid; } /* the tile fills its row, so a two-line name doesn't make one tile taller */
+.choice-tiles span {
+  display: grid; justify-items: center; align-content: center; gap: 10px; min-height: 76px; padding: 14px 10px;
+  border: 1px solid var(--rule-2); background: var(--lacquer);
+  font: 500 15px/1.25 var(--sans); color: var(--fg-2); text-align: center;
+}
+.choice-tiles .choice-ic { width: 60px; height: 60px; transition: scale .35s var(--ease-out), opacity .35s; opacity: .8; }
+.choice-tiles .choice-ic img { width: 100%; height: 100%; object-fit: contain; }
+.choice-tiles input:checked + span { border-color: var(--shirt); color: var(--fg); box-shadow: inset 0 calc(-1 * var(--seam)) 0 var(--lit); }
+.choice-tiles input:checked + span .choice-ic { scale: 1.08; opacity: 1; }
+@media (hover: hover) { .choice-tiles label:hover input:not(:checked) + span { color: var(--fg); border-color: color-mix(in srgb, var(--shirt) 55%, transparent); } .choice-tiles label:hover input:not(:checked) + span .choice-ic { opacity: 1; } }
+/* a wide screen: the six choices in one row, and the wishes beside "how to reach you" as one short line that
+   grows as you type, so the whole form fits one screen */
+@media (min-width: 1200px) {
+  .choice-tiles:has(> :nth-child(6)) { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .choice-tiles:has(> :nth-child(6)) span { min-height: 120px; padding-inline: 6px; font-size: 14px; }
+  .fields > .field.full:last-child { grid-column: auto; }
+  .fields > .field.full:last-child textarea { min-height: 56px; field-sizing: content; max-height: 220px; }
+}
+@media (max-width: 599px) { .choice-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .choice-tiles span { min-height: 64px; } }
+.consent { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; line-height: 1.6; color: var(--muted); }
+.consent input { flex: none; width: 18px; height: 18px; margin-top: 3px; accent-color: var(--shirt); }
+.consent a { color: var(--fg-2); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: var(--rule-2); transition: text-decoration-color .2s; }
+.consent a:is(:hover, :focus-visible) { text-decoration-color: var(--lit); }
+/* what a form says when something is wrong: white words beside a line of the red light (never pink words) */
+.form-error { color: var(--error); font-size: 15px; padding-left: 12px; border-left: var(--seam) solid var(--light); }
+/* the night a poster brought you here for (BookingForm.astro): named, not asked. A matte panel, one hairline. */
+.form-night { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: -12px 0 -8px; padding: 14px 18px; background: var(--lacquer); border: 1px solid var(--rule-2); font-size: 15px; line-height: 1.4; }
+.form-night span { color: var(--muted); }
+.form-night b { font-weight: 500; color: var(--fg); }
+.form-night b::first-letter { text-transform: uppercase; }
+.form-ok { display: grid; gap: 12px; padding: 32px; border: 1px solid var(--rule-2); background: var(--card); }
+.form-fallback { display: grid; gap: 14px; padding: 28px; border: 1px solid var(--rule-2); background: rgba(230, 231, 233, .03); }
+.form-fallback[hidden] { display: none; }
+/* spam trap: invisible to people, filled only by bots */
+.hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.past-note { margin-top: 24px; }
+.past-note a { color: var(--fg); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: var(--rule-2); transition: text-decoration-color .2s; }
+.past-note a:is(:hover, :focus-visible) { text-decoration-color: var(--lit); }
+@media (max-width: 599px) { .fields { grid-template-columns: 1fr; } }
+
+/* Booking aside */
+.invite { position: relative; display: grid; gap: 20px; justify-items: center; text-align: center; padding: clamp(36px, 4vw, 52px) clamp(24px, 3vw, 40px); background: var(--lacquer); border: 1px solid var(--rule-2); }
+/* (the club's logo at its head, Logo.astro, sign="tight": room for the sign above the letters and under them) */
+.invite > .logo { margin: 8px 0 12px; }
+/* (the number is the point here: the Dial) */
+.invite .phone { font: var(--dial-num-s-wght) var(--dial-num-s)/1 var(--f-flex); font-stretch: var(--dial-wdth); font-variant-numeric: tabular-nums lining-nums; }
+.fine { gap: 20px; }
+.fine .row { padding: 13px 0; }
+.fine .row .k { font-size: 15px; color: var(--fg-2); }
+
+/* ---------- Inner page header: the page's name, big; a second line; the lead and actions ----------
+   Short and to the point, so every page says at once where you are. Detail pages may add a wide band of
+   their photo or film under it (.ptitle-band). */
+.ptitle { padding-top: calc(var(--hdr) + clamp(28px, 4vw, 64px)); }
+/* The page's name is a section of its own, with no air under it: the first section takes it all. Before a section
+   with a heading of its own, both halves of the air between two sections (twice --sec-y). Where the first section
+   has no heading of its own (the Афиша's posters, the VIP cards, the booking form, a document's text), the page's
+   name is its heading, and the content starts the heading gap under it. A detail page's band (its photo or film) is
+   the name's own picture, close under it; the air comes after the band, less the half of its fall into black that
+   already reads as air. */
+.ptitle-in { display: grid; gap: clamp(16px, 2vw, 28px); }
+.ptitle + :is(.sec, .sec-t) { padding-top: calc(2 * var(--sec-y)); }
+.ptitle + :is(.sec, .sec-t):not(:has(h2:not(.prose h2, .card-title))) { padding-top: var(--head-gap); } /* (a card's name is no section heading) */
+.ptitle.has-band .ptitle-in { padding-bottom: 0; } /* (the band comes out of the black over its first sixth, and that already reads as the heading gap) */
+.ptitle.has-band + .sec { padding-top: calc(2 * var(--sec-y) - 48px); }
+@media (max-width: 899px) { .ptitle.has-band + .sec { padding-top: var(--sec-y); } } /* (the band's own foot fades over its last 70px: with a full double gap after it the page showed a hole) */
+.ptitle-h { display: grid; gap: clamp(10px, 1.2vw, 18px); margin: 0; }
+/* The name is the Dial (.t-xl): very large, hairline, compressed. Its capitals run about 0.13em wide, so it can stand
+   far taller than a heavy face in the same room; --fit (PageTitle.astro: the longest word's width in em) keeps that
+   word within the column on the narrowest phone. */
+.ptitle-name { display: block; font-size: min(clamp(120px, 17vw, 260px), var(--fit-size)); line-height: .8; overflow-wrap: normal; --fit-size: calc((min(100vw, var(--max)) - 2 * var(--pad)) / var(--fit, 1.6)); }
+/* the line under the name: the text face, as a sentence (sentence case), its second half in ash */
+.ptitle-sub { display: block; max-width: 34ch; font: 400 clamp(20px, 2vw, 30px)/1.3 var(--sans); letter-spacing: -.012em; color: var(--fg); text-transform: none; text-wrap: balance; }
+.ptitle-sub em { font-style: normal; color: var(--quiet); }
+.ptitle-foot { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px 40px; align-items: end; }
+.ptitle-foot .lead { max-width: 54ch; text-wrap: pretty; } /* (pretty: no word left alone on the lead's last line) */
+.ptitle-act { display: flex; flex-wrap: wrap; gap: 12px; }
+.ptitle-media { position: relative; overflow: clip; margin: 0; min-width: 0; background: var(--lacquer); }
+.ptitle-media img, .ptitle-media video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ptitle-band { aspect-ratio: 21 / 8; max-height: 52svh; width: 100%; }
+@media (max-width: 899px) {
+  .ptitle-name { --fit-size: calc((100vw - 2 * var(--pad)) / var(--fit, 6)); }
+  .ptitle-foot { grid-template-columns: 1fr; }
+  .ptitle-band { aspect-ratio: 4 / 3; }
+}
+
+/* ---------- Footer ---------- */
+/* The closing invitation is a section like any other: the section's air (--sec-y) above it, and again under its
+   buttons before the footer's own surface begins (footers.css), as a band of charcoal has it */
+.ft { padding-top: var(--sec-y); overflow-x: clip; } /* (the sign's light reaches past its column; it must never widen the page. No surface of its own: the page's concrete runs on under the invitation to the footer's own black; until 2026-11-23 it was flat black there, and the concrete stopped short above the card) */
+/* ---------- The closing invitation (Footer.astro) ----------
+   One card on the page's column, like the site's other cards: a matte graphite panel, square, inside one hairline,
+   and inside it, a little in from its edge, two halves. On the left the words in one stack: the title at the card's
+   head, the line and the two buttons at its foot. On the right, drawn in chalk on lacquer, the guest at his table
+   and the club's light between them (LineArt "guest", footers.css; on the careers page a picture, .cta-shot).
+   Everything is sized by the card's own width (cqw), so the title always fits its half, in Russian and in English,
+   from a tablet to the widest screen. A phone: the drawing on top, the words under it, the two buttons the card's
+   width. */
+.ft-cta { padding-bottom: var(--sec-y); }
+.cta-card {
+  --cta-in: clamp(8px, .9vw, 12px);
+  container-type: inline-size;
+  display: grid; grid-template-columns: minmax(0, 45fr) minmax(0, 55fr);
+  padding: var(--cta-in);
+  background: var(--graphite);
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+.cta-words { display: grid; align-content: space-between; justify-items: start; gap: clamp(28px, 5cqw, 64px); padding: clamp(18px, 3.4cqw, 46px) clamp(12px, 3.2cqw, 44px) clamp(18px, 3.2cqw, 44px); }
+/* (the title is the Dial, .t-xl: at about 0.13em a letter it can stand tall in half the card) */
+.cta-card .cta-h { font-size: clamp(96px, 17cqw, 220px); font-weight: 280; }
+.cta-h em { display: block; }
+.cta-act { display: grid; justify-items: start; gap: clamp(16px, 1.9cqw, 26px); }
+.cta-act .lead { max-width: 30ch; text-wrap: pretty; }
+/* (the picture: its corners follow the card's, a card's edge in from it. It is drawn a quarter larger than its
+   frame from its left edge, so the frame holds the table, the champagne and the stage behind them, and leaves
+   out the photograph's right fifth and its top: a sheet of white paper lies on the table there and shone in the
+   picture's corner) */
+.cta-shot.photo { aspect-ratio: auto; min-height: clamp(300px, 37cqw, 520px); border-radius: calc(var(--r-5) - var(--cta-in)); --bg: #0b0b0c; }
+.cta-shot img { object-position: 24% 62%; transform: scale(1.3); transform-origin: 0% 85%; }
+@media (max-width: 899px) {
+  .ft-cta { padding-bottom: calc(2 * var(--sec-y)); }
+  .cta-card { grid-template-columns: minmax(0, 1fr); }
+  .cta-shot.photo { order: -1; min-height: 0; aspect-ratio: 4 / 3; }
+  .cta-shot img { object-position: 30% 60%; transform: scale(1.26); }
+  .cta-words { gap: 22px; padding: 22px 12px 12px; }
+  .cta-card .cta-h { font-size: clamp(96px, 30cqw, 150px); font-weight: 280; }
+  .cta-act { justify-items: stretch; width: 100%; gap: 18px; }
+  /* the two buttons one under the other, the card's width */
+  .cta-act .btns { display: grid; gap: 10px; }
+}
+.ft-cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 36px var(--gap); padding: 32px 0 clamp(40px, 4.5vw, 64px); border-top: 1px solid var(--rule); }
+.ft.no-cta { padding-top: 0; } /* (the page's last section has its air under it; then the footer's surface) */
+.ft.no-cta .ft-cols { padding-top: 0; border-top: 0; }
+.ft-cols h4 { margin-bottom: 16px; font: 500 21px/1.05 var(--display); color: var(--fg); }
+.ft-cols ul { list-style: none; padding: 0; display: grid; gap: 10px; color: var(--fg-2); font-size: 15px; line-height: 1.6; }
+.ft-cols a:hover { color: var(--fg); text-decoration: underline; text-underline-offset: 4px; }
+.ft-bottom { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 24px; margin-top: clamp(18px, 2vw, 32px); padding: 22px 0 30px; border-top: 1px solid var(--rule); }
+.b18 { display: inline-grid; place-items: center; width: 32px; height: 32px; margin-right: 12px; border: 1px solid var(--rule-2); font: var(--label-wght) 11px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: .02em; vertical-align: middle; }
+.mast { display: block; width: 100%; height: auto; overflow: visible; }
+@media (max-width: 899px) { .ft-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* The last screen of every page: the links, the sign and the small print. Scrolled to the very bottom, all three
+   are in view: together they are never taller than the screen (above the dock on phones). The sign's row starts
+   at the sign's own height and gives way first: when the screen is short the sign gets smaller, not cut. */
+.ft-end { container-type: inline-size; display: flex; flex-direction: column; max-height: calc(100vh - var(--dock)); max-height: calc(100svh - var(--dock)); }
+.ft-end .ft-cols { padding-bottom: clamp(8px, 1.2vw, 20px); }
+.ft-mast { --gap-y: clamp(14px, 2.2vw, 40px); flex: 0 1 calc(100cqw / 5 + 2 * var(--gap-y)); min-height: 84px; container-type: size; display: grid; place-items: center; }
+.ft-mast .sign { width: min(100cqw, (100cqh - 2 * var(--gap-y)) * 5); padding: 0; }
+.ft-end .ft-bottom { margin-top: 0; padding: clamp(16px, 1.6vw, 22px) 0 clamp(18px, 2vw, 28px); }
+@media (max-width: 899px) {
+  /* phones: the links set closer, so the whole last screen fits above the dock (on the smallest phones it may
+     still run taller; then it simply scrolls, rather than slide under the dock) */
+  .ft-end { max-height: none; }
+  .ft-end .ft-cols { gap: 22px 18px; padding-top: 24px; }
+  .ft-end .ft-cols h4 { margin-bottom: 10px; font-size: 22px; }
+  .ft-end .ft-cols ul { gap: 4px; font-size: 14px; line-height: 1.5; }
+  .ft-end .ft-cols li { min-height: 24px; }
+  .ft-mast { --gap-y: 12px; min-height: 64px; }
+  .ft-end .ft-bottom { gap: 6px 16px; padding: 12px 0 4px; }
+}
+/* The HOTLAND sign (Mast.astro): halo-lit channel letters. The letters are two 3D renders of one frame (unlit, and
+   lit by the light behind them); the light on the wall is drawn behind them. .lit starts the light: each letter's
+   band of the masks (--l1 H … --l7 D) on the light and on the lit render comes on with its own stutter, the T
+   taking its time like a tube warming up; then the light breathes. With a mouse (--px --py, 0 to 1 across the
+   sign; --on while the pointer is near) the letters shift against their light. (2026-11-21: the burgundy wash on
+   the wall, the sheen and the band of light that crossed the letters are gone: nothing glossy, no wash of colour.) */
+@property --l1 { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --l2 { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --l3 { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --l4 { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --l5 { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --l6 { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --l7 { syntax: '<number>'; inherits: true; initial-value: 0; }
+.sign { --px: .5; --py: .5; --on: 0; --l1: 0; --l2: 0; --l3: 0; --l4: 0; --l5: 0; --l6: 0; --l7: 0; position: relative; padding: clamp(30px, 4vw, 68px) 0; }
+.sign.lit { --l1: 1; --l2: 1; --l3: 1; --l4: 1; --l5: 1; --l6: 1; --l7: 1; }
+.sign-in { position: relative; }
+.sign-light {
+  position: absolute; display: block; max-width: none; overflow: visible; pointer-events: none;
+  translate: calc((.5 - var(--px)) * 14px) calc((.5 - var(--py)) * 8px);
+}
+.sign-body { position: relative; translate: calc((var(--px) - .5) * 4px) calc((var(--py) - .5) * 3px); }
+.sign-body img { display: block; width: 100%; height: auto; }
+.sign-on { position: absolute; inset: 0; }
+/* (the sheen and the band of light that crossed the letters: gone, see above) */
+.sign-sheen, .sign-glint { display: none; }
+/* the start-up: each letter stutters on in its own way */
+@keyframes sign-l1 { 0% { --l1: 0; } 12% { --l1: .85; } 18% { --l1: 0; } 36% { --l1: 1; } 42% { --l1: .45; } 58%, 100% { --l1: 1; } }
+@keyframes sign-l2 { 0% { --l2: 0; } 8% { --l2: .6; } 12% { --l2: .05; } 24% { --l2: .9; } 29% { --l2: .3; } 46%, 100% { --l2: 1; } }
+@keyframes sign-l3 { 0% { --l3: 0; } 5% { --l3: .9; } 8% { --l3: 0; } 17% { --l3: .7; } 20% { --l3: .08; } 31% { --l3: .95; } 34% { --l3: .2; } 52% { --l3: 1; } 58% { --l3: .55; } 68%, 100% { --l3: 1; } }
+@keyframes sign-l4 { 0% { --l4: 0; } 10% { --l4: 1; } 16% { --l4: .1; } 30% { --l4: .85; } 36% { --l4: .2; } 52%, 100% { --l4: 1; } }
+@keyframes sign-l5 { 0% { --l5: 0; } 9% { --l5: .7; } 14% { --l5: .1; } 26% { --l5: 1; } 31% { --l5: .4; } 48%, 100% { --l5: 1; } }
+@keyframes sign-l6 { 0% { --l6: 0; } 14% { --l6: .8; } 20% { --l6: 0; } 38% { --l6: 1; } 44% { --l6: .5; } 60%, 100% { --l6: 1; } }
+@keyframes sign-l7 { 0% { --l7: 0; } 10% { --l7: .9; } 15% { --l7: .15; } 28% { --l7: .8; } 34% { --l7: .25; } 50%, 100% { --l7: 1; } }
+@keyframes sign-breathe { from { opacity: 1; } to { opacity: .84; } }
+html.motion .sign.lit :is(.sign-light, .sign-on) {
+  animation:
+    sign-l4 1s linear .1s backwards, sign-l1 1s linear .28s backwards, sign-l7 1s linear .4s backwards,
+    sign-l2 1s linear .52s backwards, sign-l6 1s linear .64s backwards, sign-l3 1.6s linear .76s backwards,
+    sign-l5 1s linear .95s backwards;
+}
+html.motion .sign.lit .sign-light {
+  animation:
+    sign-l4 1s linear .1s backwards, sign-l1 1s linear .28s backwards, sign-l7 1s linear .4s backwards,
+    sign-l2 1s linear .52s backwards, sign-l6 1s linear .64s backwards, sign-l3 1.6s linear .76s backwards,
+    sign-l5 1s linear .95s backwards, sign-breathe 3.8s ease-in-out 2.8s infinite alternate;
+}
+
+
+/* ---------- Thank-you page ---------- */
+.thanks { min-height: 92vh; display: grid; place-items: center; padding: calc(var(--hdr) + 64px) 0 96px; text-align: center; }
+/* the seal (once crimson wax): a square of matte black in one hairline, the emblem in steel */
+.seal {
+  width: 116px; height: 116px; display: grid; place-items: center; --emblem: var(--steel-hi);
+  background: var(--lacquer); border: 1px solid var(--rule-2);
+}
+.seal .emblem { width: 60px; height: 60px; }
+
+/* ---------- Text pages ---------- */
+.prose { max-width: 720px; display: grid; gap: 18px; }
+/* (long reading: 18px on a desktop) */
+@media (min-width: 900px) { .prose { font-size: 18px; line-height: 1.6; } }
+.prose h2 { margin-top: 24px; font: 500 var(--item)/1.15 var(--display); letter-spacing: -.012em; }
+.prose > :first-child { margin-top: 0; } /* (the text starts the heading gap under the page's name, as every page's content does) */
+.prose p { color: var(--fg-2); }
+/* (an aside's rule is a hairline: red is only light) */
+.note { padding: 6px 16px; border-left: 1px solid var(--rule-2); color: var(--muted); font-size: 14px; line-height: 1.6; }
+.bare-page { min-height: 100svh; display: grid; place-items: center; padding: var(--pad); text-align: center; }
+
+/* ---------- Films from the content pack ---------- */
+/* a short film over a photo, played while the mouse is on it (scripts/site.ts) */
+.loop { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .6s ease, filter .9s ease; pointer-events: none; }
+.pt-frame .loop { object-position: 50% 0; }
+.looping .loop { opacity: 1; }
+/* a film that plays while on screen */
+.film .photo { aspect-ratio: var(--r, 16 / 9); }
+@media (max-width: 899px) { .film .photo { aspect-ratio: var(--r-phone, var(--r, 16 / 9)); } }
+.film-band .photo { max-height: 92svh; -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 14%, #000 86%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0%, #000 14%, #000 86%, transparent 100%); }
+@media (min-width: 900px) { .film-band .photo { aspect-ratio: 21 / 9; } }
+
+/* ---------- Bar list: volume beside the name ---------- */
+.mrow .vol { margin-left: 10px; font: 400 14px/1 var(--sans); color: var(--muted); white-space: nowrap; }
+
+/* ---------- Bottle sets: the bottle on black, the price on the Dial ---------- */
+.sets3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(40px, 4vw, 56px) clamp(20px, 2.6vw, 44px); }
+@media (max-width: 999px) and (min-width: 700px) { .sets3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 699px) {
+  .sets3 { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 80vw; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-right: calc(-1 * var(--pad)); padding-right: var(--pad); }
+  .sets3::-webkit-scrollbar { display: none; }
+  .set { scroll-snap-align: start; }
+}
+.set { display: grid; gap: 8px; align-content: start; justify-items: start; min-width: 0; }
+.set .fig { width: 100%; margin-bottom: 8px; }
+.set-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 20px; width: 100%; margin-top: 22px; }
+.set-price { font: var(--dial-num-s-wght) var(--dial-num-s)/.9 var(--f-flex); font-stretch: var(--dial-wdth); font-variant-numeric: tabular-nums lining-nums; color: var(--fg); white-space: nowrap; }
+
+/* ---------- Hookah lounge: offers priced in crimson ---------- */
+
+
+/* a film playing over its photo shows the real colour */
+
+
+/* ---------- The 3D icons, one beside each heading, drifting a little as the page scrolls ---------- */
+.hd-wrap { display: flex; align-items: flex-start; gap: clamp(6px, 1vw, 18px); min-width: 0; }
+.hd-wrap > :first-child { min-width: 0; }
+/* the 3D icons no longer sit beside headlines (they mark choices and places instead) */
+.hd-ic { display: none !important; }
+
+/* ---------- One night in four acts: four portrait films ---------- */
+.acts4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap); }
+.act4 { display: grid; gap: 14px; align-content: start; min-width: 0; }
+.act4 .photo { aspect-ratio: 4 / 5; }
+.act4-time { font: var(--dial-num-s-wght) var(--dial-num-s)/.82 var(--f-flex); font-stretch: var(--dial-wdth); font-variant-numeric: tabular-nums lining-nums; padding-right: .04em; }
+.act4-title { font: 500 clamp(20px, 1.64vw, 25px)/1.05 var(--display); letter-spacing: -.01em; }
+@media (max-width: 1099px) { .acts4 { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 40px; } }
+@media (max-width: 699px) {
+  .acts4 { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 74vw; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-right: calc(-1 * var(--pad)); padding-right: var(--pad); }
+  .acts4::-webkit-scrollbar { display: none; }
+  .act4 { scroll-snap-align: start; }
+}
+
+/* ---------- The bar, at a glance (home): the list beside its picture ---------- */
+.menu-peek { display: grid; width: 100%; }
+/* phones: the bar's picture is set into the list, top right, and the first dishes run down beside it, each name
+   over its price; the rest of the list runs full width under it (the copy in its own column is for computers) */
+.menu-peek-shot { display: none; }
+@media (max-width: 899px) {
+  .menu-peek { display: flow-root; }
+  .menu-peek-shot { display: block; float: right; width: 50%; margin: 0 0 12px 18px; }
+  .menu-peek-side { display: none; }
+  .mrow-by { flex-direction: column; align-items: flex-start; gap: 6px; padding: 11px 0; }
+  .mrow-by .dots { display: none; }
+  .mrow-by + .mrow:not(.mrow-by) { margin-top: 6px; }
+}
+.menu-glance { min-width: 0; }
+.menu-peek-foot { margin-top: 28px; }
+@media (min-width: 900px) { .menu-peek-side { margin-bottom: -12.5%; } } /* (4:5, the section's last thing: see Photos) */
+
+/* ---------- Act cards: one line under the name ---------- */
+.pt-text { margin-top: -4px; }
+
+/* =====================================================================
+   Motion
+   Entrances happen only under html.motion: the head script adds it unless the visitor prefers
+   reduced motion, and takes it away again if scripts/motion.ts doesn't start. Until motion.ts marks
+   an element .is-in it waits out of sight. Each entrance is a one-off animation (fill: backwards),
+   so afterwards the element is back to its own styles and hover effects. --d is the stagger delay.
+   ===================================================================== */
+@keyframes rv-up { from { opacity: 0; translate: 0 34px; } }
+@keyframes rv-side { from { opacity: 0; translate: 120px 0; } }
+@keyframes rv-fade { from { opacity: 0; } }
+@keyframes fade-out { to { opacity: 0; } }
+@keyframes rv-wipe { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes rv-wipe-l { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 0); } }
+@keyframes rv-zoom { from { scale: 1.24; } }
+@keyframes rv-pop { from { opacity: 0; scale: .3; rotate: -32deg; } }
+@keyframes rv-draw { from { scale: 0 1; } }
+@keyframes rv-open { from { clip-path: polygon(-5% -40%, -5% -40%, -5% 140%, -5% 140%); } to { clip-path: polygon(-5% -40%, 110% -40%, 110% 140%, -5% 140%); } }
+@keyframes sweep { from { translate: -100% 0; } to { translate: 100% 0; } }
+@keyframes spin { to { rotate: 360deg; } }
+
+/* Text, rows and cards rise into view. This list is the only one: scripts/motion.ts gets it from here
+   (astro.config.mjs), so keep it on one line, in this form. */
+html.motion :where(.ptitle-sub, .lead, .body, .lnk, .btns, .t-m, .t-s, .note, .promise-q, .steps-inline, .extras, .filter, .prose > *, .mcard-head, .mcard-foot, .ptitle-act, .has-ic h2, .poster, .hd-ic, .set, .mem, .dl > div, .rows > .row, .ngrid > div, .tile, .artists > *, .lookbook > *, .offer, .occ-list > li, .fact, .ft-cols > div, .ft-bottom, .faq details, .week tbody tr, .field, .consent, .choice, .invite, .msec-head, .zz-txt, .cc-roles):not(.is-in, .hero *, .gate *, .mnav *, dialog *, .zn *) { opacity: 0; }
+html.motion .is-in { animation: rv-up 1.1s var(--ease-out) var(--d, 0s) backwards; }
+/* (arriving from the other language, what is on screen is simply there: scripts/motion.ts marks it .is-now) */
+html.motion .is-now, html.motion .is-now > img, html.motion .is-now .ic3d, html.motion .is-now .dots, html.motion .is-now .mem-card::before { animation: none !important; }
+/* the lineup slides in from the side, 3D icons pop, menu leaders draw (the band of light that crossed the metal
+   cards is gone: nothing glossy) */
+html.motion .reel-item.is-in { animation-name: rv-side; animation-duration: 1.3s; }
+html.motion .has-ic h2.is-in .ic3d { animation: rv-pop 1.1s var(--ease-back) calc(var(--d, 0s) + .12s) backwards; }
+html.motion .hd-ic.is-in { animation: rv-pop 1.2s var(--ease-back) calc(var(--d, 0s) + .2s) backwards; }
+html.motion .mrow.is-in .dots { transform-origin: 0 50%; animation: rv-draw 1.2s var(--ease-out) calc(var(--d, 0s) + .2s) backwards; }
+
+/* Photographs open like a curtain, from the top down (the top is what is on screen first; opening from the foot, a
+   tall picture on a phone showed nothing for a second), quickly, each as it comes into view (no waiting its turn
+   after the words beside it), and settle from a slight zoom */
+html.motion :where(.photo, .pt-frame, .ptitle-media):not(.is-in, .reel *, .hero *, .gate *, .mnav *, dialog *) { clip-path: inset(0 0 100% 0); }
+html.motion :where(.photo, .pt-frame, .ptitle-media).is-in { animation: rv-wipe .8s var(--ease-out) backwards; }
+html.motion :where(.photo, .pt-frame, .ptitle-media).is-in > img,
+html.motion .reel-item.is-in .pt-frame > img { animation: rv-zoom 1.5s var(--ease-out) backwards; }
+@media (min-width: 900px) {
+  /* the inner-page photo opens from the edge of the page */
+  html.motion .ptitle-media:not(.is-in) { clip-path: inset(0 0 0 100%); }
+  html.motion .ptitle-media.is-in { animation-name: rv-wipe-l; animation-duration: 1.1s; }
+}
+/* the footer masthead opens left to right */
+html.motion .ft .mast:not(.is-in) { clip-path: inset(0 100% 0 0); }
+html.motion .ft .mast.is-in { animation: rv-open 1.8s var(--ease-io) backwards; }
+
+/* Headlines rise out of a mask (split by motion.ts, hidden until then) */
+/* (not inside the parts motion.ts leaves alone: the header, the door, the phone's menu, the windows, the rooms) */
+html.motion :where(.t-xxl, .t-xl, .t-l):not(.split, .has-ic *, .hero *, .gate *, .mnav *, dialog *, .zn *) { opacity: 0; }
+/* (the split lines stand one under another, their masks' margins summed, never collapsed. Only while the lines are
+   there: when the split is taken back and made again (a window resized, a font arriving late: autoSplit), the words
+   are measured in the heading's own flow; measured inside the column, every word stood on a line of its own) */
+:is(h1, h2, h3, p).split-l:has(> .sl-mask) { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+/* the masks reach past the line box so tall letters, descenders and italics aren't cut */
+.sl-mask { padding: .18em .2em .3em .06em; margin: -.18em -.2em -.3em -.06em; }
+.xw-mask { padding: .18em .12em .3em .04em; margin: -.18em -.12em -.3em -.04em; }
+/* (the Dial's letters stand upright and narrow, and a page's name is set very large in it: a mask reaching .2em past
+   the line ran past the screen's edge; a twentieth of an em is room enough for them) */
+:is(.t-xxl, .t-xl, .t-l) :is(.sl-mask, .xw-mask) { padding-right: .05em; margin-right: -.05em; }
+
+/* The club statement lights up word by word as you read */
+html.motion .t-statement:not(.sw-on, .hero *) { opacity: .32; }
+.sw-on em { background-image: none; }
+
+/* (The home hero's entrance lives in styles/hero.css.) */
+
+/* ---------- The bands of light that crossed the masthead (Mast.astro) and the metal plate (motion.ts moves
+   .plate-glint with the scroll): gone, 2026-11-21: nothing glossy ---------- */
+.mast-glint, .plate-glint { display: none; }
+.velvet, .plate { position: relative; overflow: hidden; isolation: isolate; }
+.velvet > :not(.plate-glint), .plate > :not(.plate-glint) { position: relative; z-index: 1; }
+
+/* ---------- Pictures drift inside their frames (desktop; motion.ts sets --py) ---------- */
+.px img { top: -9%; height: 118%; translate: 0 var(--py, 0); }
+
+/* ---------- Header: tucks away on the way down (html.hdr-hide), a reading line along its edge ---------- */
+/* (no view-transition-name on .hdr: it would make the header a backdrop root and switch off its glass; nav.css names its parts) */
+.hdr { transition: translate .4s var(--ease-out); }
+html.hdr-hide .hdr { translate: 0 -101%; }
+.subnav { transition: top .55s var(--ease-out); }
+html.hdr-hide .subnav { top: 0; }
+@supports (animation-timeline: scroll()) {
+  .hdr::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--lit);
+    transform-origin: 0 50%; pointer-events: none;
+    animation: read-line linear both; animation-timeline: scroll(root);
+  }
+  @keyframes read-line { from { scale: 0 1; } to { scale: 1 1; } }
+}
+
+/* ---------- Phone menu: drops in, the links follow one by one ---------- */
+@keyframes mnav-in { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+html.motion .mnav:not([hidden]) { animation: mnav-in .75s var(--ease-io) both; }
+html.motion .mnav:not([hidden]) :is(.mnav-links a, .mnav-info > *) { animation: rv-up .9s var(--ease-out) calc(.25s + var(--i, 0) * .05s) backwards; }
+html.motion .mnav.closing { animation: fade-out .34s ease both; }
+
+/* ---------- The door opens (AgeGate.astro): the page's own fixed pieces follow it in ----------
+   Only when the door has just been answered (not on every page after it): the header's plates come down into
+   place as the slabs clear them, and the phone's dock comes up. */
+@keyframes hdr-drop { from { opacity: 0; translate: 0 -12px; } }
+@keyframes dock-rise { from { opacity: 0; translate: 0 calc(100% + 24px); } }
+html.motion:has(.gate.out) .hdr-in > * { animation: hdr-drop .9s var(--ease-out) .92s backwards; }
+html.motion:has(.gate.out) .hdr-in > :nth-child(2) { animation-delay: 1s; }
+html.motion:has(.gate.out) .hdr-in > :nth-child(3) { animation-delay: 1.08s; }
+html.motion:has(.gate.out) .mbar { animation: dock-rise 1s var(--ease-out) 1s backwards; }
+
+/* ---------- Metal cards: tilt under the pointer (motion.ts). The glare that followed it is gone (2026-11-21:
+   nothing glossy). ---------- */
+.mem-card { transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .9s var(--ease-out); }
+.mem-card.tilt { transition-duration: .25s; }
+
+/* ---------- Rows and portraits: a line of the light draws along the rule on hover ---------- */
+.ev, a.row, .pt-meta { position: relative; }
+.ev::before, a.row::before, .pt-meta::before {
+  content: ''; position: absolute; left: 0; right: 0; top: -1px; height: 1px; background: var(--lit);
+  scale: 0 1; transform-origin: 0 50%; transition: scale .7s var(--ease-out); pointer-events: none;
+}
+a.row::before { top: auto; bottom: -1px; }
+.occ-list a::after { transition: translate .45s var(--ease-out); }
+@media (hover: hover) {
+  .ev:hover::before, a.row:hover::before, .pt:hover .pt-meta::before { scale: 1 1; }
+  .occ-list a:hover::after { translate: 6px 0; }
+}
+
+/* ---------- FAQ: the answer slides open, the sign turns ---------- */
+.faq summary::after { transition: rotate .4s var(--ease-out); }
+.faq details[open] summary::after { rotate: 180deg; }
+@supports (interpolate-size: allow-keywords) {
+  :root { interpolate-size: allow-keywords; }
+  .faq details::details-content { height: 0; overflow: clip; transition: height .5s var(--ease-out), content-visibility .5s allow-discrete; }
+  .faq details[open]::details-content { height: auto; }
+}
+
+/* ---------- Fields: a line of the light runs along the field you are in ---------- */
+.field input, .field textarea { background: linear-gradient(var(--lit), var(--lit)) 0 100% / 0 2px no-repeat; transition: background-size .5s var(--ease-out), border-color .3s; }
+.field input:focus, .field textarea:focus { background-size: 100% 2px; border-color: var(--rule-2); }
+/* A field the browser has filled in (a saved name, a phone number) keeps the page's look. Chrome paints such a
+   field pale blue with dark text and does not let a page set those colours; but the change of colour can be held
+   off for good, and the text can be told its colour. (Not testable without a browser profile that has saved data:
+   the standard remedy, harmless where it does nothing.) */
+input:is(:-webkit-autofill, :autofill) { -webkit-text-fill-color: var(--fg); caret-color: var(--fg); transition: background-color 99999s ease-out 99999s, color 99999s ease-out 99999s !important; }
+.choice span { transition: color .2s, border-color .2s, box-shadow .2s, scale .2s ease; }
+.choice label:active span { scale: .95; }
+
+/* ---------- Taps: designed press states instead of the grey flash ---------- */
+:is(.btn, .mbar a, .reel-btn, .choice label, .hdr-name, .hdr-menu, .pt, .ev, .tile, .inside-item, .occ-list a, .mnav-links a) { -webkit-tap-highlight-color: transparent; }
+.mbar a { transition: background-color .25s, filter .25s; }
+.mbar a:active { background-color: rgba(230, 231, 233, .1); }
+@media (hover: none) {
+  .inside-item:active .ic3d { transform: translateY(-6px) rotate(-4deg) scale(1.04); }
+}
+
+/* ---------- Girls lineup: drag it with the mouse; a square of shirt white is the cursor (motion.ts) ---------- */
+.reel.drag-ok { cursor: none; user-select: none; -webkit-user-select: none; }
+.reel.drag-ok a { cursor: none; }
+.reel.dragging { scroll-snap-type: none; }
+.reel.dragging .pt { pointer-events: none; }
+.reel-cursor {
+  position: fixed; left: 0; top: 0; z-index: 60; width: 88px; height: 88px; margin: -44px 0 0 -44px;
+  display: grid; place-items: center; pointer-events: none;
+  font: var(--label-wght) 12px/1 var(--f-label); font-stretch: var(--label-wdth); letter-spacing: var(--label-track); text-transform: uppercase; color: var(--lacquer);
+  background: var(--shirt);
+  opacity: 0; scale: .2; transition: opacity .3s ease, scale .45s var(--ease-out);
+}
+.reel-cursor.on { opacity: 1; scale: 1; }
+.reel-cursor.on.down { scale: .8; }
+
+/* ---------- Smooth scrolling (Lenis, desktop) ---------- */
+html.lenis, html.lenis body { height: auto; }
+html.lenis { scroll-behavior: auto; }
+.lenis.lenis-stopped { overflow: clip; }
+.lenis [data-lenis-prevent] { overscroll-behavior: contain; }
+
+/* ---------- Between pages: the door's seam opens on the new page; the header and phone bar stay put ---------- */
+/* (the opt-in itself, @view-transition { navigation: auto }, is the first thing in the page's head, Base.astro: read
+   this late, in a stylesheet, the browser sometimes had not seen it when the next page was already asked for, and
+   the change cut hard) */
+.mbar { view-transition-name: mbar; }
+/* (the parts kept still are pictured on their own while the page changes, and Safari paints such a picture's glass
+   blur as a square, out past its round edge: a dark square behind the lily, a band behind the dock. For that third
+   of a second they trade the blur for a solid tint of the same dark; Base.astro sets html.vt while it lasts. The
+   header's bar does the same: nav.css) */
+html.vt .mbar { -webkit-backdrop-filter: none; backdrop-filter: none; background-color: rgba(20, 20, 23, .94); }
+/* (the plain change, for a browser that can't tell one kind of change from another: the old page goes in a blink,
+   the new one is there a third of a second later) */
+::view-transition-old(root) { animation: fade-out .18s ease-in both; }
+::view-transition-new(root) { animation: rv-fade .34s var(--ease-out) both; }
+/* The door's seam («Между», 2026-11-21). The old page goes dark in a blink; in the middle of the dark a seam of light
+   comes up and the new page opens from it, a slit widening to the screen's edges as the door opens (600 ms, slow,
+   fast, slow, as a heavy door moves). The slit's edges carry the light, red, amber after 04:00 (--lit): the shadow the
+   pair of pictures casts, so it shows only on the dark outside the new page. It comes up once the old page has gone
+   (over the old page it would tint it) and fades as the slit reaches the edges. The header's parts and the phone's
+   dock are pictured on their own (nav.css, above) and hold still over it. Switching language keeps its soft
+   cross-fade (below) and the gallery's lens its own opening (tune.css). (Only with motion allowed: for anyone else
+   there is no change to animate, Base.astro.) */
+@keyframes vt-dark { to { opacity: 0; } }
+@keyframes vt-seam { from { clip-path: inset(0 calc(50% - 1px)); } to { clip-path: inset(0 0); } }
+@keyframes vt-seam-light {
+  0%, 15% { filter: drop-shadow(0 0 0 transparent) drop-shadow(0 0 0 transparent); }
+  28%, 80% { filter: drop-shadow(0 0 1px var(--lit-core)) drop-shadow(0 0 9px var(--lit)); }
+  100% { filter: drop-shadow(0 0 0 transparent) drop-shadow(0 0 0 transparent); }
+}
+html:not(:active-view-transition-type(lang, lens))::view-transition-old(root) { mix-blend-mode: normal; animation: vt-dark .1s ease-in both; }
+html:not(:active-view-transition-type(lang, lens))::view-transition-new(root) { mix-blend-mode: normal; animation: vt-seam .6s cubic-bezier(.65, 0, .35, 1) both; }
+html:not(:active-view-transition-type(lang, lens))::view-transition-image-pair(root) { animation: vt-seam-light .6s linear both; }
+/* switching language (Base.astro): the page stays where it was and only its words change, a soft cross-fade with no
+   dip through black */
+html:active-view-transition-type(lang)::view-transition-old(root) { animation: fade-out .3s ease both; }
+html:active-view-transition-type(lang)::view-transition-new(root) { animation: rv-fade .3s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mem-card { transform: none; }
+}
+@media print {
+  html.motion * { opacity: 1 !important; clip-path: none !important; animation: none !important; }
+}
+
+
+/* The hero has no air of its own under it: on a computer its film runs to the foot of the screen and falls into
+   black over the last stretch; on a phone its buttons stand some 30 to 50px above its foot (the English lead runs a
+   line longer). So the section after it takes both halves of the air between two sections, less what the hero's
+   foot already gives, and the Афиша heading is as far from the hero as any heading is from the section before it.
+   (On a computer the hero is held in GSAP's .pin-spacer; the hero's own script may sit between it and the section.) */
+:is(.hero, .pin-spacer:has(> .hero)) + .sec, :is(.hero, .pin-spacer:has(> .hero)) + script + .sec { padding-top: calc(2 * var(--sec-y) - 48px); }
+@media (max-width: 899px) {
+  :is(.hero, .pin-spacer:has(> .hero)) + .sec, :is(.hero, .pin-spacer:has(> .hero)) + script + .sec { padding-top: calc(2 * var(--sec-y) - 40px); }
+}
+/* a short laptop screen (1366x768, 1280x720): less air above and below each section, so a section still fits
+   one screen without its pictures getting smaller */
+@media (min-width: 900px) and (max-height: 820px) {
+  :root { --sec-y: clamp(64px, 10vh, 88px); --head-gap: clamp(16px, 1.8vw, 24px); }
+}
+
+
+/* ---------- Pictures with no box: their own black becomes the page's black ----------
+   The renders sit on a flat black a shade lighter than the page, which showed as a faint rectangle even
+   with the soft mask. The grade's touch of contrast (--grade, on the frame) takes it to black on black pages; on
+   the graphite sections the page colour is laid over in 'lighten', which lifts the darkest pixels to exactly the
+   section's colour. */
+.photo:not(.ph)::after { content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: var(--bg, #000); mix-blend-mode: lighten; }
+/* (the hairline round pictures that stand side by side, and round a party's picture: Photographs, above) */
+:is(.trio, .pa) .photo:not(.ph)::after { box-shadow: inset 0 0 0 1px var(--rule); }
+
+/* ---------- Page titles: room under the big name for its descenders (ф, р, у) ---------- */
+.ptitle-name { padding-bottom: .1em; }
+@media (max-width: 899px) { .ptitle-h { gap: 14px; } }
+
+
+/* ---------- Footer: the columns never push past the screen on the smallest phones ---------- */
+.ft-cols > div { min-width: 0; }
+.ft-cols a { overflow-wrap: anywhere; }
+@media (max-width: 359px) { .ft-cols { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- Artists page: four pictures from the gallery, the whole row leads to it ---------- */
+.gal-peek { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap); }
+.gal-peek .photo { transition: translate .5s var(--ease-out); }
+@media (hover: hover) { .gal-peek:hover .photo { translate: 0 -6px; } }
+@media (max-width: 699px) { .gal-peek { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* (from hero.css: used on any page, so here with the shared rules) */
+/* ---------- Full-bleed film band and photo strip ---------- */
+.film-media { position: relative; }
+.film-media video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; max-height: 94svh; object-fit: cover; }
+.film-cap { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 24px; padding-top: 14px; padding-bottom: 14px; }
+.strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.strip .photo { aspect-ratio: 3 / 4.4; }
+@media (max-width: 899px) {
+  .strip { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 68vw; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .strip::-webkit-scrollbar { display: none; }
+  .strip .fig { scroll-snap-align: start; }
+}
+
+/* ---------- The variant switches (VariantSwitch.astro): Luka's or Gio's version of a part, preview only ----------
+   A smoked panel in one hairline at the top left of the part it changes (its parent carries .vx-host); the version
+   shown is a band of shirt white. */
+.vx-host { position: relative; }
+.vx-switch {
+  position: absolute; z-index: 6; left: var(--vx-left, max(var(--pad), calc((100% - var(--max)) / 2 + var(--pad)))); top: var(--vx-top, 8px);
+  display: flex; align-items: center; gap: 2px; padding: 3px 3px 3px 12px;
+  font: 400 12px/1 var(--sans); color: var(--fg-2); white-space: nowrap;
+  background: var(--smoke); box-shadow: inset 0 0 0 1px var(--rule-2);
+}
+.vx-switch span { margin-right: 6px; }
+.vx-switch button { height: 26px; padding: 0 12px; font: inherit; color: var(--fg-2); transition: background-color .2s, color .2s; }
+.vx-switch button:hover { color: var(--fg); }
+.vx-switch button[aria-pressed="true"] { background: var(--shirt); color: var(--lacquer); }
+.vx-part { display: contents; }
+/* the footer's switch sits in the room above the sign, clear of its letters */
+
+@media (max-width: 599px) { .vx-switch { top: var(--vx-top, 4px); font-size: 11px; } .vx-switch button { padding: 0 9px; } }

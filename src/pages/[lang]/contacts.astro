@@ -1,0 +1,20 @@
+---
+// Contacts now live on the club page (/about/#contacts). This old address sends visitors there. (For the moment it
+// shows, it is in the site's leather black and shirt white: the page loads none of the site's styles.)
+import { type Lang, langPaths } from '../../data/i18n';
+export const getStaticPaths = langPaths;
+const lang = Astro.params.lang as Lang;
+const to = `/${lang}/about/#contacts`;
+---
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <meta http-equiv="refresh" content={`0; url=${to}`} />
+    <link rel="canonical" href={to} />
+    <title>HOTLAND</title>
+    <script is:inline define:vars={{ to }}>location.replace(to);</script>
+  </head>
+  <body style="margin:0;padding:24px;background:#0e0d0d;color:#ecece8;font:400 16px/1.6 'Inter Tight','Helvetica Neue',Arial,sans-serif"><a href={to} style="color:inherit;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:.28em">{lang === 'ru' ? 'Контакты на странице «О нас»' : 'Contacts are on the About page'}</a></body>
+</html>

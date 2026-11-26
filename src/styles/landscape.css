@@ -1,0 +1,67 @@
+/* =====================================================================
+   A phone held sideways (or any screen as short): at most 500px tall and wider than it is tall.
+   Loaded last (Base.astro), so these win over the rules for upright phones and laptops they adjust.
+   - The page keeps clear of the notch and the rounded corners: its margins grow to the safe area at the sides
+     (0 on any other screen, so nothing changes there).
+   - No dock along the bottom, where a short screen can't spare the room: the header carries "Book" beside
+     "Menu" (the menu has the call back, the chats and the way here), and it tucks away on the way down.
+   - The hero is one screen: HOTLAND on one line across it, the words and the buttons side by side beneath.
+   - Pictures that would stand taller than the screen are cut wider instead (the posters, the portraits, the
+     menu's pictures), so a picture and its words fit one screen.
+   - What holds still while the page scrolls (the VIP rooms, the menu's tabs) fits the short screen.
+   - The footer's HOTLAND runs the full width; the links above it simply scroll by.
+   The scripts that differ (the posters' held row, the gallery's walk, the wide films) ask the same question.
+   A part with a stylesheet of its own (the hero, the posters, the models, the VIP rooms, the club page, the gallery's
+   viewer, the menu page) keeps its rules for this at the end of that sheet, which loads after this file.
+   ===================================================================== */
+
+:root { --pad: max(clamp(16px, 3.2vw, 48px), env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)); }
+
+@media (orientation: landscape) and (max-height: 500px) {
+  :root { --hdr-row: 54px; }
+
+  /* ---------- Sections breathe less ---------- */
+  :root { --sec-y: clamp(36px, 9svh, 56px); --head-gap: 16px; }
+  /* (a page's name is the Dial: narrow enough that a quarter of the screen's height still fits the longest word) */
+  .t-xl { font-size: clamp(72px, 24svh, 120px); }
+  .t-xxl { font-size: clamp(80px, 28svh, 136px); }
+  /* (a section's heading is the Dial too, at the size it has on an upright phone; a long one is the text face) */
+  .t-l { font-size: clamp(48px, 13svh, 60px); }
+  .t-l.long { font-size: clamp(28px, 8svh, 40px); }
+  .btn { height: 46px; padding: 0 22px; }
+
+  /* ---------- Films: the wide cut, never taller than the screen ---------- */
+  .film .photo { aspect-ratio: var(--r, 16 / 9); max-height: calc(100svh - var(--hdr)); }
+  .film-media video { max-height: 100svh; }
+
+  /* ---------- A picture beside its words (the 12 columns stay side by side): never taller than the screen ---------- */
+  .g12 .photo { max-height: calc(100svh - var(--hdr) - 40px); }
+
+  /* (the 18+ door keeps its own short-screen layout: styles/gate.css) */
+
+  /* ---------- The menu sheet: the sections on the left, booking and contacts on the right ---------- */
+  .mnav-body { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; gap: 20px clamp(24px, 5vw, 56px); padding-top: 4px; }
+  .mnav-links { --ic: 34px; }
+  .mnav-links a { column-gap: 12px; padding: 4px 10px; font-size: clamp(26px, 8.4svh, 34px); }
+  .mnav-info { gap: 18px; }
+
+  /* ---------- The footer: HOTLAND the full width; the links scroll by above it ---------- */
+  .ft-end { max-height: none; }
+  .ft-mast { flex: none; height: calc(100cqw / 5 + 2 * var(--gap-y)); }
+}
+
+/* ---------- Sideways and narrower than a laptop: the header carries "Book", and there is no dock ---------- */
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 899px) {
+  :root { --dock: 0px; }
+  .mbar { display: none; }
+  body:not(.bare) { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  html { scroll-padding-bottom: 16px; }
+  .hdr-book { display: inline-flex; height: 42px; padding: 0 18px; font-size: 14px; }
+  .hdr-r { gap: 8px; }
+  /* the bar at a glance (home): the list beside its picture, as on a laptop, not the picture set into the list */
+  .menu-peek { display: grid; }
+  .menu-peek-shot { display: none; }
+  .menu-peek-side { display: block; }
+  .mrow-by { flex-direction: row; align-items: baseline; gap: 12px; padding: 9px 0; }
+  .mrow-by .dots { display: block; }
+}

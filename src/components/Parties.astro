@@ -1,0 +1,137 @@
+---
+// Parties: the four occasions as tall photo panels side by side (styles in styles/parties.css). The same section
+// on the home page and on the VIP page; only its anchor differs (`id`).
+// Desktop: one panel is open wide, the others are narrow strips. Pointing at a strip, tapping it or tabbing to it
+// opens it; its name, its words and the link to its page sit under it, never on the photo. Each panel is a
+// button (aria-expanded) that controls the words under it. Phones: a row of cards to swipe, each with its words.
+import { photo } from '../data/images';
+import { parties, occasions, media } from '../data/content';
+import { type Lang, ui, tr } from '../data/i18n';
+import { headClass } from '../data/format';
+import '../styles/parties.css';
+interface Props {
+  lang: Lang;
+  /** the section's anchor: "events" on the home page, "occasions" on the VIP page (where the footer's «Праздники» leads) */
+  id?: string;
+}
+const { lang, id = 'events' } = Astro.props;
+const ru = lang === 'ru';
+const p = (s: string) => `/${lang}/${s}/`;
+// Russian typesetting: a short word stays on the line of the word after it ("на сцену", "и своя"), and a hyphenated
+// word never breaks at its hyphen ("шоу-программа").
+const keep = (s: string) => (ru ? s.replace(/(?<=^|\s)(в|во|на|за|до|по|с|со|к|ко|и|а|о|у|не|ни|от|из|для|без)\s/gi, '$1\u00a0') : s).replace(/(\S)-(?=\S)/g, '$1\u2011');
+// where each picture sits in its panel: the cake, the raised glasses, the candelabra, the spotlit curtain
+const pos: Record<string, string> = { birthday: '50% 66%', bachelor: '50% 40%', corporate: '50% 48%', hire: '50% 50%' };
+const shots = await Promise.all(occasions.map((o) => photo(media(o.img), '(max-width: 899px) 80vw, 30vw')));
+---
+<!-- PARTIES: the heading row as every section's (the title, its line), then four occasions as photo panels (the one
+     you point at opens wide, its words under it), and the request button after them -->
+<section class="sec pty" id={id}>
+  <div class="wrap pty-in">
+    <div class="bighead bh-line pty-head">
+      <h2 class={`${headClass(tr(parties.title, lang))} pty-title`} set:html={tr(parties.title, lang)} />
+      <div class="bighead-side"><p class="body pty-lead">{keep(tr(parties.lead, lang))}</p></div>
+    </div>
+    <div class="pa" data-pa data-lenis-prevent-horizontal>
+      {occasions.map((o, i) => (
+        <div class:list={['pa-item', { 'is-open': i === 0 }]} data-pa-item>
+          <button class="pa-btn" type="button" id={`pty-${o.slug}`} aria-expanded={i === 0 ? 'true' : 'false'} aria-controls={`pty-${o.slug}-words`} data-pa-btn>
+            <span class="photo pa-shot"><img src={media(o.img)} {...shots[i]} alt="" loading="lazy" decoding="async" style={`object-position:${pos[o.slug]}`} /></span>
+            <span class="pa-name">{tr(o.title, lang)}</span>
+          </button>
+          <div class="pa-cap" id={`pty-${o.slug}-words`}>
+            <p class="body">{keep(tr(o.text, lang))}</p>
+            <a class="lnk pa-more" href={p(`membership/${o.slug}`)}>{ui[lang].more}<span class="sr-only">: {tr(o.title, lang)}</span></a>
+          </div>
+        </div>
+      ))}
+    </div>
+    <div class="btns pty-cta"><a class="btn btn-crimson" href={`${p('booking')}?type=event`}>{tr(parties.cta, lang)}</a></div>
+  </div>
+</section>
+
+
+<script>
+  // Parties: the panel you point at (after a moment, so a pass across doesn't flicker), tap or tab to opens
+  // wide; the others narrow to strips. The last one opened stays open. With motion, the four wait side by
+  // side at the same width and the first one opens as they come into view. Phones: every card shows its
+  // words, and tapping a card that peeks in from the side brings it into view.
+  const root = document.querySelector<HTMLElement>('[data-pa]');
+  if (root) {
+    const items = Array.from(root.querySelectorAll<HTMLElement>('[data-pa-item]'));
+    const btns = items.map((it) => it.querySelector<HTMLButtonElement>('[data-pa-btn]')!);
+    const desk = matchMedia('(min-width: 900px)');
+    const still = matchMedia('(prefers-reduced-motion: reduce)');
+    let open = 0;
+    let touched = false;
+    let timer = 0;
+
+    const set = (n: number) => {
+      // the words that appear stay where they will rest: a panel opened from a strip on its left grows
+      // from its right edge, so its words are pinned to that edge while it opens
+      items.forEach((it, i) => it.classList.toggle('from-l', i === n && open >= 0 && open < n));
+      open = n;
+      root.classList.toggle('is-idle', n < 0);
+      items.forEach((it, i) => {
+        it.classList.toggle('is-open', i === n);
+        btns[i].setAttribute('aria-expanded', String(!desk.matches || i === n));
+      });
+    };
+    const choose = (n: number) => {
+      touched = true;
+      clearTimeout(timer);
+      if (n !== open) set(n);
+    };
+
+    items.forEach((it, i) => {
+      it.addEventListener('pointerenter', (e) => {
+        clearTimeout(timer);
+        if (e.pointerType !== 'mouse' || !desk.matches || i === open) return;
+        timer = window.setTimeout(() => choose(i), 110);
+      });
+      it.addEventListener('pointerleave', () => clearTimeout(timer));
+      btns[i].addEventListener('focus', () => { if (desk.matches) choose(i); });
+      btns[i].addEventListener('click', () => {
+        if (desk.matches) return choose(i);
+        // phones: the picture of a card in view leads to its page (styles); a card at the edge comes into view
+        it.scrollIntoView({ behavior: still.matches ? 'auto' : 'smooth', block: 'nearest', inline: 'start' });
+      });
+      // the side arrows, Home and End move between the panels (up and down still scroll the page)
+      btns[i].addEventListener('keydown', (e) => {
+        const to = ({ ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: items.length - 1 } as Record<string, number>)[e.key];
+        if (to === undefined) return;
+        e.preventDefault();
+        btns[(to + items.length) % items.length].focus();
+      });
+    });
+    desk.addEventListener('change', () => set(open < 0 ? 0 : open));
+    set(0);
+
+    // Desktop: the panels take the height the screen has left once the heading, the names and the words are
+    // in, so the section always fits one screen however the words wrap (styles/parties.css has a close guess
+    // for when this doesn't run).
+    const sec = root.closest('section');
+    const shot = root.querySelector<HTMLElement>('.pa-shot');
+    const fit = () => {
+      if (!sec || !shot) return;
+      if (!desk.matches) return root.style.removeProperty('--h');
+      const h = shot.offsetHeight;
+      const want = Math.round(Math.min(600, Math.max(300, document.documentElement.clientHeight - (sec.offsetHeight - h) - 14)));
+      if (Math.abs(want - h) > 1) root.style.setProperty('--h', `${want}px`);
+    };
+    if ('ResizeObserver' in window && sec) new ResizeObserver(fit).observe(sec);
+    addEventListener('resize', fit);
+    fit();
+
+    const motion = document.documentElement.classList.contains('motion') && !still.matches;
+    if (motion && desk.matches && 'IntersectionObserver' in window && root.getBoundingClientRect().top > innerHeight * 0.5) {
+      set(-1);
+      const io = new IntersectionObserver((entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        window.setTimeout(() => { if (!touched) set(0); }, 800);
+      }, { threshold: 0.5 });
+      io.observe(root);
+    }
+  }
+</script>

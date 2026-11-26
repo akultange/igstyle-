@@ -1,0 +1,72 @@
+---
+// The casting call (the artists page, the home page after the faces, and the end of About; styles in
+// styles/casting.css). The company is being cast, and this is where the artists, hosts and the rest of the team
+// find the way in. Behind the words: the dressing room, an empty
+// chair at a bulb-lit mirror. When the section comes into view the room is dark; the mirror's bulbs come on
+// one by one around the frame and the room comes up (in colour: styles/colour.css lists the dressing room among the
+// pictures lit by the room's own warm light).
+// Over the dark half of the room: the call, the roles (each opens the application with that role already chosen)
+// and the two ways to apply. (2026-11-21, «Между»: the roles' glossy 3D icons, a stiletto, cherries and the like,
+// are gone; a role is its name, a link whose underline catches the light.)
+import { photo } from '../data/images';
+import { type Lang, tr } from '../data/i18n';
+import { careers } from '../data/content';
+import { site } from '../data/site';
+import { headClass } from '../data/format';
+import '../styles/casting.css';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const ru = lang === 'ru';
+const keep = (s: string) => (ru ? s.replace(/(?<=^|\s)(в|во|на|за|до|по|с|со|к|ко|и|а|о|у|не|ни|от|из|для|без|что)\s/gi, '$1\u00a0') : s);
+// The mirror's bulbs in casting-room.webp (2048 × 1152): where each one is, as a share of the picture (x, y),
+// and how big (a share of its width), in the order they come on: up the left side, along the top, down the right.
+const BULBS: [number, number, number][] = [
+  [57.77, 53.4, 2.5], [58.01, 39.84, 2.5], [58.18, 26.26, 2.5], [58.47, 12.29, 2.6],
+  [64.91, 9.76, 2.8], [72.56, 7.01, 3.1], [81.79, 3.15, 3.6], [93.65, 0.6, 4],
+  [93.28, 19.83, 4.2], [92.66, 40.28, 4.2], [91.97, 60.55, 4.1],
+];
+const room = await photo('/media/casting-room.webp', '(max-width: 899px) 225vw, 100vw');
+---
+<section class="cc" id="casting" aria-labelledby="cc-h" data-cast>
+  <div class="cc-room" aria-hidden="true">
+    <div class="cc-stage">
+      <img src="/media/casting-room.webp" {...room} alt="" width="2048" height="1152" loading="lazy" decoding="async" />
+      <span class="cc-dark"></span>
+      <span class="cc-spill"></span>
+      {BULBS.map(([x, y, s], i) => <i class="cc-bulb" style={`--x:${x}%;--y:${y}%;--s:${s};--i:${i}`}></i>)}
+    </div>
+  </div>
+  <div class="wrap cc-in">
+    <div class="cc-txt">
+      <h2 class={headClass(tr(careers.title, lang))} id="cc-h" set:html={tr(careers.title, lang)} />
+      <p class="body">{keep(tr(careers.lead, lang))}</p>
+      <ul class="cc-roles" role="list" aria-label={ru ? 'Кого мы ищем' : 'Who we’re looking for'}>
+        {careers.roles.map((r, i) => (
+          <li>
+            <a class="cc-role" href={`/${lang}/careers/?role=${i}#apply`} data-apply data-apply-role={i}>
+              <span>{tr(r, lang)}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+      <div class="btns">
+        <a class="btn btn-crimson" href={`/${lang}/careers/#apply`} data-apply>{ru ? 'Заполнить анкету' : 'Apply'}</a>
+        <a class="btn btn-line" href={site.telegramCasting} target="_blank" rel="noopener">{tr(careers.cta, lang)}</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // The lights come on once, when the room comes into view (straight away with reduced motion).
+  const room = document.querySelector<HTMLElement>('[data-cast]');
+  if (room) {
+    const lit = () => room.classList.add('lit');
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) lit();
+    else {
+      const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { lit(); io.disconnect(); } }, { threshold: 0.35 });
+      io.observe(room);
+    }
+  }
+</script>

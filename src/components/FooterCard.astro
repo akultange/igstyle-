@@ -1,0 +1,50 @@
+---
+// Footer v4, «Визитка» (styles in styles/footers.css): the last screen as the club's calling card. On the left a
+// black card, matte, square, in one hairline: the club's logo with its needle alight, "just between us", and at its
+// foot the address and the hours with the way there. On the right the sections in the text face, a row each over a
+// hairline, and under them the ways to reach the club, a row each with its line icon. Along the bottom the small
+// print and the smaller links. (Until 2026-11-21 the card was black liquid metal with a burgundy corner and the
+// ways to reach the club were glass capsules.)
+// Phones: the card first, then the sections in two columns, the ways to reach the club, the small print.
+import { type Lang, ui } from '../data/i18n';
+import { site } from '../data/site';
+import Logo from './Logo.astro';
+import { footerLinks } from '../data/footer';
+import FooterReach from './FooterReach.astro';
+import Ic from './FooterIcon.astro';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const ru = lang === 'ru';
+const f = ui[lang].footer;
+const L = footerLinks(lang);
+const hours = `${site.hours[0].open}–${site.hours[0].close}`;
+---
+<div class="fv4">
+  <div class="fv4-main">
+    <div class="fv4-stage">
+      <div class="fv4-card">
+        <div class="fv4-name">
+          <Logo label sign="tight" class="fv4-wm" />
+          <p class="fv4-tag">{ru ? 'Только между нами' : 'Just between us'}</p>
+        </div>
+        <div class="fv4-foot">
+          <p class="fv4-addr">{site.address[lang]}<br />{ru ? 'Каждую ночь' : 'Every night'} {hours}</p>
+          <a class="fv4-route" href={site.mapUrl} target="_blank" rel="noopener"><Ic name="route" /><span>{ru ? 'Маршрут' : 'Directions'}</span></a>
+        </div>
+      </div>
+    </div>
+    <div class="fv4-side">
+      <nav class="fv4-nav" aria-label={ru ? 'Разделы' : 'Sections'}>
+        {L.sections.map((l) => <a href={l.href}>{l.label}</a>)}
+      </nav>
+      <FooterReach lang={lang} class="fv4-reach" />
+    </div>
+  </div>
+  <div class="fv4-bottom">
+    <p class="label fv4-adult"><span class="b18">18+</span>{f.adults}</p>
+    <nav class="fv4-small" aria-label={ru ? 'Ещё' : 'More'}>
+      {[...L.more, ...L.legal].map((l) => <a href={l.href}>{l.label}</a>)}
+    </nav>
+    <p class="label">© {new Date().getFullYear()} {site.name} · {f.credit}</p>
+  </div>
+</div>
