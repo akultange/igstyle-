@@ -312,6 +312,14 @@ vec4 rebar(vec2 p, vec2 drift, vec3 L, vec3 back, float room, out vec2 nearH, ou
   return vec4(col, cover);
 }
 
+// Only where the bars are (for their shadows on the wall behind them): soft-edged, the same grid as rebar().
+float rebarCover(vec2 p, vec2 drift) {
+  const float P = 148.0, R = 6.5;
+  vec2 bh = barNear(p.y + drift.y * 20.0, p.x + drift.x * 20.0, P, 3.1);
+  vec2 bv = barNear(p.x + drift.x * 27.0, p.y + drift.y * 27.0, P * 1.07, 8.7);
+  return max(1.0 - smoothstep(R - 2.0, R + 4.0, abs(bh.x)), 1.0 - smoothstep(R - 2.0, R + 4.0, abs(bv.x)));
+}
+
 // What is behind the wall away from the home page's first screen: the club, dark and smoky, the rig's beams
 // sweeping slowly through it (red, white-hot where a beam is thickest), and motes of dust caught in them. p: CSS
 // px on the screen (shifted for depth), so behind the wall is one room wherever it's opened.
@@ -538,22 +546,36 @@ void main() {
     float room = pool * (0.62 + 0.38 * (1.0 - deepE));
     vec2 toL = normalize(L.xy);
 
+    // Past the first screen nothing shines behind the wall: the hole goes only as deep as the steel, and behind the
+    // steel the wall goes on, its far half rough and in the hole's shadow, the bars' shadows across it (so the hand
+    // there opens the stone, not a light). solid: how far that is so; light: what still shines from behind.
+    float solid = deepE;
+    vec3 light = back * (1.0 - solid);
+
     // the hole is as deep as the wall is thick: its far side lies 50 px further off, so at the pointer's angle one
     // side of the hole shows, lit from behind where it meets the far side and dark where it meets the near
     float vBack = windowField(w + drift * 50.0, trailAtScreen(hp));
     float through = smoothstep(T_CORE - fw * 2.0, T_CORE + fw * 2.0, vBack);
     float hs;
     vec3 sideStone = coreStone(w * 1.7 + 40.0, hs) * 0.6;
-    vec3 side = sideStone * 0.25 * room + back * (0.08 + 0.55 * smoothstep(T_CORE - 0.26, T_CORE, vBack));
+    vec3 side = sideStone * 0.25 * room + light * (0.08 + 0.55 * smoothstep(T_CORE - 0.26, T_CORE, vBack));
     // the near lip throws its shadow in from the light's side
     float vS = windowField(w + toL * 14.0, trailAtScreen(sp + toL * 14.0));
     float shadowIn = 1.0 - smoothstep(T_CORE - fw * 4.0, T_CORE + fw * 4.0, vS);
     vec3 voidCol = mix(side, back, through) * (1.0 - 0.55 * shadowIn);
+    if (solid > 0.0) {
+      float hf;
+      vec3 fc = coreStone(w * 0.85 + drift * 50.0 + 133.0, hf);
+      float inner = smoothstep(T_CORE, T_CORE + 0.3, v);                    // deeper in, more of the room's light
+      float barShade = rebarCover(w + toL * 30.0, drift);                    // the bars between it and the light
+      vec3 farWall = fc * (0.3 + 0.7 * hf) * room * (0.22 + 0.5 * inner) * (1.0 - 0.6 * barShade) * (1.0 - 0.55 * shadowIn);
+      voidCol = mix(voidCol, farWall, solid);
+    }
     // the steel (not in the menu: there the stones break straight onto the velvet)
     vec2 nearH = vec2(1e3), nearV = vec2(1e3);
     vec4 bars = vec4(0.0);
     if (menuIn < 1.0) {
-      bars = rebar(w, drift, L, back * (0.7 + 0.5 * filmHere), room, nearH, nearV);
+      bars = rebar(w, drift, L, light * (0.7 + 0.5 * filmHere), room, nearH, nearV);
       bars.a *= 1.0 - menuIn;
     }
     voidCol = mix(voidCol, bars.rgb * (1.0 - 0.45 * shadowIn), bars.a);
@@ -574,13 +596,13 @@ void main() {
     float skinShadow = 1.0 - smoothstep(tSkin - fw * 3.0, tSkin + fw * 3.0, vSk);
     float near = smoothstep(T_CORE - 0.2, T_CORE, v);
     vec3 coreCol = cc * (0.28 + 1.15 * max(dot(nc, L), 0.0)) * room * (1.0 - 0.65 * skinShadow) * mix(0.85, 0.6, menuIn)
-                 + back * near * mix(0.14, 0.3, menuIn) * max(dot(nc.xy, -digDir), 0.15);
+                 + light * near * mix(0.14, 0.3, menuIn) * max(dot(nc.xy, -digDir), 0.15);
     float exposed = smoothstep(T_SKIN + 0.06, T_CORE - 0.01, v);
     coreCol = mix(coreCol, bars.rgb * 0.75 * (1.0 - 0.65 * skinShadow), bars.a * exposed);
     vec3 dug = mix(coreCol, voidCol, coreOff) * mix(1.0, 0.72, deepE);
     col = mix(col, dug, skinOff);
     // the light out of the hole grazes the skin round it
-    emit += back * 0.045 * smoothstep(tSkin - 0.16, tSkin, v) * (1.0 - skinOff);
+    emit += light * 0.045 * smoothstep(tSkin - 0.16, tSkin, v) * (1.0 - skinOff);
   }
   col += emit;
 
