@@ -220,7 +220,7 @@ html:not(.has-wall) .mnav { background-color: rgba(5, 5, 6, .96) !important; }
 .mnav-links { --mn-y: 0px; justify-items: center; text-align: center; }
 .mnav-links a {
   border: 0; padding: .06em 0;
-  font: 300 clamp(34px, min(6.2vw, 8.4vh), 92px)/1.02 var(--f-serif); letter-spacing: -.02em;
+  font: 300 clamp(38px, min(11vw, 7.6vh), 92px)/1.02 var(--f-serif); letter-spacing: -.02em;
   color: rgba(236, 236, 232, .5); transition: color .35s ease, opacity .35s ease;
 }
 .mnav-links a.on, .mnav-links a:hover, .mnav-links a:focus-visible { color: var(--shirt); }
@@ -270,3 +270,8 @@ html:not(.mnav-open) :is(#main, .ft, .mbar) { transition: opacity .7s ease .2s; 
 /* (without scripts there is no counter to wait for: the question is there at once) */
 html:not(.js) .igate .ig-count { display: none; }
 html:not(.js) .igate :is(.ig-ask, .ig-note) { opacity: 1; visibility: visible; }
+/* on a phone the word "Close" stays beside its dash (a dash alone doesn't say what it does) */
+@media (max-width: 479px) {
+  .mnav-top .hdr-menu { gap: 12px; min-width: 0; }
+  .mnav-top .hdr-menu span { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
+}
