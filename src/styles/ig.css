@@ -216,11 +216,11 @@ html.has-wall .mnav { background: transparent !important; }
 html:not(.has-wall) .mnav { background-color: rgba(5, 5, 6, .96) !important; }
 .mnav-top { border-bottom: 0; padding: 0 var(--ig-pad); }
 .mnav-top .seg { font: 400 14px/1 var(--f-text); text-transform: none; letter-spacing: .01em; }
-.mnav-body { align-content: center; justify-items: center; gap: clamp(28px, 4vh, 48px); padding: 0 var(--ig-pad) calc(28px + env(safe-area-inset-bottom)); }
+.mnav-body { align-content: center; justify-items: center; gap: clamp(20px, 3.4vh, 44px); padding: 0 var(--ig-pad) calc(28px + env(safe-area-inset-bottom)); }
 .mnav-links { --mn-y: 0px; justify-items: center; text-align: center; }
 .mnav-links a {
   border: 0; padding: .06em 0;
-  font: 300 clamp(40px, 6.2vw, 92px)/1.02 var(--f-serif); letter-spacing: -.02em;
+  font: 300 clamp(34px, min(6.2vw, 8.4vh), 92px)/1.02 var(--f-serif); letter-spacing: -.02em;
   color: rgba(236, 236, 232, .5); transition: color .35s ease, opacity .35s ease;
 }
 .mnav-links a.on, .mnav-links a:hover, .mnav-links a:focus-visible { color: var(--shirt); }
@@ -241,7 +241,7 @@ html.motion .mnav.closing { animation: ig-out .3s ease both; }
 @keyframes ig-out { to { opacity: 0; } }
 /* the page under the open menu fades into the burnt wall */
 html.mnav-open :is(#main, .ft, .mbar, .site-switch) { opacity: 0; transition: opacity .5s ease .1s; }
-html.mnav-open .hdr { opacity: 0; transition: opacity .12s ease; }
+html.mnav-open .hdr { opacity: 0; transition: none; }
 html:not(.mnav-open) :is(#main, .ft, .mbar) { transition: opacity .7s ease .2s; }
 
 /* ---------- Phones: the line stands, the corners move ---------- */
@@ -267,3 +267,6 @@ html:not(.mnav-open) :is(#main, .ft, .mbar) { transition: opacity .7s ease .2s; 
 /* the switch between the versions (review copies only, SiteSwitch.astro): at the foot of the screen in the middle,
    clear of the corners' words */
 @media (min-width: 900px) { html .site-switch { left: 50%; translate: -50% 0; bottom: 18px; } }
+/* (without scripts there is no counter to wait for: the question is there at once) */
+html:not(.js) .igate .ig-count { display: none; }
+html:not(.js) .igate :is(.ig-ask, .ig-note) { opacity: 1; visibility: visible; }
