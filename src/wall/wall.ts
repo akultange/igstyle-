@@ -401,9 +401,8 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
     if (video && filmOn && video.readyState >= 2 && now - lastStroke < 2000) {
       gl.activeTexture(gl.TEXTURE4);
       gl.bindTexture(gl.TEXTURE_2D, filmTex);
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      // (uploaded as it comes, top row first: the wall reads every picture from the top down)
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     }
 
     // --- wall ---
