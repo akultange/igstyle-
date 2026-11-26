@@ -188,7 +188,7 @@ vec3 film(vec2 sp, vec2 shift) {
   // graded as the site grades its pictures (colour.css, the red that stays): grey, except where it is red
   float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
   float red = clamp((c.r - max(c.g, c.b)) * 4.0, 0.0, 1.0);
-  return mix(vec3(lum), c, 0.15 + 0.85 * red);
+  return mix(vec3(lum), c, 0.35 + 0.65 * red);
 }
 
 void main() {
@@ -329,13 +329,13 @@ void main() {
   // ---- a hole where shards have come away: the show behind the wall (or, on other pages, the club's light) ----
   if (goneA + goneB > 0.0) {
     vec3 inside = uLit * 0.16 + uLitCore * 0.025;
-    if (uFilm > 0.0) inside = mix(inside, film(sp, vec2(0.0)) * 1.15 + uLit * 0.04, uFilm);
+    if (uFilm > 0.0) inside = mix(inside, film(sp, vec2(0.0)) * 2.1 + uLit * 0.02, uFilm);
     // the broken rim: the edge of what stands catches the light from the hole
     float rim = goneB * (1.0 - goneA) * (1.0 - smoothstep(0.0, 5.0, holeEdge));
-    col += (uLit * 0.7 + uLitCore * 0.5 * rim) * rim;
+    col += (uLit * 0.45 + uLitCore * 0.35 * rim) * rim;
     float inHole = goneA * mix(smoothstep(0.0, 2.5, holeEdge), 1.0, goneB);
     col = mix(col, inside, inHole);
-    col += uLit * goneA * (1.0 - goneB) * (1.0 - smoothstep(0.0, 6.0, holeEdge)) * 0.9;
+    col += uLit * goneA * (1.0 - goneB) * (1.0 - smoothstep(0.0, 4.0, holeEdge)) * 0.55;
   }
 
   // ---- the menu's world: darker, and the burning front ----
