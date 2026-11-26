@@ -5,10 +5,12 @@
 //    gone in about a second and a half; blue: the dwell, how long a hand has rested on a place, which opens the wall
 //    wider, so the longer one looks the more of the show one sees) and takes in the new strokes, soft round brushes
 //    along each segment the pointer travelled since the last frame. Kept in screen space, in CSS pixels.
-// 2. WALL: the stone, lit, and wherever the trail says so, broken: shards that shift and tilt, light between them
-//    (the site's light of the hour: red, amber after four), the rebar's shadow across the light, and on the home page
-//    the show itself (the hero film) seen through the gaps. The menu burns in from its button: a front of light that
-//    leaves the wall darker and cracked behind it.
+// 2. WALL: the stone, lit, and wherever the trail says so, dug through in layers: the skin, the broken concrete core
+//    with the steel in it, then the hole across its rebar, and behind it the show (the home page's first screen), the
+//    club's smoke and beams (everywhere else), or, while the menu is open, the club's red velvet. The menu burns in from
+//    its button: a front of light that leaves the wall darker and crazed behind it; in it the hand breaks stones out,
+//    the cracks round them letting the red through.
+// 4. DEBRIS: the chips and the dust that come off where it breaks.
 // 3. BLOOM (where the browser can draw in floating point): the light of the cracks, gathered at a quarter of the size,
 //    blurred twice each way, and laid back over the wall, so light spills over the broken edges as light does,
 //    whatever shape the cracks take; FINAL then tones the picture down to the screen.
@@ -168,11 +170,36 @@ vec2 chunkCell(vec2 x) {
   }
   return best;
 }
+// (in the menu the stones are larger, and weigh more in the edge's shape: main() sets these)
+float gChunk = 30.0, gChunkK = 0.16;
 float windowField(vec2 wp, vec4 trv) {
   float lumps = texture(tN, wp / 760.0 + 0.21).r;
   float chips = texture(tN, wp / 118.0 + 0.63).r;
-  float chunk = hash12(chunkCell(wp / 30.0) + 13.7) - 0.5;
-  return trv.r * 0.86 + trv.b * 0.62 + (lumps - 0.5) * 0.46 + (chips - 0.5) * 0.12 + chunk * 0.16;
+  float chunk = hash12(chunkCell(wp / gChunk) + 13.7) - 0.5;
+  return trv.r * 0.86 + trv.b * 0.62 + (lumps - 0.5) * 0.46 + (chips - 0.5) * 0.12 + chunk * gChunkK;
+}
+// the same stones' exact borders: the distance to the nearest (in stones) and the stone itself
+float chunkEdge(vec2 x, out vec2 cell) {
+  vec2 n = floor(x), f = x - n;
+  vec2 mg = vec2(0.0), mr = vec2(0.0);
+  float md = 8.0;
+  for (int j = -1; j <= 1; j++)
+  for (int i = -1; i <= 1; i++) {
+    vec2 g = vec2(float(i), float(j));
+    vec2 r = g + 0.08 + 0.84 * hash22(n + g + 71.0) - f;
+    float d = dot(r, r);
+    if (d < md) { md = d; mr = r; mg = g; }
+  }
+  md = 8.0;
+  for (int j = -2; j <= 2; j++)
+  for (int i = -2; i <= 2; i++) {
+    vec2 g = mg + vec2(float(i), float(j));
+    vec2 r = g + 0.08 + 0.84 * hash22(n + g + 71.0) - f;
+    vec2 dr = r - mr;
+    if (dot(dr, dr) > 1e-5) md = min(md, dot(0.5 * (mr + r), normalize(dr)));
+  }
+  cell = n + mg;
+  return md;
 }
 vec4 trailAtScreen(vec2 sp) { return texture(tTrail, vec2(sp.x / uView.x, 1.0 - sp.y / uView.y)); }
 
@@ -319,6 +346,30 @@ vec3 club(vec2 p, float t) {
        + (uLit * 0.75 + uLitCore * 0.25) * mote * min(1.0, beams * 2.0) * 0.4;
 }
 
+// Behind the wall while the menu is open: the club's red velvet (as in its pictures), hung in deep folds that sway a
+// little, lit from above; velvet shines where its folds turn away and goes dark in their depths, and its pile runs
+// down in fine streaks. p: CSS px on the screen.
+vec3 velvet(vec2 p, float t) {
+  float y = p.y / uView.y;
+  float sway = (7.0 * sin(t * 0.33 + y * 2.4) + 4.0 * sin(t * 0.21 + 1.3)) * (0.35 + 0.65 * y);
+  float x = p.x + sway;
+  float a1 = x * 0.085, a2 = x * 0.029 + 1.7 + 0.4 * sin(y * 1.3), a3 = x * 0.16 + 0.4;
+  float h = 0.55 * sin(a1) + 0.8 * sin(a2) + 0.2 * sin(a3);
+  float dh = 0.55 * 0.085 * cos(a1) + 0.8 * 0.029 * cos(a2) + 0.2 * 0.16 * cos(a3);
+  vec3 n = normalize(vec3(-dh * 22.0, 0.0, 1.0));
+  float dif = max(dot(n, normalize(vec3(-0.25, -0.45, 0.86))), 0.0);
+  // velvet: dark where it faces you (the pile swallows the light), bright where a fold turns away, black in the deep
+  float sheen = pow(1.0 - n.z, 1.2);
+  float facing = n.z * n.z * n.z;
+  float hollow = smoothstep(-1.4, 0.5, h);
+  float pile = 0.84 + 0.32 * texture(tN, vec2(p.x / 4.0, p.y / 46.0)).r;
+  float pool = (0.45 + 0.55 * exp(-pow((y - 0.2) * 1.6, 2.0))) * (0.78 + 0.22 * sin(p.x * 0.0041 + 1.0));
+  const vec3 RED = vec3(1.0, 0.026, 0.034);
+  // (kept deep: a dark crimson, its light only where the folds turn)
+  return (RED * pile * pool * (0.022 + 0.16 * dif * hollow * (1.0 - 0.5 * facing) + 1.05 * sheen * hollow)
+       + uLitCore * pow(sheen, 2.5) * hollow * pool * 0.09) * 0.65;
+}
+
 float edgeNoise(vec2 wp) { return texture(tN, wp / 560.0).r; }
 
 // The lilies: one screen of the wall carries the drawing, cover-fitted; below it the drawing repeats, mirrored
@@ -371,50 +422,67 @@ void main() {
   }
 
   // ---- the stone, and where the hand is, the layers it digs through ----
-  vec3 tilt = vec3(0.0);  // a shard's tilt (the menu's crazed wall)
+  // (in the menu: the layers close up into the stone's broken edge, the stones are larger, and the wall looks the same
+  // wherever on the page it was opened)
+  gChunk = mix(30.0, 44.0, menuIn);
+  gChunkK = mix(0.16, 0.24, menuIn);
+  float deepE = uDeep * (1.0 - menuIn);
+  float tSkin = mix(T_SKIN, T_CORE - 0.045, menuIn);
+  vec3 tilt = vec3(0.0);  // a shard's tilt (the menu's crazed wall), a loosened stone's
   float sink = 1.0;       // shadow in a crack
-  vec3 emit = vec3(0.0);  // light: the burn's front, the glow round an opening
+  vec3 emit = vec3(0.0);  // light: the burn's scorch, the glow round an opening, the red through the stones' cracks
   float skinOff = 0.0;    // 1 where the skin has come off (the core, or the void, shows)
   float coreOff = 0.0;    // 1 where the core has broken through (the void)
-  float v = 0.0, fw = 1e-4;
-  float skinLip = 0.0, coreLip = 0.0;
+  float v = 0.0, vSkin = 0.0, fw = 1e-4;
+  float skinLip = 0.0, coreLip = 0.0, stoneCrack = 0.0;
   vec2 digDir = vec2(0.0);
   float broken = max(max(tr.r, tr.b), menuIn);
   if (broken > 0.003) {
     v = windowField(w, tr);
     fw = max(fwidth(v), 1e-4);
     // the skin flakes off along finer chips of its own, so its edge never runs alongside the core's
-    float vSkin = v + (texture(tN, w / 52.0 + 0.4).r - 0.5) * 0.09;
-    skinOff = smoothstep(T_SKIN - fw, T_SKIN + fw, vSkin);
+    vSkin = v + (texture(tN, w / 52.0 + 0.4).r - 0.5) * 0.09 * (1.0 - menuIn);
+    skinOff = smoothstep(tSkin - fw, tSkin + fw, vSkin);
     coreOff = smoothstep(T_CORE - fw, T_CORE + fw, v);
     digDir = normalize(vec2(dFdx(v), -dFdy(v)) + 1e-6);   // pointing into the opening
     // the skin's broken edge: two or three pixels of pale fracture, sloping down to the core
-    skinLip = smoothstep(T_SKIN - fw * 3.5, T_SKIN - fw * 0.3, vSkin) * (1.0 - skinOff);
+    skinLip = smoothstep(tSkin - fw * 3.5, tSkin - fw * 0.3, vSkin) * (1.0 - skinOff);
     // the core's broken edge: chunkier, about nine pixels, sloping down into the void
     coreLip = smoothstep(T_CORE - fw * 9.0, T_CORE - fw * 0.5, v) * (1.0 - coreOff) * skinOff;
 
     // round the opening the skin is cracked: a few dark lines running out from the edge
-    float ring = smoothstep(T_SKIN - 0.24, T_SKIN - 0.03, v) * (1.0 - skinOff);
+    float ring = smoothstep(tSkin - 0.24, tSkin - 0.03, v) * (1.0 - skinOff);
     if (ring > 0.0 || menuIn > 0.0) {
       vec2 cell, other, dir;
       float e = voronoi(w / CELL, cell, other, dir);
       float line = 1.0 - smoothstep(0.35, 1.3, e * CELL);
-      float cracks = step(0.45, hash12(min(cell, other) * 3.1 + max(cell, other))) * ring;
+      float cracks = step(0.45, hash12(min(cell, other) * 3.1 + max(cell, other))) * ring * (1.0 - menuIn);
       sink *= 1.0 - 0.75 * line * cracks;
       // behind the menu's burn every shard has settled a little askew, scorched along its borders
       if (menuIn > 0.0) {
         vec2 ht = hash22(cell + 11.3) - 0.5;
         tilt = vec3(ht * 0.125 * menuIn, 0.0);
         sink *= 1.0 - 0.45 * line * menuIn;
-        emit += uLit * line * menuIn * 0.07 * step(0.9, hash12(min(cell, other) * 3.1 + max(cell, other)));
+        emit += uLit * line * menuIn * 0.03 * step(0.9, hash12(min(cell, other) * 3.1 + max(cell, other)));
+        // and round the hand's hole the stones are breaking: each one a little loose (askew, in its own shadow), the
+        // cracks between them letting the red through
+        float band = smoothstep(tSkin - 0.18, tSkin - 0.015, vSkin) * (1.0 - skinOff) * menuIn;
+        if (band > 0.0) {
+          vec2 sc;
+          float es = chunkEdge(w / gChunk, sc);
+          stoneCrack = (1.0 - smoothstep(0.3, 1.6, es * gChunk)) * band;
+          tilt += vec3((hash22(sc + 4.1) - 0.5) * 0.4 * band, 0.0);
+          sink *= 1.0 - (0.25 + 0.35 * hash12(sc + 8.8)) * band * smoothstep(0.0, 0.5, es);
+        }
       }
     }
   }
 
   // ---- light on the skin ----
   vec3 L = L0;
-  vec3 N = surfaceNormal(w, 1.7);
-  float calmRelief = (1.0 - 0.8 * uDeep) * (1.0 - 0.15 * uRest);
+  // (past the first screen the wall goes quiet: its grain shallower, the lilies almost flat, its light even)
+  vec3 N = surfaceNormal(w, mix(1.7, 0.8, deepE));
+  float calmRelief = (1.0 - 0.92 * deepE) * (1.0 - 0.15 * uRest);
   float ao = 1.0, shade = 1.0;
   if (uRelief > 0.0) {
     vec2 rp = mix(w, sp, step(0.5, menuIn));
@@ -435,30 +503,39 @@ void main() {
   }
   N = normalize(N + tilt + vec3(digDir * 1.0 * skinLip, 0.0));
   float alb = texture(tA, w / TILE).r;
-  alb = mix(alb, 0.5, 0.55 * uDeep);                                                 // calmer further down
+  alb = mix(alb, 0.5, 0.8 * deepE);                                                  // calmer further down
   alb = mix(alb, 0.9 + 0.25 * (texture(tN, w / 31.0).r - 0.5), skinLip * 0.85);       // the fresh fracture: pale
-  float mottle = texture(tN, w / 2600.0 + 0.37).r;
+  float mottle = mix(texture(tN, w / 2600.0 + 0.37).r, 0.5, 0.6 * deepE);
   float dif = max(dot(N, L), 0.0) * shade;
   vec3 H = normalize(L + vec3(0.0, 0.0, 1.0));
-  float spec = pow(max(dot(N, H), 0.0), 28.0) * 0.05;
+  float spec = pow(max(dot(N, H), 0.0), 28.0) * 0.05 * (1.0 - 0.6 * deepE);
   vec3 base = vec3(0.016, 0.0165, 0.018) * (0.7 + 0.6 * alb) * (0.82 + 0.36 * mottle);
   vec2 q = sp / uView;
   float pool = 0.55 + 0.75 * exp(-dot(q - vec2(0.3, 0.12), q - vec2(0.3, 0.12)) * 1.6);
-  pool = mix(pool, 0.62, uDeep);
+  pool = mix(pool, 0.62, deepE);
   vec3 col = base * (0.42 * ao + 1.35 * dif) * pool * sink + spec * pool * shade;
-  col *= mix(1.0, 0.6, uDeep) * mix(1.0, 0.75, uRest);                                  // the wall steps back
+  col *= mix(1.0, 0.42, deepE) * mix(1.0, 0.75, uRest);                                // the wall steps back
+  col *= mix(1.0, 0.42, menuIn);                                                       // the menu's world: darker
+
+  // ---- what is behind the wall ----
+  // how the pointer stands to the screen's middle: the layers lie at different depths and slide against each other
+  // as it moves (the core 8 px down, the steel 20 to 27, the hole's far side and what's behind it 50). Behind: the
+  // club (smoke and the rig's beams), on the home page's first screen the show, in the menu the velvet.
+  vec2 drift = drift0;
+  vec2 hp = sp + drift * 50.0;
+  vec3 back = vec3(0.0);
+  float filmHere = 0.0;
+  if (skinOff > 0.0 || stoneCrack > 0.0) {
+    if (menuIn < 1.0) back = club(hp, uTime) * mix(1.0, 0.32, deepE);   // (darker past the first screen)
+    if (menuIn > 0.0) back = mix(back, velvet(hp, uTime), menuIn);
+    filmHere = uFilm * (1.0 - smoothstep(uFilmBottom - 160.0, uFilmBottom, sp.y)) * (1.0 - menuIn);
+    if (filmHere > 0.0) back = mix(back, film(sp, drift * 50.0 / uView) * 1.45, filmHere);
+    emit += back * stoneCrack * 0.75;
+  }
 
   // ---- the layers the hand digs through ----
   if (skinOff > 0.0) {
-    // how the pointer stands to the screen's middle: the layers lie at different depths and slide against each
-    // other as it moves (the core 8 px down, the steel 20 to 27, the hole's far side and what's behind it 50)
-    vec2 drift = drift0;
-    float room = pool * (0.62 + 0.38 * (1.0 - uDeep));
-    // what is behind: the club (smoke and the rig's beams), or on the home page's first screen, the show
-    vec2 hp = sp + drift * 50.0;
-    vec3 back = club(hp, uTime) * mix(1.0, 0.55, uDeep);
-    float filmHere = uFilm * (1.0 - smoothstep(uFilmBottom - 160.0, uFilmBottom, sp.y)) * (1.0 - menuIn);
-    if (filmHere > 0.0) back = mix(back, film(sp, drift * 50.0 / uView) * 1.45, filmHere);
+    float room = pool * (0.62 + 0.38 * (1.0 - deepE));
     vec2 toL = normalize(L.xy);
 
     // the hole is as deep as the wall is thick: its far side lies 50 px further off, so at the pointer's angle one
@@ -471,14 +548,19 @@ void main() {
     // the near lip throws its shadow in from the light's side
     float vS = windowField(w + toL * 14.0, trailAtScreen(sp + toL * 14.0));
     float shadowIn = 1.0 - smoothstep(T_CORE - fw * 4.0, T_CORE + fw * 4.0, vS);
-    vec3 voidCol = mix(side, back, through) * (1.0 - 0.55 * shadowIn) * (1.0 - 0.5 * menuIn);
-    vec2 nearH, nearV;
-    vec4 bars = rebar(w, drift, L, back * (0.7 + 0.5 * filmHere), room, nearH, nearV);
+    vec3 voidCol = mix(side, back, through) * (1.0 - 0.55 * shadowIn);
+    // the steel (not in the menu: there the stones break straight onto the velvet)
+    vec2 nearH = vec2(1e3), nearV = vec2(1e3);
+    vec4 bars = vec4(0.0);
+    if (menuIn < 1.0) {
+      bars = rebar(w, drift, L, back * (0.7 + 0.5 * filmHere), room, nearH, nearV);
+      bars.a *= 1.0 - menuIn;
+    }
     voidCol = mix(voidCol, bars.rgb * (1.0 - 0.45 * shadowIn), bars.a);
 
     // the core: broken concrete, lit by the room and, near the hole, by what comes out of it; the steel shows in
     // it as the hole comes near (first a groove, then the bar half out of the stone), rust round it in the paste
-    // and running down below the horizontal bars
+    // and running down below the horizontal bars. (In the menu it's only the broken stones' edge, a few px.)
     float hc;
     vec3 cc = coreStone(w + drift * 8.0, hc);
     vec3 nc = normalize(vec3(-dFdx(hc) * 3.0, dFdy(hc) * 3.0, 1.0));
@@ -487,23 +569,22 @@ void main() {
     float rustHalo = max(1.0 - smoothstep(6.5, 17.0, abs(nearH.x)), 1.0 - smoothstep(6.5, 15.0, abs(nearV.x)));
     float streak = step(0.0, nearH.x) * exp(-nearH.x / 42.0)
                  * smoothstep(0.45, 0.85, texture(tN, vec2((w.x + drift.x * 20.0) / 9.0, nearH.y * 0.31)).r);
-    cc = mix(cc, vec3(0.05, 0.02, 0.008), clamp(rustHalo * 0.55 + streak * 0.7, 0.0, 0.8));
-    float vSk = windowField(w + toL * 7.0, trailAtScreen(sp + toL * 7.0)) + (texture(tN, (w + toL * 7.0) / 52.0 + 0.4).r - 0.5) * 0.09;
-    float skinShadow = 1.0 - smoothstep(T_SKIN - fw * 3.0, T_SKIN + fw * 3.0, vSk);
+    cc = mix(cc, vec3(0.05, 0.02, 0.008), clamp(rustHalo * 0.55 + streak * 0.7, 0.0, 0.8) * (1.0 - menuIn));
+    float vSk = windowField(w + toL * 7.0, trailAtScreen(sp + toL * 7.0)) + (texture(tN, (w + toL * 7.0) / 52.0 + 0.4).r - 0.5) * 0.09 * (1.0 - menuIn);
+    float skinShadow = 1.0 - smoothstep(tSkin - fw * 3.0, tSkin + fw * 3.0, vSk);
     float near = smoothstep(T_CORE - 0.2, T_CORE, v);
-    vec3 coreCol = cc * (0.28 + 1.15 * max(dot(nc, L), 0.0)) * room * (1.0 - 0.65 * skinShadow) * 0.85
-                 + back * near * 0.14 * max(dot(nc.xy, -digDir), 0.15);
+    vec3 coreCol = cc * (0.28 + 1.15 * max(dot(nc, L), 0.0)) * room * (1.0 - 0.65 * skinShadow) * mix(0.85, 0.6, menuIn)
+                 + back * near * mix(0.14, 0.3, menuIn) * max(dot(nc.xy, -digDir), 0.15);
     float exposed = smoothstep(T_SKIN + 0.06, T_CORE - 0.01, v);
     coreCol = mix(coreCol, bars.rgb * 0.75 * (1.0 - 0.65 * skinShadow), bars.a * exposed);
-    vec3 dug = mix(coreCol, voidCol, coreOff);
+    vec3 dug = mix(coreCol, voidCol, coreOff) * mix(1.0, 0.72, deepE);
     col = mix(col, dug, skinOff);
     // the light out of the hole grazes the skin round it
-    emit += back * 0.045 * smoothstep(T_SKIN - 0.16, T_SKIN, v) * (1.0 - skinOff);
+    emit += back * 0.045 * smoothstep(tSkin - 0.16, tSkin, v) * (1.0 - skinOff);
   }
   col += emit;
 
-  // ---- the menu's world: darker, and the burning front ----
-  col *= mix(1.0, 0.42, menuIn);
+  // ---- the burning front of the menu ----
   col *= 1.0 - 0.6 * charBand;
   col += (uLit * 0.95 + uLitCore * 0.22 * front * front * front) * front * 1.1;
 
@@ -588,6 +669,7 @@ precision highp float;
 in vec4 vQ;
 in float vTurn;
 uniform vec3 uLit;
+uniform float uDim;     // the wall's own darkening (further down, after the question, in the menu)
 out vec4 o;
 void main() {
   vec2 p = gl_PointCoord * 2.0 - 1.0;
@@ -603,11 +685,11 @@ void main() {
     // two faces, split across it: as it tumbles, each turns to the light and away (fresh concrete, pale lit)
     float face = step(0.0, p.x * 0.6 + p.y);
     float lit = 0.5 + 0.5 * sin(vTurn * 2.0 + vQ.w * 6.28 + face * 2.1);
-    vec3 col = vec3(0.07, 0.068, 0.064) * (0.2 + 1.5 * lit) * (0.65 + 0.35 * vQ.y) + uLit * 0.015;
+    vec3 col = (vec3(0.07, 0.068, 0.064) * (0.2 + 1.5 * lit) * (0.65 + 0.35 * vQ.y) + uLit * 0.015) * uDim;
     o = vec4(col, smoothstep(0.0, 0.25, life));
   } else {
     float d = length(p);
     float a = (1.0 - smoothstep(0.1, 1.0, d)) * 0.22 * life;
-    o = vec4(vec3(0.08, 0.077, 0.073) + uLit * 0.02, a);
+    o = vec4((vec3(0.08, 0.077, 0.073) + uLit * 0.02) * uDim, a);
   }
 }`;

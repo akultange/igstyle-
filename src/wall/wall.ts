@@ -330,7 +330,8 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
     pNext = (pNext + 1) % MAXP;
     pLive = Math.min(MAXP, pLive + 1);
     const r = Math.random();
-    pAttr.set([x, y, dust ? 8 + 10 * Math.random() : 3 + 6.5 * r * r, Math.random() * 6.28, 1, Math.random(), dust ? 1 : 0, Math.random()], i * 8);
+    // (in the menu the stones are larger, and so is what comes off them)
+    pAttr.set([x, y, dust ? 8 + 10 * Math.random() : (3 + 6.5 * r * r) * (1 + 0.7 * menuT), Math.random() * 6.28, 1, Math.random(), dust ? 1 : 0, Math.random()], i * 8);
     const sp = dust ? 25 + 40 * Math.random() : 60 + 160 * Math.random();
     pVel.set([ox * sp + (Math.random() - 0.5) * 40, oy * sp - (dust ? 10 : 60 + 120 * Math.random()), (Math.random() - 0.5) * 14, dust ? 0.45 + 0.4 * Math.random() : 0.7 + 0.6 * Math.random()], i * 4);
   };
@@ -544,6 +545,9 @@ export function startWall(canvas: HTMLCanvasElement): Wall | null {
       gl.uniform2f(uD.uView, vw, vh);
       gl.uniform1f(uD.uDpr, canvas.width / vw);
       gl.uniform3fv(uD.uLit, lit);
+      // (as dark as the wall they come from: further down, after the question, in the menu)
+      const dE = deep * deep * (3 - 2 * deep);
+      gl.uniform1f(uD.uDim, (1 - 0.6 * dE * (1 - menuT)) * (1 - 0.25 * rest) * (1 - 0.5 * menuT));
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.drawArrays(gl.POINTS, 0, MAXP);
